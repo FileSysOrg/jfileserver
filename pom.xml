@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>org.filesys</groupId>
+    <artifactId>jfileserver</artifactId>
+    <packaging>jar</packaging>
+    <version>1.0.0</version>
+
+    <name>${project.groupId}:${project.artifactId}</name>
+    <description>Java file server with SMB, FTP/FTPS and NFS support, virtual filesystems, database filesystems</description>
+    <url>http://www.filesys.org</url>
+
+    <licenses>
+        <license>
+            <name>GNU General Lesser Public License (LGPL) version 3.0</name>
+            <url>https://www.gnu.org/licenses/lgpl.txt</url>
+        </license>
+    </licenses>
+
+    <properties>
+        <!-- Compile with Java 7, default is 5 -->
+        <maven.compiler.source>1.7</maven.compiler.source>
+        <maven.compiler.target>1.7</maven.compiler.target>
+    </properties>
+
+    <dependencies>
+        <!-- Hazelcast clustering -->
+        <dependency>
+            <groupId>com.hazelcast</groupId>
+            <artifactId>hazelcast</artifactId>
+            <version>3.10.1</version>
+        </dependency>
+
+        <!-- Java Native Access -->
+        <dependency>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna</artifactId>
+            <version>4.5.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna-platform</artifactId>
+            <version>4.5.0</version>
+        </dependency>
+
+        <!-- BouncyCastle crypto library -->
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcprov-jdk15on</artifactId>
+            <version>1.48</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- Build the various jars -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.1.0</version>
+
+                <executions>
+                    <!-- Build the main jfileserver jar -->
+                    <execution>
+                        <id>default-jar</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                        <configuration>
+                            <archive>
+                                <manifest>
+                                    <mainClass>org.filesys.app.FileServer</mainClass>
+                                </manifest>
+                            </archive>
+
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Include source -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Include Javadocs -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Run the application -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>1.2.1</version>
+                <configuration>
+                    <mainClass>org.filesys.app.FileServer</mainClass>
+                    <arguments>
+                        <argument>test/fileSrvConfig.xml</argument>
+                    </arguments>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <developers>
+        <developer>
+            <name>Gary K. Spencer</name>
+            <email>gk.spencer@filesys.org</email>
+            <organization>FileSys.Org</organization>
+            <organizationUrl>http://www.filesys.org</organizationUrl>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection></connection>
+        <developerConnection></developerConnection>
+        <url></url>
+    </scm>
+
+</project>

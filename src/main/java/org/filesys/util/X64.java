@@ -1,0 +1,43 @@
+/*
+ * Copyright (C) 2006-2010 Alfresco Software Limited.
+ * Copyright (C) 2018 GK Spencer
+ *
+ * This file is part of Alfresco
+ *
+ * Alfresco is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Alfresco is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with Alfresco. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package org.filesys.util;
+
+import com.sun.jna.Platform;
+
+/**
+ * X64 Class
+ *
+ * <p>
+ * Check if the platform is a 64bit operating system.
+ *
+ * @author gkspencer
+ */
+public class X64 {
+
+    /**
+     * Check if we are running on a Windows 64bit system
+     *
+     * @return boolean
+     */
+    public static boolean isWindows64() {
+        return Platform.isWindows() && Platform.is64Bit();
+    }
+}
