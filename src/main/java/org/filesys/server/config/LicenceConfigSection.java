@@ -1,18 +1,18 @@
 /*
  * Copyright (C) 2018 GK Spencer
  *
- * JFileSrv is free software: you can redistribute it and/or modify
+ * JFileServer is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * JFileSrv is distributed in the hope that it will be useful,
+ * JFileServer is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with JFileSrv. If not, see <http://www.gnu.org/licenses/>.
+ * along with JFileServer. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package org.filesys.server.config;
@@ -36,7 +36,8 @@ public class LicenceConfigSection extends ConfigSection {
     private String m_edition = "Standalone";
 
     // Default public key
-    private String m_publicKey = "30819f300d06092a864886f70d010101050003818d003081893032301006" +
+    private String m_publicKey =
+                    "30819f300d06092a864886f70d010101050003818d003081893032301006" +
                     "072a8648ce3d02002EC311215SHA512withECDSA106052b81040006031e0" +
                     "00440959090c00e7c987e0d61a22793d77bec53c4d181fd728f0b027ce2G" +
                     "028181009c795ec860acd30f84a647ed0feb3ff7a7283eb1252db4d51de2" +

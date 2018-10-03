@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2006-2011 Alfresco Software Limited.
+ * Copyright (C) 2018 GK Spencer
  *
  * This file is part of Alfresco
  *

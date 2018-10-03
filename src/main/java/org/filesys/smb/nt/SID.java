@@ -31,7 +31,7 @@ public class SID {
 
     //	Constants
     //
-    //	Predefined identifier authorites
+    //	Predefined identifier authorities
     public static final int IdentAuthNull       = 0;
     public static final int IdentAuthWorld      = 1;
     public static final int IdentAuthLocal      = 2;

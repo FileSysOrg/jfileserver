@@ -23,7 +23,7 @@ import org.filesys.util.DataBuffer;
 import org.filesys.util.DataPacker;
 
 /**
- * Secutiry Descriptor Class
+ * Security Descriptor Class
  *
  * @author gkspencer
  */
