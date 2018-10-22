@@ -46,9 +46,11 @@ Pre-configured setups of the core JFileServer and various database fileserver im
 are available as Docker images which can either be used as they are or used as the starting
 point for your own configurations.
 
+For a list of the available Docker images see <https://hub.docker.com/r/filesysorg/>.
+
 Website
 -------
-The main website can be found at http://www.filesys.org.
+The main website can be found at <http://www.filesys.org>.
 
 Additional information and documentation will be added there in the near future.
 
