@@ -178,16 +178,52 @@ public class XMLServerConfiguration extends SMBOnlyXMLServerConfiguration {
 		if ( servers != null) {
 
 			// Check if the SMB server is enabled
-			if ( findChildNode("SMB", servers.getChildNodes()) != null)
-				m_smbEnabled = true;
+			Element srvElem = findChildNode("SMB", servers.getChildNodes());
+
+			if ( srvElem != null) {
+				String srvEnableStr = getAttributeWithEnvVars( srvElem, "enable");
+				if ( srvEnableStr != null)
+					m_smbEnabled = Boolean.parseBoolean( srvEnableStr);
+				else
+					m_smbEnabled = true;
+			}
+			else {
+
+				// No 'SMB' element, server not enabled
+				m_smbEnabled = false;
+			}
 
 			// Check if the FTP server is enabled
-			if ( findChildNode("FTP", servers.getChildNodes()) != null)
-				m_ftpEnabled = true;
+			srvElem = findChildNode("FTP", servers.getChildNodes());
+
+			if ( srvElem != null) {
+				String srvEnableStr = getAttributeWithEnvVars( srvElem, "enable");
+				if ( srvEnableStr != null)
+					m_ftpEnabled = Boolean.parseBoolean( srvEnableStr);
+				else
+					m_ftpEnabled = true;
+			}
+			else {
+
+				// No 'FTP' element, server not enabled
+				m_ftpEnabled = false;
+			}
 
 			// Check if the NFS server is enabled
-			if ( findChildNode("NFS", servers.getChildNodes()) != null)
-				m_nfsEnabled = true;
+			srvElem = findChildNode("NFS", servers.getChildNodes());
+
+			if ( srvElem != null) {
+				String srvEnableStr = getAttributeWithEnvVars( srvElem, "enable");
+				if ( srvEnableStr != null)
+					m_nfsEnabled = Boolean.parseBoolean( srvEnableStr);
+				else
+					m_nfsEnabled = true;
+			}
+			else {
+
+				// No 'NFS' element, server not enabled
+				m_nfsEnabled = false;
+			}
 		}
 	}
 

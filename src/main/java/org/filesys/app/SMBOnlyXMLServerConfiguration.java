@@ -34,6 +34,8 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.Locale;
 import java.util.StringTokenizer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -85,7 +87,7 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 
 /**
- * Cifs Only XML File Server Configuration Class
+ * SMB Only XML File Server Configuration Class
  * 
  * <p>
  * XML implementation of the SMB server configuration.
@@ -99,7 +101,7 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 	// Node type for an Element
 	private static final int ELEMENT_TYPE = 1;
 
-	// CIFS session debug type strings
+	// SMB session debug type strings
 	//
 	// Must match the bit mask order.
 	private static final String m_sessDbgStr[] = { "PKTTYPE", "STATE", "RXDATA", "TXDATA", "DUMPDATA", "NEGOTIATE", "TREE",
@@ -135,6 +137,9 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 	
 	// Date formatter
 	private SimpleDateFormat m_dateFmt = new SimpleDateFormat("dd-MMM-yyyy hh:mm:ss");
+
+	// Pattern match for environment variable tokens
+    private Pattern m_envTokens = Pattern.compile("\\$\\{\\w+\\}");
 
 	/**
 	 * Default constructor
@@ -242,7 +247,7 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 		}
 		catch (Exception ex) {
 
-			// Rethrow the exception as a configuration exeception
+			// Rethrow the exception as a configuration exception
 			throw new InvalidConfigurationException("XML error", ex);
 		}
 	}
@@ -538,30 +543,30 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 		if ( smb == null)
 			throw new InvalidConfigurationException("SMB section must be specified");
 
-		// Create the CIFS server configuration section
-		SMBConfigSection cifsConfig = new SMBConfigSection(this);
+		// Create the SMB server configuration section
+		SMBConfigSection smbConfig = new SMBConfigSection(this);
 
 		// Process the main SMB server settings
-		procHostElement(findChildNode("host", smb.getChildNodes()), cifsConfig);
+		procHostElement(findChildNode("host", smb.getChildNodes()), smbConfig);
 
 		// Debug settings are now specified within the SMB server configuration block
 		//
 		// Check if NetBIOS debug is enabled
 		Element elem = findChildNode("netbiosDebug", smb.getChildNodes());
 		if ( elem != null)
-			cifsConfig.setNetBIOSDebug(true);
+			smbConfig.setNetBIOSDebug(true);
 
 		// Check if host announcement debug is enabled
 		elem = findChildNode("announceDebug", smb.getChildNodes());
 		if ( elem != null)
-			cifsConfig.setHostAnnounceDebug(true);
+			smbConfig.setHostAnnounceDebug(true);
 
 		// Check if session debug is enabled
-        procSessionDebugElement( findChildNode("sessionDebug", smb.getChildNodes()), cifsConfig);
+        procSessionDebugElement( findChildNode("sessionDebug", smb.getChildNodes()), smbConfig);
 
 		// Check if NIO based code should be disabled
 		if ( findChildNode( "disableNIO", smb.getChildNodes()) != null)
-			cifsConfig.setDisableNIOCode( true);
+			smbConfig.setDisableNIOCode( true);
 		
 		// Check if a maximum virtual circuits per session limit has been specified
 		elem = findChildNode("virtualCircuits", smb.getChildNodes());
@@ -581,7 +586,7 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 								VirtualCircuitList.MaxCircuits);
 					
 					// Set the maximum virtual circuits per session
-					cifsConfig.setMaximumVirtualCircuits( maxVC);
+					smbConfig.setMaximumVirtualCircuits( maxVC);
 				}
 				catch (NumberFormatException ex) {
 					throw new InvalidConfigurationException("Invalid maximum virtual circuits value, " + maxVCVal);
@@ -640,7 +645,7 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 
 			// Get the parameters for the authenticator class
 			ConfigElement params = buildConfigElement(authElem);
-			cifsConfig.setAuthenticator(authClass, params, accessMode, allowGuest != null ? true : false);
+			smbConfig.setAuthenticator(authClass, params, accessMode, allowGuest != null ? true : false);
 		}
 	}
 
@@ -648,10 +653,10 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 	 * Process the host XML element
 	 * 
 	 * @param host Element
-	 * @param cifsConfig CIFSConfigSection
+	 * @param smbConfig SMBConfigSection
 	 * @exception InvalidConfigurationException Error parsing the configuration
 	 */
-	protected final void procHostElement(Element host, SMBConfigSection cifsConfig)
+	protected final void procHostElement(Element host, SMBConfigSection smbConfig)
 		throws InvalidConfigurationException {
 
 		// Check if the host element is valid
@@ -659,28 +664,29 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 			throw new InvalidConfigurationException("Host section must be specified");
 
 		// Get the host name attribute
-		String attr = host.getAttribute("name");
+		String attr = getAttributeWithEnvVars( host, "name");
+
 		if ( attr == null || attr.length() == 0)
 			throw new InvalidConfigurationException("Host name not specified or invalid");
-		cifsConfig.setServerName(attr.toUpperCase());
+		smbConfig.setServerName(attr.toUpperCase());
 
-		// If the global server name has not been set then use the CIFS server name
+		// If the global server name has not been set then use the SMB server name
 		if ( getServerName() == null)
-			setServerName(cifsConfig.getServerName());
+			setServerName(smbConfig.getServerName());
 
 		// Get the domain name
-		attr = host.getAttribute("domain");
+		attr = getAttributeWithEnvVars(host,"domain");
 		if ( attr != null && attr.length() > 0)
-			cifsConfig.setDomainName(attr.toUpperCase());
+			smbConfig.setDomainName(attr.toUpperCase());
 
 		// Get the enabled SMB dialects
-        procSMBDialectsElement(findChildNode("smbdialects", host.getChildNodes()), cifsConfig);
+        procSMBDialectsElement(findChildNode("smbdialects", host.getChildNodes()), smbConfig);
 
 		// Check for a server comment
 		Element elem = findChildNode("comment", host.getChildNodes());
 
 		if ( elem != null)
-			cifsConfig.setComment(getText(elem));
+			smbConfig.setComment(getText(elem));
 
 		// Check for a bind address
 		elem = findChildNode("bindto", host.getChildNodes());
@@ -693,7 +699,7 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 				InetAddress bindAddr = parseAdapterName(elem.getAttribute("adapter"));
 
 				// Set the bind address for the server
-				cifsConfig.setSMBBindAddress(bindAddr);
+				smbConfig.setSMBBindAddress(bindAddr);
 			}
 			else {
 
@@ -706,7 +712,7 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 					InetAddress bindAddr = InetAddress.getByName(bindText);
 
 					// Set the bind address for the server
-					cifsConfig.setSMBBindAddress(bindAddr);
+					smbConfig.setSMBBindAddress(bindAddr);
 				}
 				catch (UnknownHostException ex) {
 					throw new InvalidConfigurationException(ex.toString());
@@ -722,7 +728,7 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 			attr = elem.getAttribute("interval");
 			if ( attr != null && attr.length() > 0) {
 				try {
-					cifsConfig.setHostAnnounceInterval(Integer.parseInt(attr));
+					smbConfig.setHostAnnounceInterval(Integer.parseInt(attr));
 				}
 				catch (NumberFormatException ex) {
 					throw new InvalidConfigurationException("Invalid host announcement interval");
@@ -730,19 +736,19 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 			}
 
 			// Check if the domain name has been set, this is required if the host announcer is enabled
-			if ( cifsConfig.getDomainName() == null)
+			if ( smbConfig.getDomainName() == null)
 				throw new InvalidConfigurationException("Domain name must be specified if host announcement is enabled");
 
 			// Enable host announcement
-			cifsConfig.setHostAnnouncer(true);
+			smbConfig.setHostAnnouncer(true);
 		}
 
 		// Check for a host announcer port
 		elem = findChildNode("HostAnnouncerPort", host.getChildNodes());
 		if ( elem != null) {
 			try {
-				cifsConfig.setHostAnnouncerPort(Integer.parseInt(getText(elem)));
-				if ( cifsConfig.getHostAnnouncerPort() <= 0 || cifsConfig.getHostAnnouncerPort() >= 65535)
+				smbConfig.setHostAnnouncerPort(Integer.parseInt(getText(elem)));
+				if ( smbConfig.getHostAnnouncerPort() <= 0 || smbConfig.getHostAnnouncerPort() >= 65535)
 					throw new InvalidConfigurationException("Host announcer port out of valid range");
 			}
 			catch (NumberFormatException ex) {
@@ -774,7 +780,7 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 			}
 
 			// Enable the NetBIOS SMB support
-			cifsConfig.setNetBIOSSMB(platformOK);
+			smbConfig.setNetBIOSSMB(platformOK);
 
 			// Only parse the other settings if NetBIOS based SMB is enabled for the current platform
 			if ( platformOK) {
@@ -783,8 +789,8 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 				attr = elem.getAttribute("sessionPort");
 				if ( attr != null && attr.length() > 0) {
 					try {
-						cifsConfig.setSessionPort(Integer.parseInt(attr));
-						if ( cifsConfig.getSessionPort() <= 0 || cifsConfig.getSessionPort() >= 65535)
+						smbConfig.setSessionPort(Integer.parseInt(attr));
+						if ( smbConfig.getSessionPort() <= 0 || smbConfig.getSessionPort() >= 65535)
 							throw new InvalidConfigurationException("NetBIOS SMB session port out of valid range");
 					}
 					catch (NumberFormatException ex) {
@@ -796,8 +802,8 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 				attr = elem.getAttribute("datagramPort");
 				if ( attr != null && attr.length() > 0) {
 					try {
-						cifsConfig.setDatagramPort(Integer.parseInt(attr));
-						if ( cifsConfig.getDatagramPort() <= 0 || cifsConfig.getDatagramPort() >= 65535)
+						smbConfig.setDatagramPort(Integer.parseInt(attr));
+						if ( smbConfig.getDatagramPort() <= 0 || smbConfig.getDatagramPort() >= 65535)
 							throw new InvalidConfigurationException("NetBIOS SMB datagram port out of valid range");
 					}
 					catch (NumberFormatException ex) {
@@ -809,8 +815,8 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 				attr = elem.getAttribute("namingPort");
 				if ( attr != null && attr.length() > 0) {
 					try {
-						cifsConfig.setNameServerPort(Integer.parseInt(attr));
-						if ( cifsConfig.getNameServerPort() <= 0 || cifsConfig.getNameServerPort() >= 65535)
+						smbConfig.setNameServerPort(Integer.parseInt(attr));
+						if ( smbConfig.getNameServerPort() <= 0 || smbConfig.getNameServerPort() >= 65535)
 							throw new InvalidConfigurationException("NetBIOS SMB naming port out of valid range");
 					}
 					catch (NumberFormatException ex) {
@@ -829,7 +835,7 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 						InetAddress bindAddr = InetAddress.getByName(attr);
 
 						// Set the bind address for the NetBIOS name server
-						cifsConfig.setNetBIOSBindAddress(bindAddr);
+						smbConfig.setNetBIOSBindAddress(bindAddr);
 					}
 					catch (UnknownHostException ex) {
 						throw new InvalidConfigurationException(ex.toString());
@@ -841,19 +847,19 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 
 					// Get the bind address via the network adapter name
 					InetAddress bindAddr = parseAdapterName(elem.getAttribute("adapter"));
-					cifsConfig.setNetBIOSBindAddress(bindAddr);
+					smbConfig.setNetBIOSBindAddress(bindAddr);
 				}
-				else if ( cifsConfig.hasSMBBindAddress()) {
+				else if ( smbConfig.hasSMBBindAddress()) {
 
 					// Use the SMB bind address for the NetBIOS name server
-					cifsConfig.setNetBIOSBindAddress(cifsConfig.getSMBBindAddress());
+					smbConfig.setNetBIOSBindAddress(smbConfig.getSMBBindAddress());
 				}
 			}
 		}
 		else {
 
 			// Disable NetBIOS SMB support
-			cifsConfig.setNetBIOSSMB(false);
+			smbConfig.setNetBIOSSMB(false);
 		}
 
 		// Check if TCP/IP SMB is enabled
@@ -881,14 +887,14 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 			}
 
 			// Enable the TCP/IP SMB support
-			cifsConfig.setTcpipSMB(platformOK);
+			smbConfig.setTcpipSMB(platformOK);
 
 			// Check if the port has been specified
 			attr = elem.getAttribute("port");
 			if ( attr != null && attr.length() > 0) {
 				try {
-					cifsConfig.setTcpipSMBPort(Integer.parseInt(attr));
-					if ( cifsConfig.getTcpipSMBPort() <= 0 || cifsConfig.getTcpipSMBPort() >= 65535)
+					smbConfig.setTcpipSMBPort(Integer.parseInt(attr));
+					if ( smbConfig.getTcpipSMBPort() <= 0 || smbConfig.getTcpipSMBPort() >= 65535)
 						throw new InvalidConfigurationException("TCP/IP SMB port out of valid range");
 				}
 				catch (NumberFormatException ex) {
@@ -899,12 +905,12 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 		else {
 
 			// Disable TCP/IP SMB support
-			cifsConfig.setTcpipSMB(false);
+			smbConfig.setTcpipSMB(false);
 		}
 
 		// Check that the broadcast mask has been set if TCP/IP NetBIOS and/or the host announcer is
 		// enabled
-		if ( cifsConfig.hasNetBIOSSMB() || cifsConfig.hasEnableAnnouncer()) {
+		if ( smbConfig.hasNetBIOSSMB() || smbConfig.hasEnableAnnouncer()) {
 
 			// Parse the broadcast mask
 			elem = findChildNode("broadcast", host.getChildNodes());
@@ -928,7 +934,7 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 					throw new InvalidConfigurationException("Invalid broadcast mask, must be n.n.n.n format");
 
 				// Set the network broadcast mask
-				cifsConfig.setBroadcastMask( bcastMask);
+				smbConfig.setBroadcastMask( bcastMask);
 			}
 			else {
 
@@ -939,7 +945,7 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
                     throw new InvalidConfigurationException("Failed to determine broadcast mask automatically");
 
                 // Set the network broadcast mask
-                cifsConfig.setBroadcastMask( bcastMask);
+                smbConfig.setBroadcastMask( bcastMask);
 			}
 		}
 
@@ -956,7 +962,7 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 					throw new InvalidConfigurationException("Invalid Win32 NetBIOS name, " + attr);
 
 				// Set the Win32 NetBIOS file server name
-				cifsConfig.setWin32NetBIOSName(attr);
+				smbConfig.setWin32NetBIOSName(attr);
 			}
 
 			// Check if the Win32 NetBIOS client accept name has been specified
@@ -968,7 +974,7 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 					throw new InvalidConfigurationException("Invalid Win32 NetBIOS accept name, " + attr);
 
 				// Set the client accept string
-				cifsConfig.setWin32NetBIOSClientAccept(attr);
+				smbConfig.setWin32NetBIOSClientAccept(attr);
 			}
 
 			// Check if the Win32 NetBIOS LANA has been specified
@@ -1008,7 +1014,7 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 				}
 
 				// Set the LANA number
-				cifsConfig.setWin32LANA(lana);
+				smbConfig.setWin32LANA(lana);
 			}
 
 			// Check if the native NetBIOS interface has been specified, either 'winsock' or
@@ -1026,18 +1032,18 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 					throw new InvalidConfigurationException("Invalid NetBIOS API type, spefify 'winsock' or 'netbios'");
 
 				// Set the NetBIOS API to use
-				cifsConfig.setWin32WinsockNetBIOS(useWinsock);
+				smbConfig.setWin32WinsockNetBIOS(useWinsock);
 			}
 
 			// Force the older NetBIOS API code to be used on 64Bit Windows as Winsock NetBIOS is
 			// not available
-			if ( cifsConfig.useWinsockNetBIOS() == true && X64.isWindows64()) {
+			if ( smbConfig.useWinsockNetBIOS() == true && X64.isWindows64()) {
 
 				// Log a warning
 				Debug.println("Using older Netbios() API code, Winsock NetBIOS not available on x64");
 
 				// Use the older NetBIOS API code
-				cifsConfig.setWin32WinsockNetBIOS(false);
+				smbConfig.setWin32WinsockNetBIOS(false);
 			}
 
 			// Check if the current operating system is supported by the Win32 NetBIOS handler
@@ -1046,18 +1052,18 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 					&& (osName.endsWith("95") == false && osName.endsWith("98") == false && osName.endsWith("ME") == false)) {
 
 				// Enable Win32 NetBIOS
-				cifsConfig.setWin32NetBIOS(true);
+				smbConfig.setWin32NetBIOS(true);
 			}
 			else {
 
 				// Win32 NetBIOS not supported on the current operating system
-				cifsConfig.setWin32NetBIOS(false);
+				smbConfig.setWin32NetBIOS(false);
 			}
 		}
 		else {
 
 			// Disable Win32 NetBIOS
-			cifsConfig.setWin32NetBIOS(false);
+			smbConfig.setWin32NetBIOS(false);
 		}
 
 		// Check if the host announcer should be enabled
@@ -1068,7 +1074,7 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 			attr = elem.getAttribute("interval");
 			if ( attr != null && attr.length() > 0) {
 				try {
-					cifsConfig.setWin32HostAnnounceInterval(Integer.parseInt(attr));
+					smbConfig.setWin32HostAnnounceInterval(Integer.parseInt(attr));
 				}
 				catch (NumberFormatException ex) {
 					throw new InvalidConfigurationException("Invalid host announcement interval");
@@ -1077,15 +1083,15 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 
 			// Check if the domain name has been set, this is required if the host announcer is
 			// enabled
-			if ( cifsConfig.getDomainName() == null)
+			if ( smbConfig.getDomainName() == null)
 				throw new InvalidConfigurationException("Domain name must be specified if host announcement is enabled");
 
 			// Enable Win32 NetBIOS host announcement
-			cifsConfig.setWin32HostAnnouncer(true);
+			smbConfig.setWin32HostAnnouncer(true);
 		}
 
 		// Check if NetBIOS and/or TCP/IP SMB have been enabled
-		if ( cifsConfig.hasNetBIOSSMB() == false && cifsConfig.hasTcpipSMB() == false && cifsConfig.hasWin32NetBIOS() == false)
+		if ( smbConfig.hasNetBIOSSMB() == false && smbConfig.hasTcpipSMB() == false && smbConfig.hasWin32NetBIOS() == false)
 			throw new InvalidConfigurationException("NetBIOS SMB, TCP/IP SMB or Win32 NetBIOS must be enabled");
 
 		// Check if server alias name(s) have been specified
@@ -1117,7 +1123,7 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 			}
 
 			// Set the server alias names
-			cifsConfig.addAliasNames(names);
+			smbConfig.addAliasNames(names);
 		}
 
 		// Check if Macintosh extension SMBs should be enabled
@@ -1125,7 +1131,7 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 		if ( elem != null) {
 
 			// Enable Macintosh extension SMBs
-			cifsConfig.setMacintoshExtensions(true);
+			smbConfig.setMacintoshExtensions(true);
 		}
 
 		// Check if WINS servers are configured
@@ -1164,9 +1170,9 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 			}
 
 			// Set the WINS server address(es)
-			cifsConfig.setPrimaryWINSServer(primaryWINS);
+			smbConfig.setPrimaryWINSServer(primaryWINS);
 			if ( secondaryWINS != null)
-				cifsConfig.setSecondaryWINSServer(secondaryWINS);
+				smbConfig.setSecondaryWINSServer(secondaryWINS);
 		}
 		
 		// Check if a session timeout is configured
@@ -1184,7 +1190,7 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 						throw new InvalidConfigurationException("Session timeout out of range (0 - " + MaxSessionTimeout + ")");
 					
 					// Convert the session timeout to milliseconds
-					cifsConfig.setSocketTimeout( tmo * 1000);
+					smbConfig.setSocketTimeout( tmo * 1000);
 				}
 				catch (NumberFormatException ex) {
 					throw new InvalidConfigurationException("Invalid session timeout value, " + sessTmo);
@@ -1216,14 +1222,38 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 		if ( elem == null)
 			throw new InvalidConfigurationException("Output class must be specified to enable debug output");
 
-		// Get the debug output class
-		Element debugClass = findChildNode("class", elem.getChildNodes());
-		if ( debugClass == null)
-			throw new InvalidConfigurationException("Class must be specified for debug output");
+		// Check if the output type has been specified
+        String outType = getAttributeWithEnvVars(elem, "type");
+        String dbgClass = null;
+
+        if ( outType != null) {
+
+            // Check for a valid debug output type
+            if ( outType.equalsIgnoreCase( "console"))
+                dbgClass = "org.filesys.debug.ConsoleDebug";
+            else if ( outType.equalsIgnoreCase( "file"))
+                dbgClass = "org.filesys.debug.LogFileDebug";
+            else if ( outType.equalsIgnoreCase( "jdk"))
+                dbgClass = "org.filesys.debug.JdkLoggingDebug";
+            else
+                throw new InvalidConfigurationException("Invalid debug output type '" + outType + "'");
+        }
+
+        // If the debug class has not been set then check for the original class setting
+        if ( dbgClass == null) {
+
+            // Get the debug output class
+            Element debugClass = findChildNode("class", elem.getChildNodes());
+            if (debugClass == null)
+                throw new InvalidConfigurationException("Class must be specified for debug output");
+
+            // Get the debug class
+            dbgClass = getTextWithEnvVars( debugClass);
+        }
 
 		// Get the parameters for the debug class
 		ConfigElement params = buildConfigElement(elem);
-		debugConfig.setDebug(getText(debugClass), params);
+		debugConfig.setDebug(dbgClass, params);
 	}
 
 	/**
@@ -1396,7 +1426,7 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 			mapList = new DriveMappingList();
 
 			// Access the CIFS server configuration
-			SMBConfigSection cifsConfig = (SMBConfigSection) getConfigSection(SMBConfigSection.SectionName);
+			SMBConfigSection smbConfig = (SMBConfigSection) getConfigSection(SMBConfigSection.SectionName);
 
 			// Get a list of the available shares
 			SecurityConfigSection secConfig = (SecurityConfigSection) getConfigSection(SecurityConfigSection.SectionName);
@@ -1461,8 +1491,8 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 						StringBuffer remPath = new StringBuffer();
 						remPath.append("\\\\");
 
-						if ( cifsConfig.hasWin32NetBIOS() && cifsConfig.getWin32ServerName() != null)
-							remPath.append(cifsConfig.getWin32ServerName());
+						if ( smbConfig.hasWin32NetBIOS() && smbConfig.getWin32ServerName() != null)
+							remPath.append(smbConfig.getWin32ServerName());
 						else
 							remPath.append(getServerName());
 						remPath.append("\\");
@@ -1584,16 +1614,16 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 	 * Process the sessionDebug XML element
 	 *
 	 * @param elem Element
-	 * @param cifsConfig CIFSConfigSection
+	 * @param smbConfig CIFSConfigSection
 	 * @exception InvalidConfigurationException Error parsing the configuration
 	 */
-	protected void procSessionDebugElement(Element elem, SMBConfigSection cifsConfig)
+	protected void procSessionDebugElement(Element elem, SMBConfigSection smbConfig)
 			throws InvalidConfigurationException {
 
         if ( elem != null) {
 
             // Check for session debug flags
-            String flags = elem.getAttribute("flags");
+            String flags = getAttributeWithEnvVars(elem,"flags");
             int sessDbg = DEFAULT_SESSDEBUG;
 
             if ( flags != null) {
@@ -1625,7 +1655,7 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
             }
 
             // Set the session debug flags
-            cifsConfig.setSessionDebugFlags(sessDbg);
+            smbConfig.setSessionDebugFlags(sessDbg);
         }
     }
 
@@ -1633,20 +1663,20 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 	 * Process the smbdialects XML element
 	 *
 	 * @param elem Element
-	 * @param cifsConfig CIFSConfigSection
+	 * @param smbConfig CIFSConfigSection
 	 * @exception InvalidConfigurationException Error parsing the configuration
 	 */
-	protected void procSMBDialectsElement(Element elem, SMBConfigSection cifsConfig)
+	protected void procSMBDialectsElement(Element elem, SMBConfigSection smbConfig)
 			throws InvalidConfigurationException {
 
         if ( elem != null) {
 
             // Clear all configured SMB dialects
-            DialectSelector diaSel = cifsConfig.getEnabledDialects();
+            DialectSelector diaSel = smbConfig.getEnabledDialects();
             diaSel.ClearAll();
 
             // Parse the SMB dilaects list
-            StringTokenizer token = new StringTokenizer(getText(elem), ",");
+            StringTokenizer token = new StringTokenizer(getTextWithEnvVars(elem), ",");
 
             while (token.hasMoreTokens()) {
 
@@ -1684,7 +1714,7 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
             }
 
             // Set the enabled server SMB dialects
-            cifsConfig.setEnabledDialects(diaSel);
+            smbConfig.setEnabledDialects(diaSel);
         }
     }
 
@@ -1782,7 +1812,7 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 		throws InvalidConfigurationException {
 
 		// Get the share name and comment attributes
-		String attr = disk.getAttribute("name");
+		String attr = getAttributeWithEnvVars(disk,"name");
 		if ( attr == null || attr.length() == 0)
 			throw new InvalidConfigurationException("Disk share name must be specified");
 
@@ -2129,6 +2159,91 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 		// Return the element text value
 		return text;
 	}
+
+	/**
+	 * Get the value text for the specified element and convert any environment variable tokens
+	 *
+	 * @param elem Element
+	 * @return String
+	 */
+	protected final String getTextWithEnvVars(Element elem) {
+
+		// Get the element text
+        String text = getText( elem);
+
+        if ( text != null) {
+
+            // Convert environment variable tokens
+            Matcher matcher = m_envTokens.matcher( text);
+            StringBuffer textOut = new StringBuffer( text.length());
+
+            while ( matcher.find()) {
+
+                // Get the current match string
+                String token = text.substring(matcher.start(), matcher.end());
+                String envVar = token.substring(2, token.length() - 1);
+
+                // Get the environment variable value
+                String envValue = System.getenv( envVar);
+
+                if ( envValue != null) {
+
+                    // Replace the occurrence of the environment variable token and write to the new string
+                    matcher.appendReplacement( textOut, envValue);
+                }
+            }
+
+            // Replace the original text string
+            if ( textOut.length() > 0)
+                text = textOut.toString();
+        }
+
+        // Return the text value
+        return text;
+	}
+
+    /**
+     * Get the attribute text for the specified attribute and convert any environment variable tokens
+     *
+     * @param elem Element
+     * @param attrName String
+     * @return String
+     */
+    protected final String getAttributeWithEnvVars(Element elem, String attrName) {
+
+        // Get the attribute value
+        String attr = elem.getAttribute( attrName);
+
+        if ( attr != null) {
+
+            // Convert environment variable tokens
+            Matcher matcher = m_envTokens.matcher( attr);
+            StringBuffer attrOut = new StringBuffer( attr.length());
+
+            while ( matcher.find()) {
+
+                // Get the current match string
+                String token = attr.substring(matcher.start(), matcher.end());
+                String envVar = token.substring(2, token.length() - 1);
+
+                // Get the environment variable value
+                String envValue = System.getenv( envVar);
+
+                if ( envValue != null) {
+
+                    // Replace the occurrence of the environment variable token and write to the new string
+                    matcher.appendReplacement( attrOut, envValue);
+                }
+            }
+
+            // Replace the original attribute string
+            if ( attrOut.length() > 0)
+                attr = attrOut.toString();
+        }
+
+        // Return the text value
+        return attr;
+    }
 
 	/**
 	 * Build a configuration element list from an elements child nodes

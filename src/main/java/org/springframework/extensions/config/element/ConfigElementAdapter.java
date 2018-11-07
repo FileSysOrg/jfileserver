@@ -23,6 +23,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * ConfigElementAdapter class
@@ -40,6 +42,9 @@ public class ConfigElementAdapter implements ConfigElement {
     //  Children
     private List<ConfigElement> m_children;
 
+    // Pattern match for environment variable tokens
+    private Pattern m_envTokens = Pattern.compile("\\$\\{\\w+\\}");
+
     /**
      * Class constructor
      *
@@ -48,7 +53,7 @@ public class ConfigElementAdapter implements ConfigElement {
      */
     public ConfigElementAdapter( String name, String value) {
         m_name  = name;
-        m_value = value;
+        m_value = convertEnvVars( value);
     }
 
     /**
@@ -112,9 +117,7 @@ public class ConfigElementAdapter implements ConfigElement {
      *
      * @return Value of this config element or null if there is no value
      */
-    public String getValue() {
-        return m_value;
-    }
+    public String getValue() { return m_value; }
 
     /**
      * Returns a child config element of the given name
@@ -193,7 +196,7 @@ public class ConfigElementAdapter implements ConfigElement {
      * @param value String
      */
     public void setValue( String value) {
-        m_value = value;
+        m_value = convertEnvVars(value);
     }
 
     /**
@@ -205,7 +208,7 @@ public class ConfigElementAdapter implements ConfigElement {
     public void addAttribute( String attrName, String attrVal) {
         if ( m_attributes == null)
             m_attributes = new HashMap<String, String>();
-        m_attributes.put( attrName, attrVal);
+        m_attributes.put( attrName, convertEnvVars(attrVal));
     }
 
     /**
@@ -217,6 +220,44 @@ public class ConfigElementAdapter implements ConfigElement {
         if ( m_children == null)
             m_children = new ArrayList<ConfigElement>();
         m_children.add( child);
+    }
+
+    /**
+     * Convert environment variable tokens within a value
+     *
+     * @param val String
+     * @return String
+     */
+    protected final String convertEnvVars(String val) {
+
+        if ( val != null) {
+
+            // Convert environment variable tokens
+            Matcher matcher = m_envTokens.matcher( val);
+            StringBuffer valOut = new StringBuffer( val.length());
+
+            while ( matcher.find()) {
+
+                // Get the current match string
+                String token = val.substring(matcher.start(), matcher.end());
+                String envVar = token.substring(2, token.length() - 1);
+
+                // Get the environment variable value
+                String envValue = System.getenv( envVar);
+
+                if ( envValue != null) {
+
+                    // Replace the occurrence of the environment variable token and write to the new string
+                    matcher.appendReplacement( valOut, envValue);
+                }
+            }
+
+            // Replace the original text string
+            if ( valOut.length() > 0)
+                val = valOut.toString();
+        }
+
+        return val;
     }
 
     /**
