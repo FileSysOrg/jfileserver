@@ -109,6 +109,9 @@ public abstract class NetworkFile {
     // Granted file access type
     protected Access m_grantedAccess;
 
+    // Access mask from the open/create request, NT access mode flags
+    protected int m_accessMask;
+
     // Allowed file access (can be different to granted file access if read-only access was requested)
     protected Access m_allowedAccess = Access.READ_WRITE;
 
@@ -250,6 +253,15 @@ public abstract class NetworkFile {
      */
     public final Access getGrantedAccess() {
         return m_grantedAccess;
+    }
+
+    /**
+     * Return the access mask, from the oopen/create request
+     *
+     * @return int
+     */
+    public final int getAccessMask() {
+        return m_accessMask;
     }
 
     /**
@@ -579,6 +591,15 @@ public abstract class NetworkFile {
      */
     public final void setGrantedAccess(Access mode) {
         m_grantedAccess = mode;
+    }
+
+    /**
+     * Set the access mask, from the open/create request
+     *
+     * @param accessMask int
+     */
+    public final void setAccessMask(int accessMask) {
+        m_accessMask = accessMask;
     }
 
     /**

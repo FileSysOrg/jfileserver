@@ -107,4 +107,15 @@ public final class AccessMode {
 	public static final int getSharingMode(int val) {
 		return val & 0x70;
 	}
+
+	/**
+	 * Check if the specified NT access mode flag is set
+	 *
+	 * @param accessMask int
+	 * @param ntFlg int
+	 * @return boolean
+	 */
+	public static final boolean hasNTAccessMode(int accessMask, int ntFlg) {
+		return (accessMask & ntFlg) == ntFlg ? true : false;
+	}
 }

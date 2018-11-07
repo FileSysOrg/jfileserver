@@ -629,6 +629,10 @@ public class JavaNIODiskDriver implements DiskInterface {
         else
             netFile.setGrantedAccess(NetworkFile.Access.READ_WRITE);
 
+        // Save the original access mask from the request
+        netFile.setAccessMask( params.getAccessMode());
+
+        // Set the share relative path
         netFile.setFullName(params.getPath());
 
         //  Check if the file is actually a directory
