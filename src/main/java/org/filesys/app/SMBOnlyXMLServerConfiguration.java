@@ -2434,6 +2434,7 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
      */
     protected final String determineBroadcastMask() {
 
+
         String bcastMask = null;
 
         try {
@@ -2448,11 +2449,11 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 
                 // Ignore the loopback adapter
                 if ( curIface.isLoopback())
-                    break;
+                    continue;
 
                 // Ignore adapters that are not up and running
                 if ( curIface.isUp() == false)
-                    break;
+                    continue;
 
                 // Get the interface address(es)
                 List<InterfaceAddress> addrList = curIface.getInterfaceAddresses();
