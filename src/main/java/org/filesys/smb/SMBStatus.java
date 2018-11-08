@@ -222,6 +222,7 @@ public final class SMBStatus {
 	public static final int NTNotFound			    = 0xC0000225;
 	public static final int NTAccountLocked			= 0xC0000234;
 	public static final int NTFileOffline 			= 0xC0000267;
+	public static final int NTVolumeNotUpgraded		= 0xC000029C;
 
 	public static final int SMBInvalidSMB				= 0x00010002;
 	

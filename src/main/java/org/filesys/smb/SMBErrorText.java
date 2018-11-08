@@ -756,6 +756,9 @@ public final class SMBErrorText {
             case SMBStatus.NTPending:
                 errtext = "Request is pending";
                 break;
+            case SMBStatus.NTVolumeNotUpgraded:
+                errtext = "Volume not upgraded";
+                break;
             case SMBStatus.SMBInvalidSMB:
                 errtext = "Invalid SMB, or not supported";
                 break;
