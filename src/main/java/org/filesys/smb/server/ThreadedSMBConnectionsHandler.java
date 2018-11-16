@@ -23,17 +23,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.filesys.debug.Debug;
-import org.filesys.netbios.win32.Win32NetBIOS;
 import org.filesys.server.SessionHandlerInterface;
 import org.filesys.server.SessionHandlerList;
 import org.filesys.server.SocketSessionHandler;
 import org.filesys.server.config.InvalidConfigurationException;
 import org.filesys.smb.mailslot.HostAnnouncer;
 import org.filesys.smb.mailslot.TcpipNetBIOSHostAnnouncer;
-import org.filesys.smb.mailslot.win32.Win32NetBIOSHostAnnouncer;
-import org.filesys.smb.server.win32.LanaListener;
-import org.filesys.smb.server.win32.Win32NetBIOSLanaMonitor;
-import org.filesys.smb.server.win32.Win32NetBIOSSessionSocketHandler;
+import org.filesys.util.PlatformType;
 
 /**
  * Threaded SMB Connectins Handler Class
@@ -44,11 +40,6 @@ import org.filesys.smb.server.win32.Win32NetBIOSSessionSocketHandler;
  */
 public class ThreadedSMBConnectionsHandler implements SMBConnectionsHandler {
 
-	// Constants
-	//
-	// Default LANA offline polling interval
-	public static final long LANAPollingInterval = 5000; // 5 seconds
-	
 	// List of session handlers that are waiting for incoming requests
 	private SessionHandlerList m_handlerList;
 	
@@ -181,148 +172,31 @@ public class ThreadedSMBConnectionsHandler implements SMBConnectionsHandler {
 			}
 		}
 
-		// Create the Win32 NetBIOS session handler, if enabled
+		// Create the Win32 NetBIOS session handler, if enabled and available on the classpath
 		if ( config.hasWin32NetBIOS()) {
 
 			// Only enable if running under Windows
-			if ( isWindowsNTOnwards()) {
+			if ( PlatformType.isWindowsNTOnwards()) {
 
-				// DEBUG
-				if ( Debug.EnableInfo && hasDebug()) {
-					List<Integer> lanas = Win32NetBIOS.LanaEnumerate();
+			    // Check if the Win32 NetBIOS based connections handler is available
+                SMBChildConnectionHandler win32Handler = null;
 
-					StringBuffer lanaStr = new StringBuffer();
-					if ( lanas != null && lanas.size() > 0) {
-						for (int i = 0; i < lanas.size(); i++) {
-							lanaStr.append(Integer.toString(lanas.get( i)));
-							lanaStr.append(" ");
-						}
-					}
-					Debug.println("[SMB] Win32 NetBIOS Available LANAs: " + lanaStr.toString());
-				}
+                try {
+                    win32Handler = (SMBChildConnectionHandler) Class.forName( "org.filesys.smb.server.win32.Win32NetBIOSSMBConnectionsHandler").newInstance();
+                }
+                catch ( IllegalAccessException ex) {
+                }
+                catch ( InstantiationException ex) {
+                }
+                catch ( ClassNotFoundException ex) {
+                }
 
-				// Check if the Win32 NetBIOS session handler should use a particular LANA/network adapter
-				// or should use all available LANAs/network adapters (that have NetBIOS enabled).
-				Win32NetBIOSSessionSocketHandler sessHandler = null;
-				List<Win32NetBIOSSessionSocketHandler> lanaListeners = new ArrayList<Win32NetBIOSSessionSocketHandler>();
+                // If the Win32 NetBIOS handler is valid then add the Win32 NetBIOS handlers, announcers, LANA monitors
+                if ( win32Handler != null) {
 
-				if ( config.getWin32LANA() != -1) {
-
-					// Create a single Win32 NetBIOS session handler using the specified LANA
-					sessHandler = new Win32NetBIOSSessionSocketHandler(srv, config.getWin32LANA(), hasDebug());
-
-					try {
-						
-						// Initialize the Win32 JNI session handler
-						sessHandler.initializeSessionHandler( srv);
-						m_handlerList.addHandler( sessHandler);
-
-						// DEBUG
-						if ( Debug.EnableInfo && hasDebug())
-							Debug.println("[SMB] Win32 NetBIOS created session handler on LANA " + config.getWin32LANA());
-
-					}
-					catch (Exception ex) {
-
-						// DEBUG
-						if ( Debug.EnableError && hasDebug()) {
-							Debug.println("[SMB] Win32 NetBIOS failed to create session handler for LANA " + config.getWin32LANA());
-							Debug.println("      " + ex.getMessage());
-						}
-					}
-
-					// Check if a host announcer should be enabled
-					if ( config.hasWin32EnableAnnouncer()) {
-
-						// Create a host announcer
-						Win32NetBIOSHostAnnouncer hostAnnouncer = new Win32NetBIOSHostAnnouncer(sessHandler, config.getDomainName(), config.getWin32HostAnnounceInterval());
-						hostAnnouncer.setDebug( hasDebug());
-
-						// Add the host announcer to the SMB server list
-						m_hostAnnouncers.add( hostAnnouncer);
-
-						// DEBUG
-						if ( Debug.EnableInfo && hasDebug())
-							Debug.println("[SMB] Win32 NetBIOS host announcer enabled on LANA " + config.getWin32LANA());
-					}
-
-					// Check if the session handler implements the LANA listener interface
-					if ( sessHandler instanceof LanaListener)
-						lanaListeners.add(sessHandler);
-				}
-				else {
-
-					// Get a list of the available LANAs
-					List<Integer> lanas = Win32NetBIOS.LanaEnumerate();
-
-					if ( lanas != null && lanas.size() > 0) {
-
-						// Create a session handler for each available LANA
-						for (int i = 0; i < lanas.size(); i++) {
-
-							// Get the current LANA
-							int lana = lanas.get( i);
-
-							// Create a session handler
-							sessHandler = new Win32NetBIOSSessionSocketHandler( srv, lana, hasDebug());
-
-							try {
-								
-								// Initialize the Win32 JNI session handler
-								sessHandler.initializeSessionHandler( srv);
-								m_handlerList.addHandler( sessHandler);
-
-								// DEBUG
-								if ( Debug.EnableError && hasDebug())
-									Debug.println("[SMB] Win32 NetBIOS created session handler on LANA " + lana);
-
-							}
-							catch (Exception ex) {
-
-								// DEBUG
-								if ( Debug.EnableError && hasDebug()) {
-									Debug.println("[SMB] Win32 NetBIOS failed to create session handler for LANA " + lana);
-									Debug.println("      " + ex.getMessage());
-								}
-							}
-
-							// Check if a host announcer should be enabled
-							if ( config.hasWin32EnableAnnouncer()) {
-
-								// Create a host announcer
-								Win32NetBIOSHostAnnouncer hostAnnouncer = new Win32NetBIOSHostAnnouncer(sessHandler, config.getDomainName(), config.getWin32HostAnnounceInterval());
-								hostAnnouncer.setDebug( hasDebug());
-
-								// Add the host announcer to the SMB server list
-								m_hostAnnouncers.add( hostAnnouncer);
-
-								// DEBUG
-								if ( Debug.EnableInfo && hasDebug())
-									Debug.println("[SMB] Win32 NetBIOS host announcer enabled on LANA " + lana);
-							}
-
-							// Check if the session handler implements the LANA listener interface
-							if ( sessHandler instanceof LanaListener)
-								lanaListeners.add(sessHandler);
-						}
-					}
-
-					// Create a LANA monitor to check for new LANAs becoming available
-					Win32NetBIOSLanaMonitor lanaMonitor = new Win32NetBIOSLanaMonitor( srv, lanas, LANAPollingInterval, hasDebug());
-
-					// Register any session handlers that are LANA listeners
-					if ( lanaListeners.size() > 0) {
-
-						for (int i = 0; i < lanaListeners.size(); i++) {
-
-							// Get the current LANA listener
-							Win32NetBIOSSessionSocketHandler handler = lanaListeners.get(i);
-
-							// Register the LANA listener
-							lanaMonitor.addLanaListener(handler.getLANANumber(), handler);
-						}
-					}
-				}
+                    // Add the Win32 NetBIOS handler
+                    win32Handler.initializeHandler( srv, config, this);
+                }
 			}
 		}
 	}
@@ -335,7 +209,25 @@ public class ThreadedSMBConnectionsHandler implements SMBConnectionsHandler {
 	public int numberOfSessionHandlers() {
 		return m_handlerList.numberOfHandlers();
 	}
-	
+
+	/**
+	 * Add a host announcer to the connections handler
+	 *
+	 * @param announcer HostAnnouncer
+	 */
+	public void addHostAnnouncer(HostAnnouncer announcer) {
+		m_hostAnnouncers.add( announcer);
+	}
+
+	/**
+	 * Add a session handler to the connections handler
+	 *
+	 * @param sessHandler SessionHandlerInterface
+	 */
+	public void addSessionHandler(SessionHandlerInterface sessHandler) {
+		m_handlerList.addHandler( sessHandler);
+	}
+
 	/**
 	 * Start the connection handler thread
 	 */
@@ -405,30 +297,5 @@ public class ThreadedSMBConnectionsHandler implements SMBConnectionsHandler {
 					Debug.println( "[SMB] Shutting down host announcer " + hostAnnouncer.getName());
 			}
 		}
-	}
-	
-	/**
-	 * Determine if we are running under Windows NT onwards
-	 * 
-	 * @return boolean
-	 */
-	private final boolean isWindowsNTOnwards() {
-
-		// Get the operating system name property
-		String osName = System.getProperty("os.name");
-
-		if ( osName.startsWith("Windows")) {
-			if ( osName.endsWith("95") || osName.endsWith("98") || osName.endsWith("ME")) {
-
-				// Windows 95-ME
-				return false;
-			}
-
-			// Looks like Windows NT onwards
-			return true;
-		}
-
-		// Not Windows
-		return false;
 	}
 }

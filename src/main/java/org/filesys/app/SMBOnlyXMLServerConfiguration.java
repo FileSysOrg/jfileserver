@@ -42,7 +42,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.filesys.debug.Debug;
 import org.filesys.debug.DebugConfigSection;
-import org.filesys.netbios.win32.Win32NetBIOS;
+import org.filesys.netbios.server.LANAMapper;
 import org.filesys.server.auth.ISMBAuthenticator;
 import org.filesys.server.auth.UserAccount;
 import org.filesys.server.auth.UserAccountList;
@@ -951,144 +951,183 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 
 		// Check if Win32 NetBIOS is enabled
 		elem = findChildNode("Win32NetBIOS", host.getChildNodes());
+
 		if ( elem != null) {
 
-			// Check if the Win32 NetBIOS server name has been specified
-			attr = elem.getAttribute("name");
-			if ( attr != null && attr.length() > 0) {
+            // Check if the Win32 NetBIOS classes are available
+            LANAMapper lanaMapper = null;
+            boolean win32Available = false;
 
-				// Validate the name
-				if ( attr.length() > 16)
-					throw new InvalidConfigurationException("Invalid Win32 NetBIOS name, " + attr);
+            try {
+                lanaMapper = (LANAMapper) Class.forName("org.filesys.netbios.win32.Win32NetBIOS").newInstance();
+                win32Available = true;
+            }
+            catch (IllegalAccessException ex) {
+            }
+            catch (InstantiationException ex) {
+            }
+            catch (ClassNotFoundException ex) {
+            }
 
-				// Set the Win32 NetBIOS file server name
-				smbConfig.setWin32NetBIOSName(attr);
-			}
+            if ( win32Available == false || lanaMapper == null) {
 
-			// Check if the Win32 NetBIOS client accept name has been specified
-			attr = elem.getAttribute("accept");
-			if ( attr != null && attr.length() > 0) {
+                // Disable Win32 NetBIOS
+                smbConfig.setWin32NetBIOS(false);
 
-				// Validate the client accept name
-				if ( attr.length() > 15)
-					throw new InvalidConfigurationException("Invalid Win32 NetBIOS accept name, " + attr);
+                // Log a warning, Win32 NetBIOS classes not available
+                Debug.println("Win32 NetBIOS classes not available, setting ignored");
+            }
+            else {
 
-				// Set the client accept string
-				smbConfig.setWin32NetBIOSClientAccept(attr);
-			}
+                // Check if the Win32 NetBIOS server name has been specified
+                attr = elem.getAttribute("name");
+                if (attr != null && attr.length() > 0) {
 
-			// Check if the Win32 NetBIOS LANA has been specified
-			attr = elem.getAttribute("lana");
-			if ( attr != null && attr.length() > 0) {
+                    // Validate the name
+                    if (attr.length() > 16)
+                        throw new InvalidConfigurationException("Invalid Win32 NetBIOS name, " + attr);
 
-				// Check if the LANA has been specified as an IP address or adapter name
-				int lana = -1;
+                    // Set the Win32 NetBIOS file server name
+                    smbConfig.setWin32NetBIOSName(attr);
+                }
 
-				if ( IPAddress.isNumericAddress(attr)) {
+                // Check if the Win32 NetBIOS client accept name has been specified
+                attr = elem.getAttribute("accept");
+                if (attr != null && attr.length() > 0) {
 
-					// Convert the IP address to a LANA id
-					lana = Win32NetBIOS.getLANAForIPAddress(attr);
-					if ( lana == -1)
-						throw new InvalidConfigurationException("Failed to convert IP address " + attr + " to a LANA");
-				}
-				else if ( attr.length() > 1 && Character.isLetter(attr.charAt(0))) {
+                    // Validate the client accept name
+                    if (attr.length() > 15)
+                        throw new InvalidConfigurationException("Invalid Win32 NetBIOS accept name, " + attr);
 
-					// Convert the network adapter to a LANA id
-					lana = Win32NetBIOS.getLANAForAdapterName(attr);
-					if ( lana == -1)
-						throw new InvalidConfigurationException("Failed to convert network adapter " + attr + " to a LANA");
-				}
-				else {
+                    // Set the client accept string
+                    smbConfig.setWin32NetBIOSClientAccept(attr);
+                }
 
-					// Validate the LANA number
-					try {
-						lana = Integer.parseInt(attr);
-					}
-					catch (NumberFormatException ex) {
-						throw new InvalidConfigurationException("Invalid Win32 NetBIOS LANA specified");
-					}
+                // Check if the Win32 NetBIOS LANA has been specified
+                attr = elem.getAttribute("lana");
+                if (attr != null && attr.length() > 0) {
 
-					// LANA should be in the range 0-255
-					if ( lana < 0 || lana > 255)
-						throw new InvalidConfigurationException("Invalid Win32 NetBIOS LANA number, " + lana);
-				}
+                    // Check if the LANA has been specified as an IP address or adapter name
+                    int lana = -1;
 
-				// Set the LANA number
-				smbConfig.setWin32LANA(lana);
-			}
+                    if (IPAddress.isNumericAddress(attr)) {
 
-			// Check if the native NetBIOS interface has been specified, either 'winsock' or
-			// 'netbios'
-			attr = elem.getAttribute("api");
+                        // Convert the IP address to a LANA id
+                        lana = lanaMapper.getLANAForIPAddress(attr);
+                        if (lana == -1)
+                            throw new InvalidConfigurationException("Failed to convert IP address " + attr + " to a LANA");
+                    } else if (attr.length() > 1 && Character.isLetter(attr.charAt(0))) {
 
-			if ( attr != null && attr.length() > 0) {
+                        // Convert the network adapter to a LANA id
+                        lana = lanaMapper.getLANAForAdapterName(attr);
+                        if (lana == -1)
+                            throw new InvalidConfigurationException("Failed to convert network adapter " + attr + " to a LANA");
+                    } else {
 
-				// Validate the API type
-				boolean useWinsock = true;
+                        // Validate the LANA number
+                        try {
+                            lana = Integer.parseInt(attr);
+                        } catch (NumberFormatException ex) {
+                            throw new InvalidConfigurationException("Invalid Win32 NetBIOS LANA specified");
+                        }
 
-				if ( attr.equalsIgnoreCase("netbios"))
-					useWinsock = false;
-				else if ( attr.equalsIgnoreCase("winsock") == false)
-					throw new InvalidConfigurationException("Invalid NetBIOS API type, spefify 'winsock' or 'netbios'");
+                        // LANA should be in the range 0-255
+                        if (lana < 0 || lana > 255)
+                            throw new InvalidConfigurationException("Invalid Win32 NetBIOS LANA number, " + lana);
+                    }
 
-				// Set the NetBIOS API to use
-				smbConfig.setWin32WinsockNetBIOS(useWinsock);
-			}
+                    // Set the LANA number
+                    smbConfig.setWin32LANA(lana);
+                }
 
-			// Force the older NetBIOS API code to be used on 64Bit Windows as Winsock NetBIOS is
-			// not available
-			if ( smbConfig.useWinsockNetBIOS() == true && X64.isWindows64()) {
+                // Check if the native NetBIOS interface has been specified, either 'winsock' or
+                // 'netbios'
+                attr = elem.getAttribute("api");
 
-				// Log a warning
-				Debug.println("Using older Netbios() API code, Winsock NetBIOS not available on x64");
+                if (attr != null && attr.length() > 0) {
 
-				// Use the older NetBIOS API code
-				smbConfig.setWin32WinsockNetBIOS(false);
-			}
+                    // Validate the API type
+                    boolean useWinsock = true;
 
-			// Check if the current operating system is supported by the Win32 NetBIOS handler
-			String osName = System.getProperty("os.name");
-			if ( osName.startsWith("Windows")
-					&& (osName.endsWith("95") == false && osName.endsWith("98") == false && osName.endsWith("ME") == false)) {
+                    if (attr.equalsIgnoreCase("netbios"))
+                        useWinsock = false;
+                    else if (attr.equalsIgnoreCase("winsock") == false)
+                        throw new InvalidConfigurationException("Invalid NetBIOS API type, spefify 'winsock' or 'netbios'");
 
-				// Enable Win32 NetBIOS
-				smbConfig.setWin32NetBIOS(true);
-			}
-			else {
+                    // Set the NetBIOS API to use
+                    smbConfig.setWin32WinsockNetBIOS(useWinsock);
+                }
 
-				// Win32 NetBIOS not supported on the current operating system
-				smbConfig.setWin32NetBIOS(false);
-			}
-		}
-		else {
+                // Force the older NetBIOS API code to be used on 64Bit Windows as Winsock NetBIOS is
+                // not available
+                if (smbConfig.useWinsockNetBIOS() == true && X64.isWindows64()) {
 
-			// Disable Win32 NetBIOS
-			smbConfig.setWin32NetBIOS(false);
-		}
+                    // Log a warning
+                    Debug.println("Using older Netbios() API code, Winsock NetBIOS not available on x64");
 
-		// Check if the host announcer should be enabled
-		elem = findChildNode("Win32Announce", host.getChildNodes());
-		if ( elem != null) {
+                    // Use the older NetBIOS API code
+                    smbConfig.setWin32WinsockNetBIOS(false);
+                }
 
-			// Check for an announcement interval
-			attr = elem.getAttribute("interval");
-			if ( attr != null && attr.length() > 0) {
-				try {
-					smbConfig.setWin32HostAnnounceInterval(Integer.parseInt(attr));
-				}
-				catch (NumberFormatException ex) {
-					throw new InvalidConfigurationException("Invalid host announcement interval");
-				}
-			}
+                // Check if the current operating system is supported by the Win32 NetBIOS handler
+                String osName = System.getProperty("os.name");
+                if (osName.startsWith("Windows")
+                        && (osName.endsWith("95") == false && osName.endsWith("98") == false && osName.endsWith("ME") == false)) {
 
-			// Check if the domain name has been set, this is required if the host announcer is
-			// enabled
-			if ( smbConfig.getDomainName() == null)
-				throw new InvalidConfigurationException("Domain name must be specified if host announcement is enabled");
+                    // Enable Win32 NetBIOS
+                    smbConfig.setWin32NetBIOS(true);
+                } else {
 
-			// Enable Win32 NetBIOS host announcement
-			smbConfig.setWin32HostAnnouncer(true);
-		}
+                    // Win32 NetBIOS not supported on the current operating system
+                    smbConfig.setWin32NetBIOS(false);
+                }
+            }
+
+            // Check if the host announcer should be enabled
+            elem = findChildNode("Win32Announce", host.getChildNodes());
+
+            if (elem != null) {
+
+                // Check if the Win32 host announcer classes are available
+                win32Available = false;
+
+                try {
+                    Class.forName("org.filesys.smb.mailslot.win32.Win32NetBIOSHostAnnouncer");
+                    win32Available = true;
+                }
+                catch (ClassNotFoundException ex) {
+                }
+
+                if (win32Available == false) {
+
+                    // Log a warning, Win32 host announcer classes not available
+                    Debug.println("Win32 host announcer classes not available, setting ignored");
+                } else {
+
+                    // Check for an announcement interval
+                    attr = elem.getAttribute("interval");
+                    if (attr != null && attr.length() > 0) {
+                        try {
+                            smbConfig.setWin32HostAnnounceInterval(Integer.parseInt(attr));
+                        } catch (NumberFormatException ex) {
+                            throw new InvalidConfigurationException("Invalid host announcement interval");
+                        }
+                    }
+
+                    // Check if the domain name has been set, this is required if the host announcer is enabled
+                    if (smbConfig.getDomainName() == null)
+                        throw new InvalidConfigurationException("Domain name must be specified if host announcement is enabled");
+
+                    // Enable Win32 NetBIOS host announcement
+                    smbConfig.setWin32HostAnnouncer(true);
+                }
+            }
+        }
+        else {
+
+            // Disable Win32 NetBIOS
+            smbConfig.setWin32NetBIOS(false);
+        }
 
 		// Check if NetBIOS and/or TCP/IP SMB have been enabled
 		if ( smbConfig.hasNetBIOSSMB() == false && smbConfig.hasTcpipSMB() == false && smbConfig.hasWin32NetBIOS() == false)

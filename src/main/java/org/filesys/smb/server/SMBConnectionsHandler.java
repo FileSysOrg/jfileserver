@@ -18,7 +18,9 @@
  */
 package org.filesys.smb.server;
 
+import org.filesys.server.SessionHandlerInterface;
 import org.filesys.server.config.InvalidConfigurationException;
+import org.filesys.smb.mailslot.HostAnnouncer;
 
 /**
  * SMB Connections Handler Interface
@@ -53,4 +55,25 @@ public interface SMBConnectionsHandler {
      * @return int
      */
     public int numberOfSessionHandlers();
+
+    /**
+     * Add a host announcer to the connections handler
+     *
+     * @param announcer HostAnnouncer
+     */
+    public void addHostAnnouncer(HostAnnouncer announcer);
+
+    /**
+     * Add a session handler to the connections handler
+     *
+     * @param sessHandler SessionHandlerInterface
+     */
+    public void addSessionHandler(SessionHandlerInterface sessHandler);
+
+    /**
+     * Determine if debug output is enabled
+     *
+     * @return boolean
+     */
+    public boolean hasDebug();
 }

@@ -65,4 +65,29 @@ public class PlatformType {
         // Return the current platform type
         return _platformType;
     }
+
+    /**
+     * Determine if we are running under Windows NT onwards
+     *
+     * @return boolean
+     */
+    public static final boolean isWindowsNTOnwards() {
+
+        // Get the operating system name property
+        String osName = System.getProperty("os.name");
+
+        if ( osName.startsWith("Windows")) {
+            if ( osName.endsWith("95") || osName.endsWith("98") || osName.endsWith("ME")) {
+
+                // Windows 95-ME
+                return false;
+            }
+
+            // Looks like Windows NT onwards
+            return true;
+        }
+
+        // Not Windows
+        return false;
+    }
 }

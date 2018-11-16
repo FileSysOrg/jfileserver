@@ -17,7 +17,7 @@
  * along with Alfresco. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.filesys.smb.server.win32;
+package org.filesys.netbios.server;
 
 /**
  * LANA Listener Class
@@ -26,7 +26,7 @@ package org.filesys.smb.server.win32;
  *
  * @author gkspencer
  */
-public interface LanaListener {
+public interface LANAListener {
 
     /**
      * LANA status change callback

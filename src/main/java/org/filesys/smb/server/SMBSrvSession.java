@@ -930,12 +930,28 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 
         try {
 
-            // Parse the negotiate request and get the list of requested dialects
-            negCtx = smbPkt.getParser().parseNegotiateRequest( this);
+        	// Make sure we can get a parser for the received packet
+			if ( smbPkt.getParser() != null) {
 
-            // Debug
-			if ( Debug.EnableInfo && hasDebug(DBG_NEGOTIATE))
-				debugPrintln( "Negotiate context: " + negCtx);
+				// Parse the negotiate request and get the list of requested dialects
+				negCtx = smbPkt.getParser().parseNegotiateRequest(this);
+
+				// Debug
+				if (Debug.EnableInfo && hasDebug(DBG_NEGOTIATE))
+					debugPrintln("Negotiate context: " + negCtx);
+			}
+			else {
+
+				// Failed to get a parser for the received packet, drop the connection
+				setState(SessionState.NETBIOS_HANGUP);
+
+				// Debug
+				if (Debug.EnableInfo && hasDebug(DBG_NEGOTIATE))
+					debugPrintln("Failed to get parser for received negotiate");
+
+				// Do not send a reply, just drop the connection
+				return;
+			}
         }
         catch ( SMBSrvException ex) {
 

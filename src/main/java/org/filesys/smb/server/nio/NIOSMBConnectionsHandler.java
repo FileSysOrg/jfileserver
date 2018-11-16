@@ -30,8 +30,10 @@ import java.util.List;
 
 import org.filesys.debug.Debug;
 import org.filesys.server.ChannelSessionHandler;
+import org.filesys.server.SessionHandlerInterface;
 import org.filesys.server.SessionHandlerList;
 import org.filesys.server.config.InvalidConfigurationException;
+import org.filesys.smb.mailslot.HostAnnouncer;
 import org.filesys.smb.server.SMBConfigSection;
 import org.filesys.smb.server.SMBConnectionsHandler;
 import org.filesys.smb.server.PacketHandler;
@@ -192,6 +194,24 @@ public class NIOSMBConnectionsHandler implements SMBConnectionsHandler, RequestH
      */
     public int numberOfSessionHandlers() {
         return m_handlerList.numberOfHandlers();
+    }
+
+    /**
+     * Add a host announcer to the connections handler
+     *
+     * @param announcer HostAnnouncer
+     */
+    public void addHostAnnouncer(HostAnnouncer announcer) {
+        // Not used
+    }
+
+    /**
+     * Add a session handler to the connections handler
+     *
+     * @param sessHandler SessionHandlerInterface
+     */
+    public void addSessionHandler(SessionHandlerInterface sessHandler) {
+        // Not used
     }
 
     /**

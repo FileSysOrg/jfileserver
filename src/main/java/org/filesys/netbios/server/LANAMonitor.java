@@ -14,27 +14,33 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with JFileServer. If not, see <http://www.gnu.org/licenses/>.
  */
+package org.filesys.netbios.server;
 
-package org.filesys.netbios.win32;
+import org.filesys.smb.server.SMBServer;
 
-import com.sun.jna.Native;
-import com.sun.jna.win32.StdCallLibrary;
-import com.sun.jna.win32.W32APIOptions;
+import java.util.List;
 
 /**
- * Win32 NetBIOS Native Interface Class
+ * LANA Monitor Interface
  *
- * @author gkspencer
+ * <p>Monitors the available NetBIOS LANAs for online/offline status as network interfaces are added
+ * and removed</p>
  */
-public interface NetbiosApi extends StdCallLibrary {
-
-    NetbiosApi INSTANCE = (NetbiosApi) Native.loadLibrary("NetApi32", NetbiosApi.class, W32APIOptions.UNICODE_OPTIONS);
+public interface LANAMonitor {
 
     /**
-     * Netbios Api native call
+     * Initialize the LANA monitor
      *
-     * @param pNcb NCB
-     * @return byte
+     *
+     * @param server SMBServer
+     * @param lanas  List of Integer
+     * @param wakeup long
+     * @param debug  boolean
      */
-    byte Netbios(NCB pNcb);
+    public void initializeLANAMonitor(SMBServer server, List<Integer> lanas, long wakeup, boolean debug);
+
+    /**
+     * Request the LANA monitor to shutdown
+     */
+    public void shutdownRequest();
 }

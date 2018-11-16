@@ -30,7 +30,6 @@ import org.filesys.debug.Debug;
 import org.filesys.debug.DebugConfigSection;
 import org.filesys.ftp.FTPConfigSection;
 import org.filesys.netbios.server.NetBIOSNameServer;
-import org.filesys.netbios.win32.Win32NetBIOS;
 import org.filesys.oncrpc.nfs.NFSConfigSection;
 import org.filesys.server.NetworkServer;
 import org.filesys.server.ServerListener;
@@ -246,13 +245,6 @@ public class FileServer implements ServerListener {
 
 				// Get the SMB server configuration
 				SMBConfigSection smbConfig = (SMBConfigSection) m_srvConfig.getConfigSection(SMBConfigSection.SectionName);
-
-				// Load the Win32 NetBIOS library
-				//
-				// For some strange reason the native code loadLibrary() call hangs if done later by the SMBServer.
-				// Forcing the Win32NetBIOS class to load here and run the static initializer fixes the problem.
-				if ( smbConfig.hasWin32NetBIOS())
-					Win32NetBIOS.LanaEnumerate();
 
 				// Create the NetBIOS name server if NetBIOS SMB is enabled
 				if ( smbConfig.hasNetBIOSSMB())

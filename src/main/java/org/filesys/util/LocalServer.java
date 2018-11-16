@@ -23,10 +23,11 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
+import com.sun.jna.platform.win32.Kernel32Util;
+import com.sun.jna.platform.win32.Netapi32Util;
 import org.filesys.netbios.NetBIOSName;
 import org.filesys.netbios.NetBIOSNameList;
 import org.filesys.netbios.NetBIOSSession;
-import org.filesys.netbios.win32.Win32NetBIOS;
 
 
 /**
@@ -57,8 +58,8 @@ public class LocalServer {
 
         if (PlatformType.isPlatformType() == PlatformType.Type.WINDOWS) {
 
-            // Get the local name via JNI
-            srvName = Win32NetBIOS.GetLocalNetBIOSName();
+            // Get the local name via JNA
+            srvName = Kernel32Util.getComputerName();
         }
         else {
 
@@ -100,8 +101,9 @@ public class LocalServer {
 
         if (PlatformType.isPlatformType() == PlatformType.Type.WINDOWS) {
 
-            // Get the local domain/workgroup name via JNI
-            domainName = Win32NetBIOS.GetLocalDomainName();
+            // Get the local domain/workgroup name via JNA
+            String computerName = Kernel32Util.getComputerName();
+            domainName = Netapi32Util.getDomainName( computerName);
         }
         else {
 

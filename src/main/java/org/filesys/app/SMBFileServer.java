@@ -29,7 +29,6 @@ import java.net.UnknownHostException;
 import org.filesys.debug.Debug;
 import org.filesys.debug.DebugConfigSection;
 import org.filesys.netbios.server.NetBIOSNameServer;
-import org.filesys.netbios.win32.Win32NetBIOS;
 import org.filesys.server.NetworkServer;
 import org.filesys.server.ServerListener;
 import org.filesys.server.config.ServerConfiguration;
@@ -210,13 +209,6 @@ public class SMBFileServer implements ServerListener {
 
 				// Get the CIFS server configuration
 				SMBConfigSection cifsConfig = (SMBConfigSection) m_srvConfig.getConfigSection(SMBConfigSection.SectionName);
-
-				// Load the Win32 NetBIOS library
-				//
-				// For some strange reason the native code loadLibrary() call hangs if done later by the SMBServer.
-				// Forcing the Win32NetBIOS class to load here and run the static initializer fixes the problem.
-				if ( cifsConfig.hasWin32NetBIOS())
-					Win32NetBIOS.LanaEnumerate();
 
 				// Create the NetBIOS name server if NetBIOS SMB is enabled
 				if ( cifsConfig.hasNetBIOSSMB())

@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Random;
 
 import org.filesys.debug.Debug;
+import org.filesys.netbios.server.LANAMonitor;
 import org.filesys.server.ServerListener;
 import org.filesys.server.SrvSession;
 import org.filesys.server.SrvSessionList;
@@ -50,7 +51,7 @@ import org.filesys.smb.DialectSelector;
 import org.filesys.smb.ServerType;
 import org.filesys.smb.dcerpc.UUID;
 import org.filesys.smb.server.nio.NIOSMBConnectionsHandler;
-import org.filesys.smb.server.win32.Win32NetBIOSLanaMonitor;
+import org.filesys.util.PlatformType;
 
 /**
  * SMB Server Class
@@ -88,6 +89,9 @@ public class SMBServer extends NetworkFileServer implements Runnable, Configurat
 
     // SMB packet pool
     private SMBPacketPool m_packetPool;
+
+    // NetBIOS LANA monitor
+    private LANAMonitor m_lanaMonitor;
 
     /**
      * Create an SMB server using the specified configuration.
@@ -322,6 +326,20 @@ public class SMBServer extends NetworkFileServer implements Runnable, Configurat
     }
 
     /**
+     * Return the NetBIOS LANA monitor
+     *
+     * @return LANAMonitor
+     */
+    public final LANAMonitor getLANAMonitor() { return m_lanaMonitor; }
+
+    /**
+     * Set the LANA monitor
+     *
+     * @param lanaMonitor LANAMonitor
+     */
+    public final void setLANAMonitor( LANAMonitor lanaMonitor) { m_lanaMonitor = lanaMonitor; }
+
+    /**
      * Start the SMB server.
      */
     public void run() {
@@ -333,7 +351,7 @@ public class SMBServer extends NetworkFileServer implements Runnable, Configurat
         setActive(true);
 
         // Check if we are running under Windows
-        boolean isWindows = isWindowsNTOnwards();
+        boolean isWindows = PlatformType.isWindowsNTOnwards();
 
         // Generate a GUID for the server based on the server name
         Random r = new Random();
@@ -469,10 +487,10 @@ public class SMBServer extends NetworkFileServer implements Runnable, Configurat
         m_connectionsHandler.stopHandler();
 
         // Shutdown the Win32 NetBIOS LANA monitor, if enabled
-        if (isWindows && Win32NetBIOSLanaMonitor.getLanaMonitor() != null) {
+        if (isWindows && getLANAMonitor() != null) {
 
             // Shutdown the LANA monitor
-            Win32NetBIOSLanaMonitor.getLanaMonitor().shutdownRequest();
+            getLANAMonitor().shutdownRequest();
         }
 
         // Indicate that the server is not active
@@ -690,31 +708,6 @@ public class SMBServer extends NetworkFileServer implements Runnable, Configurat
 
         // Return the status
         return sts;
-    }
-
-    /**
-     * Determine if we are running under Windows NT onwards
-     *
-     * @return boolean
-     */
-    private final boolean isWindowsNTOnwards() {
-
-        // Get the operating system name property
-        String osName = System.getProperty("os.name");
-
-        if (osName.startsWith("Windows")) {
-            if (osName.endsWith("95") || osName.endsWith("98") || osName.endsWith("ME")) {
-
-                // Windows 95-ME
-                return false;
-            }
-
-            // Looks like Windows NT onwards
-            return true;
-        }
-
-        // Not Windows
-        return false;
     }
 
     /**
