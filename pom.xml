@@ -155,8 +155,7 @@
                     <localCheckout>true</localCheckout>
                     <pushChanges>false</pushChanges>
                     <mavenExecutorId>forked-path</mavenExecutorId>
-                    <arguments>-Dgpg.passphrase=${gpg.passphrase}</arguments>
-                    <arguments>-Dgpg.keyname=${gpg.keyname}</arguments>
+                    <arguments>-Dgpg.passphrase=${gpg.passphrase} -Dgpg.keyname=${gpg.keyname}</arguments>
                 </configuration>
                 <dependencies>
                     <dependency>
