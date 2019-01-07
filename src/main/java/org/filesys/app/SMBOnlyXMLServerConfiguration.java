@@ -1768,7 +1768,7 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 		throws InvalidConfigurationException {
 
 		// Get the username
-		String attr = user.getAttribute("name");
+		String attr = getAttributeWithEnvVars( user, "name");
 		if ( attr == null || attr.length() == 0)
 			throw new InvalidConfigurationException("User name not specified, or zero length");
 
@@ -1807,7 +1807,7 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 				throw new InvalidConfigurationException("No password specified for user " + userName);
 
 			// Get the plaintext password
-			password = getText(elem);
+			password = getTextWithEnvVars(elem);
 		}
 
 		// Create the user account
@@ -1822,16 +1822,16 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 		// Get the real user name and comment
 		elem = findChildNode("realname", user.getChildNodes());
 		if ( elem != null)
-			userAcc.setRealName(getText(elem));
+			userAcc.setRealName(getTextWithEnvVars(elem));
 
 		elem = findChildNode("comment", user.getChildNodes());
 		if ( elem != null)
-			userAcc.setComment(getText(elem));
+			userAcc.setComment(getTextWithEnvVars(elem));
 
 		// Get the home directory
 		elem = findChildNode("home", user.getChildNodes());
 		if ( elem != null)
-			userAcc.setHomeDirectory(getText(elem));
+			userAcc.setHomeDirectory(getTextWithEnvVars(elem));
 
 		// Add the user account
 		UserAccountList accList = secConfig.getUserAccounts();
@@ -2210,35 +2210,7 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 		// Get the element text
         String text = getText( elem);
 
-        if ( text != null) {
-
-            // Convert environment variable tokens
-            Matcher matcher = m_envTokens.matcher( text);
-            StringBuffer textOut = new StringBuffer( text.length());
-
-            while ( matcher.find()) {
-
-                // Get the current match string
-                String token = text.substring(matcher.start(), matcher.end());
-                String envVar = token.substring(2, token.length() - 1);
-
-                // Get the environment variable value
-                String envValue = System.getenv( envVar);
-
-                if ( envValue != null) {
-
-                    // Replace the occurrence of the environment variable token and write to the new string
-                    matcher.appendReplacement( textOut, envValue);
-                }
-            }
-
-            // Replace the original text string
-            if ( textOut.length() > 0)
-                text = textOut.toString();
-        }
-
-        // Return the text value
-        return text;
+        return expandEnvVars( text);
 	}
 
     /**
@@ -2253,36 +2225,49 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
         // Get the attribute value
         String attr = elem.getAttribute( attrName);
 
-        if ( attr != null) {
-
-            // Convert environment variable tokens
-            Matcher matcher = m_envTokens.matcher( attr);
-            StringBuffer attrOut = new StringBuffer( attr.length());
-
-            while ( matcher.find()) {
-
-                // Get the current match string
-                String token = attr.substring(matcher.start(), matcher.end());
-                String envVar = token.substring(2, token.length() - 1);
-
-                // Get the environment variable value
-                String envValue = System.getenv( envVar);
-
-                if ( envValue != null) {
-
-                    // Replace the occurrence of the environment variable token and write to the new string
-                    matcher.appendReplacement( attrOut, envValue);
-                }
-            }
-
-            // Replace the original attribute string
-            if ( attrOut.length() > 0)
-                attr = attrOut.toString();
-        }
-
-        // Return the text value
-        return attr;
+        return expandEnvVars( attr);
     }
+
+	/**
+	 * Expand a string by converting any environment variables
+	 *
+	 * @param inStr String
+	 * @return String
+	 */
+	protected final String expandEnvVars(String inStr) {
+
+		String outStr = inStr;
+
+		if ( inStr != null && inStr.length() > 0) {
+
+			// Convert environment variable tokens
+			Matcher matcher = m_envTokens.matcher( inStr);
+			StringBuffer attrOut = new StringBuffer( inStr.length());
+
+			while ( matcher.find()) {
+
+				// Get the current match string
+				String token = inStr.substring(matcher.start(), matcher.end());
+				String envVar = token.substring(2, token.length() - 1);
+
+				// Get the environment variable value
+				String envValue = System.getenv( envVar);
+
+				if ( envValue != null) {
+
+					// Replace the occurrence of the environment variable token and write to the new string
+					matcher.appendReplacement( attrOut, envValue);
+				}
+			}
+
+			// Replace the original attribute string
+			if ( attrOut.length() > 0)
+				outStr = attrOut.toString();
+		}
+
+		// Return the updated string
+		return outStr;
+	}
 
 	/**
 	 * Build a configuration element list from an elements child nodes
@@ -2316,7 +2301,7 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 			if ( attribs != null) {
 				for (int i = 0; i < attribs.getLength(); i++) {
 					Node attribNode = attribs.item(i);
-					rootElem.addAttribute(attribNode.getNodeName(), attribNode.getNodeValue());
+					rootElem.addAttribute(attribNode.getNodeName(), expandEnvVars(attribNode.getNodeValue()));
 				}
 			}
 		}
@@ -2352,7 +2337,7 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 					// Create a normal name/value
 					if ( children.getLength() > 0) {
 						childElem = new GenericConfigElement(elem.getNodeName());
-						childElem.setValue(children.item(0).getNodeValue());
+						childElem.setValue( expandEnvVars( children.item(0).getNodeValue()));
 					}
 					else
 						childElem = new GenericConfigElement(elem.getNodeName());
@@ -2362,7 +2347,7 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 					if ( attribs != null) {
 						for (int j = 0; j < attribs.getLength(); j++) {
 							Node attribNode = attribs.item(j);
-							childElem.addAttribute(attribNode.getNodeName(), attribNode.getNodeValue());
+							childElem.addAttribute(attribNode.getNodeName(), expandEnvVars( attribNode.getNodeValue()));
 						}
 					}
 				}
