@@ -797,4 +797,44 @@ public class DBConnectionPool {
         else
             Debug.println("DBConnectionPool: No listener");
     }
+
+    /**
+     * Wait for a valid database connection, up to the specified number of seconds
+     *
+     * @param waitSecs int
+     * @return boolean
+     */
+    public final boolean waitForConnection(int waitSecs) {
+
+        Connection dbConn = null;
+        long timeEnd = System.currentTimeMillis() + (waitSecs * 1000L);
+
+        while ( dbConn == null && System.currentTimeMillis() < timeEnd) {
+
+            try {
+
+                // Get a database connection
+                dbConn = createConnection();
+            }
+            catch ( SQLException ex) {
+            }
+            catch ( Exception ex) {
+            }
+
+            // Check if we got a valid database connection
+            if ( dbConn == null) {
+
+                // Wait a while before trying to get the database connection
+                try {
+                    Thread.sleep(1000);
+                }
+                catch ( InterruptedException ex) {
+                    return false;
+                }
+            }
+        }
+
+        // Return the database connection status
+        return dbConn != null ? true : false;
+    }
 }

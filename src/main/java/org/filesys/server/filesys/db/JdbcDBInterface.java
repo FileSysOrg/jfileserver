@@ -87,6 +87,9 @@ public abstract class JdbcDBInterface implements DBInterface, DBConnectionPoolLi
     protected String m_userName;
     protected String m_password;
 
+    // Time to wait for a valid database connection during startup
+    protected int m_dbWaitSecs = 0;
+
     //	Database table that contains the file system structure records, streams information
     //	records, data retention information records, file loader queue and file loader transaction
     //	queue and file data tables.
@@ -402,10 +405,25 @@ public abstract class JdbcDBInterface implements DBInterface, DBConnectionPoolLi
                 // Parse the online check interval value
                 m_onlineCheckInterval = Integer.parseInt(nameVal.getValue());
                 if (m_onlineCheckInterval < 1 || m_onlineCheckInterval > 30)
-                    throw new InvalidConfigurationException("Database online check interval out of valid range (1-30");
+                    throw new InvalidConfigurationException("Database online check interval out of valid range (1-30)");
             }
             catch (NumberFormatException ex) {
                 throw new InvalidConfigurationException("Database online check interval value invalid, " + nameVal.getValue());
+            }
+        }
+
+        // Check if the startup database connection wait time has been specified
+        nameVal = params.getChild("WaitForDatabase");
+        if (nameVal != null) {
+            try {
+
+                // Parse the startup wait for database connection interval value
+                m_dbWaitSecs = Integer.parseInt(nameVal.getValue());
+                if (m_dbWaitSecs < 10 || m_dbWaitSecs > 600)
+                    throw new InvalidConfigurationException("Database wait for connection interval out of valid range (10-600");
+            }
+            catch (NumberFormatException ex) {
+                throw new InvalidConfigurationException("Database wait for connection interval value invalid, " + nameVal.getValue());
             }
         }
 
@@ -556,6 +574,20 @@ public abstract class JdbcDBInterface implements DBInterface, DBConnectionPoolLi
     protected final String getPassword() {
         return m_password;
     }
+
+    /**
+     * Check if the startup wait for database connection timer has been set
+     *
+     * @return boolean
+     */
+    public final boolean hasStartupWaitForConnection() { return m_dbWaitSecs > 0; }
+
+    /**
+     * Return the startup wait for connection timer value, in seconds
+     *
+     * @return int
+     */
+    public final int getStartupWaitForConnection() { return m_dbWaitSecs; }
 
     /**
      * Return the file system structure table name
