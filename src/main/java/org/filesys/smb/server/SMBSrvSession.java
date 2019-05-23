@@ -1017,6 +1017,22 @@ public class SMBSrvSession extends SrvSession implements Runnable {
                     return;
                 }
             }
+            else {
+
+            	// No common dialect available between the client and server
+
+				// Debug
+				if (Debug.EnableError && hasDebug(DBG_NEGOTIATE))
+					debugPrintln("No comon dialect between client and server");
+
+				// Return an error status
+				sendErrorResponseSMB(smbPkt, SMBStatus.NTInvalidParameter, SMBStatus.SRVNotSupported, SMBStatus.ErrSrv);
+
+				// Drop the session
+				setState( SessionState.NETBIOS_HANGUP);
+				return;
+
+			}
 
             // Pass the negotiate context back to the parser
             respPkt.getParser().packNegotiateResponse(getSMBServer(), this, respPkt, diaIdx, negCtx);
