@@ -504,7 +504,7 @@ public class FileServer implements ServerListener {
 		throws Exception {
 
 		// Create the FTP server instance
-		return createServer("FTPServer", config);
+		return createServer("org.filesys.ftp.FTPServer", config);
 	}
 
 	/**
@@ -518,7 +518,7 @@ public class FileServer implements ServerListener {
 		throws Exception {
 
 		// Create the NFS server instance
-		return createServer("NFSServer", config);
+		return createServer("org.filesys.oncrpc.nfs.NFSServer", config);
 	}
 
 	/**
@@ -532,7 +532,7 @@ public class FileServer implements ServerListener {
 		throws Exception {
 
 		// Create the mount server instance
-		return createServer("MountServer", config);
+		return createServer("org.filesys.oncrpc.mount.MountServer", config);
 	}
 
 	/**
@@ -546,7 +546,7 @@ public class FileServer implements ServerListener {
 		throws Exception {
 
 		// Create the port mapper server instance
-		return createServer("PortMapperServer", config);
+		return createServer("org.filesys.oncrpc.portmap.PortMapperServer", config);
 	}
 
 	/**

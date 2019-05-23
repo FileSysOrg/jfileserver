@@ -1,0 +1,53 @@
+<?xml version="1.0" standalone="no"?>
+<!-- <!DOCTYPE jlanserver SYSTEM "clusterTests.dtd"> -->
+
+<clusterTests>
+	<servers>
+		<default username="jlansrv" password="jlan" share="jdbcblob"/>
+		<server name="macbook"/>
+		<server name="macpro"/>
+<!--
+		<server name="macpro"/>
+		<server name="macbook"/>
+		<server name="macbookold"/>
+		<server name="imac"/>
+-->
+	</servers>
+	
+	<run>
+		<NOinterleaved/>
+		<perServer threads="1"/>
+	</run>
+	
+	<tests>
+		<default iterations="50" verbose="false" cleanup="true"/>
+		<NTCreateFile/>
+		
+<!-- Available tests -->
+<!--
+		<createFile/>
+		<createFolder/>
+		<oplockGrant/>
+		<oplockBreak/>
+		<openFile/>
+		<openFileSharedRead/>
+		<byteRangeLocking/>
+		<deleteFile/>
+		<deleteFolder/>
+		<renameFile/>
+		<renameFolder/>
+		<writeFileSequential fileSize="100K" writeSize="10K"/>
+		<writeFileRandom fileSize="1M" writeSize="64K"/>
+		<folderSearch numberOfFiles="500" numberOfFolders="100"/>
+		<NTCreateFile/>
+-->
+	</tests>	
+	
+	<debug>
+		<output>
+			<class>org.filesys.debug.ConsoleDebug</class>
+			<logFile>jlansrv.log</logFile>
+			<append/>
+		</output>
+	</debug>
+</clusterTests>

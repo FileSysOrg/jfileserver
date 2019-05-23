@@ -1,0 +1,116 @@
+<?xml version="1.0" standalone="no"?>
+<!-- <!DOCTYPE fileserver SYSTEM "fileserver.dtd"> -->
+
+<fileserver>
+    <servers>
+        <SMB enable="true"/>
+        <FTP enable="true"/>
+        <NFS enable="false"/>
+    </servers>
+
+    <SMB>
+        <host name="JFILESRV" domain="FILESRV">
+            <broadcast>AUTO</broadcast>
+            <smbdialects>SMB1</smbdialects>
+            <comment>Java File Server</comment>
+
+            <Win32NetBIOS/>
+            <Win32Announce interval="5"/>
+
+            <!-- Requires running the server using the root account -->
+            <!--
+                  <netBIOSSMB platforms="linux,macosx,solaris"/>
+                  <tcpipSMB platforms="linux,macosx,solaris"/>
+            -->
+            <!-- To run the server using a non-root account on linux, Mac OS X, Solaris -->
+            <netBIOSSMB sessionPort="1139" namingPort="1137" datagramPort="1138" platforms="linux,macosx,solaris"/>
+            <tcpipSMB port="1445" platforms="linux,macosx,solaris"/>
+
+            <hostAnnounce interval="5"/>
+        </host>
+<!--        <sessionDebug flags="Negotiate,Socket,Tree,State,Error,PktType,DceRpc,IPC,Search,Info,File,FileIO,Compound,Cancel,Notify"/> -->
+        <sessionDebug flags="Negotiate,Socket,Tree,Error,Notify,Info,File,FileIO,State,IPC,PktType,Search"/>
+<!--        <sessionDebug flags="Negotiate,Socket,State,PktType,Tree,Error,Search,Info,Encryption,File,Cancel,Notify"/> -->
+<!--        <sessionDebug flags="PktType,Error,File,Oplock"/> -->
+        <!--    <netbiosDebug/> -->
+        <!--    <announceDebug/> -->
+
+        <authenticator type="enterprise">
+            <useSPNEGO/>
+            <mode>USER</mode>
+            <NOallowGuest/>
+            <Debug/>
+        </authenticator>
+
+    </SMB>
+
+    <FTP>
+        <port>1121</port>
+        <allowAnonymous/>
+        <debug flags="File,Search,Error,DataPort,Directory"/>
+
+        <!-- Enable FTPS -->
+        <keyStore>/Users/gkspencer/JFileServer/ftps/FTPSKeyStore</keyStore>
+        <keyStoreType>JKS</keyStoreType>
+        <keyStorePassphrase>Autobahn89</keyStorePassphrase>
+
+        <trustStore>/Users/gkspencer/JFileServer/ftps/FTPSTrustStore</trustStore>
+        <trustStoreType>JKS</trustStoreType>
+        <trustStorePassphrase>Autobahn89</trustStorePassphrase>
+
+        <NOrequireSecureSession/>
+        <NOsslEngineDebug/>
+    </FTP>
+
+    <NFS>
+        <enablePortMapper/>
+        <debug flags="File,FileIO"/>
+    </NFS>
+
+    <debug>
+        <output type="console">
+            <class>org.filesys.debug.ConsoleDebug</class>
+            <logFile>filesrv.log</logFile>
+            <append/>
+        </output>
+    </debug>
+
+    <shares>
+        <diskshare name="JFILESHARE" comment="Test share">
+            <driver>
+                <class>org.filesys.smb.server.disk.JavaNIODiskDriver</class>
+                <LocalPath>/JFileSrv/TestShare</LocalPath>
+                <Debug/>
+            </driver>
+
+            <notifyDebug/>
+        </diskshare>
+    </shares>
+
+    <security>
+        <JCEProvider>org.bouncycastle.jce.provider.BouncyCastleProvider</JCEProvider>
+<!--
+        <authenticator>
+            <class>org.filesys.server.auth.LocalAuthenticator</class>
+            <mode>USER</mode>
+            <allowGuest/>
+        </authenticator>
+-->
+        <users>
+            <user name="jfilesrv">
+                <password>java</password>
+                <comment>System administrator</comment>
+                <administrator/>
+            </user>
+            <user name="normal">
+                <password>normal</password>
+            </user>
+        </users>
+    </security>
+
+
+    <licence>
+        <licencePath>./licence/jfileserver.lic</licencePath>
+    </licence>
+
+</fileserver>
