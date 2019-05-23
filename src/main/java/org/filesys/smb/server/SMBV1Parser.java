@@ -1878,13 +1878,16 @@ public class SMBV1Parser extends SMBParser {
 
         // Add default flags/flags2 values
         CoreProtocolHandler smbV1Handler = (CoreProtocolHandler) sess.getProtocolHandler();
-        parser.setFlags(parser.getFlags() | smbV1Handler.getDefaultFlags());
 
-        // Mask out certain flags that the client may have sent
-        int flags2 = parser.getFlags2() | smbV1Handler.getDefaultFlags2();
-        flags2 &= ~(SMBV1.FLG2_EXTENDEDATTRIB + SMBV1.FLG2_DFSRESOLVE + SMBV1.FLG2_SECURITYSIGS);
+        if ( smbV1Handler != null) {
+            parser.setFlags(parser.getFlags() | smbV1Handler.getDefaultFlags());
 
-        parser.setFlags2(flags2);
+            // Mask out certain flags that the client may have sent
+            int flags2 = parser.getFlags2() | smbV1Handler.getDefaultFlags2();
+            flags2 &= ~(SMBV1.FLG2_EXTENDEDATTRIB + SMBV1.FLG2_DFSRESOLVE + SMBV1.FLG2_SECURITYSIGS);
+
+            parser.setFlags2(flags2);
+        }
     }
 
     /**
