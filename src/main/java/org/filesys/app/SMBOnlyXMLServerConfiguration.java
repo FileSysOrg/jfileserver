@@ -139,7 +139,7 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 	private SimpleDateFormat m_dateFmt = new SimpleDateFormat("dd-MMM-yyyy hh:mm:ss");
 
 	// Pattern match for environment variable tokens
-    private Pattern m_envTokens = Pattern.compile("\\$\\{\\w+\\}");
+    private Pattern m_envTokens = Pattern.compile("\\$\\{[a-zA-Z0-9_\\.]+\\}");
 
 	/**
 	 * Default constructor
@@ -2258,6 +2258,17 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 					// Replace the occurrence of the environment variable token and write to the new string
 					matcher.appendReplacement( attrOut, envValue);
 				}
+				else {
+
+					// Check for a system property
+					envValue = System.getProperty( envVar);
+
+					if ( envValue != null) {
+
+						// Replace the occurrence of the environment variable token and write to the new string
+						matcher.appendReplacement(attrOut, envValue);
+					}
+				}
 			}
 
 			// Replace the original attribute string
@@ -2339,8 +2350,9 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 						childElem = new GenericConfigElement(elem.getNodeName());
 						childElem.setValue( expandEnvVars( children.item(0).getNodeValue()));
 					}
-					else
+					else {
 						childElem = new GenericConfigElement(elem.getNodeName());
+					}
 
 					// Add any attributes
 					NamedNodeMap attribs = elem.getAttributes();
