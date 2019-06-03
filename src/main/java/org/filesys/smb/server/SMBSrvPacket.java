@@ -308,6 +308,30 @@ public class SMBSrvPacket {
 	}
 
 	/**
+	 *  Check if the packet has a valid SMB header (1, 2 or 3)
+	 *
+	 * @return boolean
+	 */
+	public final boolean isSMB() {
+
+		// Should be 0xFF or 0xFE or 0xFD followed by 'SMB'
+		byte sig1 = m_smbbuf[SIGNATURE];
+
+		if (sig1 != SMB_V1_SIGNATURE[0] &&
+				sig1 != SMB_V2_SIGNATURE[0] &&
+				sig1 != SMB_V3_SIGNATURE[0])
+			return false;
+
+		for (int idx = 1; idx < SMB_V1_SIGNATURE.length; idx++) {
+			if (m_smbbuf[idx + SIGNATURE] != SMB_V1_SIGNATURE[idx])
+				return false;
+		}
+
+		// Valid SMB packet header
+		return true;
+	}
+
+	/**
 	 * Check if the packet is an SMB1 request/response
 	 *
 	 * @return boolean

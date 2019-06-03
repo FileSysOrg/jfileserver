@@ -1119,18 +1119,8 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 				// Check the packet signature if we are in an SMB state
 				if (m_state != SessionState.NETBIOS_SESS_REQUEST) {
 
-					// Check for an SMB2 packet signature
-					if (smbPkt.isSMB2()) {
-
-						// Debug
-						if (Debug.EnableInfo && hasDebug(DBG_ERROR))
-							debugPrintln("SMB2 request received, ignoring");
-
-						continue;
-					}
-
-					// Check the packet signature (for SMB v1)
-					if (smbPkt.isSMB1() == false) {
+					// Check the packet signature (for SMB v1/2/3)
+					if (smbPkt.isSMB() == false) {
 
 						// Debug
 						if (Debug.EnableInfo && hasDebug(DBG_ERROR))
@@ -1148,10 +1138,16 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 			// Cleanup the session, then close the session/socket
 			closeSession();
 
-			if (Debug.EnableInfo && hasDebug(DBG_STATE)) {
+			if (Debug.EnableInfo && hasDebug(DBG_STATE))
 				debugPrintln("[SMB] Closed session, " + getUniqueId()
 						+ ", addr=" + getRemoteAddress().getHostAddress());
-			}
+
+			// Notify the server that the session has closed
+			getSMBServer().sessionClosed(this);
+
+			// Clear any user context
+			if (hasClientInformation())
+				getSMBServer().getSMBAuthenticator().setCurrentUser(null);
 		}
 		catch (Exception ex) {
 
