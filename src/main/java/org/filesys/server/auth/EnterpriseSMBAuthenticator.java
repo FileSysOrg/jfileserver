@@ -26,6 +26,7 @@ import java.io.StringWriter;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
+import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -1204,7 +1205,7 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
         try {
 
             //  Run the session setup as a privileged action
-            SessionSetupPrivilegedAction sessSetupAction = new SessionSetupPrivilegedAction(m_accountName, negToken.getMechtoken());
+            PrivilegedAction sessSetupAction = getKerberosPrivilegedAction( negToken);
             Object result = Subject.doAs(m_loginContext.getSubject(), sessSetupAction);
 
             if (result != null) {
@@ -1264,6 +1265,9 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
                     // Null logon
                     client.setLogonType(ClientInfo.LogonType.Null);
                 }
+
+                // Post Kerberos logon hook, logon can still be stopped if an exception is thrown
+                postKerberosLogon( sess, krbDetails, client);
 
                 // Indicate that the session is logged on
                 sess.setLoggedOn(true);
@@ -2253,6 +2257,41 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
 
         // Default, just return the original user name
         return externalUserId;
+    }
+
+    /**
+     * Get the privileged action to run for a Kerberos logon
+     *
+     * @param negToken NegTokenInit
+     * @return PrivilegedAction
+     */
+    protected PrivilegedAction getKerberosPrivilegedAction( NegTokenInit negToken) {
+        return new SessionSetupPrivilegedAction(m_accountName, negToken.getMechtoken());
+    }
+
+    /**
+     * Kerberos authentication hook, can stop the logon even though Kerberos authentication has been successful
+     *
+     * @param sess SMBSrvSession
+     * @param krbDetails KerberosDetails
+     * @param client ClientInfo
+     * @exception SMBSrvException To prevent the user logon
+     */
+    protected void postKerberosLogon( SMBSrvSession sess, KerberosDetails krbDetails, ClientInfo client)
+        throws SMBSrvException {
+
+    }
+
+    /**
+     * NTLM authentication hook, can stop the logon even though the NTLM authentication has been successful
+     *
+     * @param sess SMBSrvSession
+     * @param client ClientInfo
+     * @throws SMBSrvException To prevent the user logon
+     */
+    protected void postNTLMLogon( SMBSrvSession sess, ClientInfo client)
+        throws SMBSrvException {
+
     }
 
     /**

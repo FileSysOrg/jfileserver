@@ -611,12 +611,7 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 					throw new InvalidConfigurationException("Authenticator class not specified");
 
 				// Check the authenticator type and set the appropriate authenticator class
-				if ( authType.equalsIgnoreCase("local"))
-					authClass = "org.filesys.server.auth.LocalAuthenticator";
-				else if ( authType.equalsIgnoreCase("passthru"))
-					authClass = "org.filesys.server.auth.PassthruAuthenticator";
-				else if ( authType.equalsIgnoreCase("enterprise"))
-					authClass = "org.filesys.server.auth.EnterpriseSMBAuthenticator";
+				authClass = getSMBAuthenticatorClassForType( authType);
 			}
 			else {
 
@@ -2152,6 +2147,27 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 		catch (Exception ex) {
 			throw new InvalidConfigurationException("Disk share setup error", ex);
 		}
+	}
+
+	/**
+	 * Get the SMB authenticator class name to use for the specified authenticator type
+	 *
+	 * @param authType String
+	 * @return String
+	 */
+	protected String getSMBAuthenticatorClassForType( String authType) {
+
+		// Check the authenticator type and set the appropriate authenticator class
+		String authClass = null;
+
+		if ( authType.equalsIgnoreCase("local"))
+			authClass = "org.filesys.server.auth.LocalAuthenticator";
+		else if ( authType.equalsIgnoreCase("passthru"))
+			authClass = "org.filesys.server.auth.PassthruAuthenticator";
+		else if ( authType.equalsIgnoreCase("enterprise"))
+			authClass = "org.filesys.server.auth.EnterpriseSMBAuthenticator";
+
+		return authClass;
 	}
 
 	/**
