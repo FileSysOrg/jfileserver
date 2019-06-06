@@ -191,8 +191,6 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
                 // Set the SMB service account password
                 m_password = srvPassword.getValue();
             }
-            else
-                throw new InvalidConfigurationException("SMB service account password not specified");
 
             // Get the login configuration entry name
             ConfigElement loginEntry = params.getChild("LoginEntry");
@@ -377,7 +375,10 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
             // Request for password
             else if (callbacks[i] instanceof PasswordCallback) {
                 PasswordCallback cb = (PasswordCallback) callbacks[i];
-                cb.setPassword(m_password.toCharArray());
+                if ( m_password != null)
+                    cb.setPassword(m_password.toCharArray());
+                else
+                    cb.setPassword("".toCharArray());
             }
 
             // Request for realm
