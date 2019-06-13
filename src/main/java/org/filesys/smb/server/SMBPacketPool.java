@@ -141,7 +141,7 @@ public class SMBPacketPool {
                 Debug.println("[SMB] Packet allocate failed, reqSiz=" + reqSiz);
 
             // Throw an exception, no memory available
-            throw new NoPooledMemoryException("Request size " + reqSiz);
+            throw new NoPooledMemoryException("Request size " + reqSiz + "/max size=" + m_maxPoolBufSize);
         }
 
         // Create the SMB packet
@@ -399,6 +399,15 @@ public class SMBPacketPool {
      */
     public final void setAllowOverSizedAllocations(boolean ena) {
         m_allowOverSize = ena;
+    }
+
+    /**
+     * Set the maximum size of over sized packet that is allowed
+     *
+     * @param maxSize int
+     */
+    public final void setMaximumOverSizedAllocation(int maxSize) {
+        m_maxOverSize = maxSize;
     }
 
     /**
