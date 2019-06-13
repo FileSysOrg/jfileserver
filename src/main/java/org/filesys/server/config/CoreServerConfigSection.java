@@ -21,6 +21,7 @@ package org.filesys.server.config;
 
 import org.filesys.server.memory.ByteBufferPool;
 import org.filesys.server.thread.ThreadRequestPool;
+import org.filesys.util.MemorySize;
 
 /**
  * Core Server Configuration section Class
@@ -37,6 +38,9 @@ public class CoreServerConfigSection extends ConfigSection {
 
     // Memory pool
     private ByteBufferPool m_memoryPool;
+
+    // Maximum oversized packet size allowed, if cannot be allocated from the pool
+    private int m_maxOverSize = (int) (128 * MemorySize.KILOBYTE);
 
     /**
      * Class constructor
@@ -63,6 +67,15 @@ public class CoreServerConfigSection extends ConfigSection {
      */
     public final ByteBufferPool getMemoryPool() {
         return m_memoryPool;
+    }
+
+    /**
+     * Get the maximum oversized packet size allowed
+     *
+     * @return int
+     */
+    public final int getMaximumOversizedPacket() {
+        return m_maxOverSize;
     }
 
     /**
@@ -118,5 +131,17 @@ public class CoreServerConfigSection extends ConfigSection {
 
         // Create the memory pool
         m_memoryPool = new ByteBufferPool(pktSizes, initAlloc, maxAlloc);
+    }
+
+    /**
+     * Set the maximum oversized packet for the packet pool
+     *
+     * @param maxSize int
+     */
+    public final void setMaximumOversizedPacket(int maxSize) {
+
+        // Must be larger than the default
+        if ( maxSize > m_maxOverSize)
+            m_maxOverSize = maxSize;
     }
 }
