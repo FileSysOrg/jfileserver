@@ -22,7 +22,9 @@ package org.filesys.smb.server;
 import java.io.IOException;
 import java.net.Socket;
 
+import org.filesys.debug.Debug;
 import org.filesys.netbios.RFCNetBIOSProtocol;
+import org.filesys.smb.TcpipSMB;
 import org.filesys.util.DataPacker;
 
 /**
@@ -63,8 +65,25 @@ public class TcpipSMBPacketHandler extends SocketPacketHandler {
             throw new IOException("Connection closed (header read)");
 
         // Check if we received a valid header
-        if (len < RFCNetBIOSProtocol.HEADER_LEN)
-            throw new IOException("Invalid header, len=" + len);
+        if (len < TcpipSMB.HEADER_LEN) {
+
+            // Short read of the packet header, can happen under heavy network load
+            int pos = len;
+
+            while ( len < TcpipSMB.HEADER_LEN) {
+
+                // Read more packet header bytes
+                int rxlen = readBytes( m_headerBuf, pos, TcpipSMB.HEADER_LEN - pos);
+
+                // Check if the connection has been closed, read length equals -1
+                if (rxlen == -1)
+                    throw new IOException("Connection closed (header read)");
+
+                // Update the header length
+                len += rxlen;
+                pos += rxlen;
+            }
+        }
 
         // Get the packet type from the header
 //		int typ = (int) ( m_headerBuf[0] & 0xFF);
