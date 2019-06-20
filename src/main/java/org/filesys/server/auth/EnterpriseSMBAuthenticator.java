@@ -1254,8 +1254,9 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
                             debugOutput("[SMB] Machine account logon, " + userName + ", as null logon");
                     } else {
 
-                        // Store the full user name in the client information, indicate that this is not a guest logon
-                        client.setUserName(krbDetails.getSourceName());
+                        // Store the user name and full logon name in the client information, indicate that this is not a guest logon
+                        client.setUserName( userName);
+                        client.setLoggedOnName(krbDetails.getSourceName());
                         client.setGuest(false);
 
                         // Indicate that the session is logged on
