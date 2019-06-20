@@ -25,6 +25,7 @@ import java.io.IOException;
 import org.filesys.server.RequestPostProcessor;
 import org.filesys.server.SrvSession;
 import org.filesys.server.auth.ISMBAuthenticator;
+import org.filesys.server.core.NoPooledMemoryException;
 import org.filesys.server.filesys.*;
 import org.filesys.server.locking.LocalOpLockDetails;
 import org.filesys.smb.Dialect;
@@ -39,6 +40,9 @@ import org.filesys.smb.server.notify.NotifyRequest;
  * @author gkspencer
  */
 public abstract class ProtocolHandler {
+
+    // Negotiate response packet size
+    private static final int NegotiateResponseLength    = 4096;
 
     // Server session that this protocol handler is associated with.
     protected SMBSrvSession m_sess;
@@ -169,8 +173,22 @@ public abstract class ProtocolHandler {
     public SMBSrvPacket postProcessNegotiate(SMBSrvPacket smbPkt, NegotiateContext negCtx)
         throws SMBSrvException {
 
-        // Default, use the request packet to build the response
-        return smbPkt;
+        SMBSrvPacket respPkt = smbPkt;
+
+        if ( respPkt.getBufferLength() < NegotiateResponseLength) {
+
+            try {
+
+                // Allocate a larger packet for the negotiate response
+                respPkt = m_sess.getPacketPool().allocatePacket( NegotiateResponseLength, smbPkt);
+
+            } catch (NoPooledMemoryException ex) {
+
+            }
+        }
+
+        // Return the response packet
+        return respPkt;
     }
 
     /**
