@@ -113,7 +113,7 @@ public class SMBPacketPool {
 
         // Check if the buffer can be allocated from the pool
         byte[] buf = null;
-        boolean overSize = false;
+        boolean nonPooled = false;
 
         if (reqSiz <= m_maxPoolBufSize) {
 
@@ -130,29 +130,44 @@ public class SMBPacketPool {
 
             // Allocate an over sized packet
             buf = new byte[reqSiz];
-            overSize = true;
+            nonPooled = true;
         }
 
         // Check if the buffer was allocated
         if (buf == null) {
 
-            // DEBUG
-            if (Debug.EnableDbg && hasDebug())
-                Debug.println("[SMB] Packet allocate failed, reqSiz=" + reqSiz);
+            // Try and allocate a non-pooled buffer if under the maximum buffer size
+            if ( reqSiz < m_maxPoolBufSize) {
+                buf = new byte[reqSiz];
 
-            // Throw an exception, no memory available
-            throw new NoPooledMemoryException("Request size " + reqSiz + "/max size=" + m_maxPoolBufSize);
+                // Mark as a non-pooled buffer so there is no lease, it is not from the pool
+                nonPooled = true;
+            }
+            else {
+
+                // DEBUG
+                if (Debug.EnableDbg && hasDebug())
+                    Debug.println("[SMB] Packet allocate failed, reqSiz=" + reqSiz);
+
+                // Throw an exception, no memory available
+                throw new NoPooledMemoryException("Request size " + reqSiz + "/max size=" + m_maxPoolBufSize);
+            }
         }
 
         // Create the SMB packet
         SMBSrvPacket packet = new SMBSrvPacket(buf);
 
         // Set the lease time, if allocated from a pool, and add to the leased packet list
-        if (overSize == false) {
+        if (nonPooled == false) {
             synchronized (m_leasedPkts) {
                 packet.setLeaseTime(System.currentTimeMillis() + SMBLeaseTime);
                 m_leasedPkts.put(packet, packet);
             }
+        }
+        else {
+
+            // Mark the packet as using a non-pooled buffer
+            packet.setUsingNonPooledBuffer( true);
         }
 
         // Return the SMB packet with the allocated byte buffer
@@ -237,7 +252,7 @@ public class SMBPacketPool {
         }
 
         // Check if the packet is an over sized packet, just let the garbage collector pick it up
-        if (smbPkt.getBuffer().length <= m_maxPoolBufSize) {
+        if (smbPkt.getBuffer().length <= m_maxPoolBufSize && smbPkt.usingNonPooledBuffer() == false) {
 
             // Release the buffer from the SMB packet back to the pool
             m_bufferPool.releaseBuffer(smbPkt.getBuffer());
@@ -247,14 +262,14 @@ public class SMBPacketPool {
                 Debug.println("[SMB] Packet released bufSiz=" + smbPkt.getBuffer().length);
         }
         else if (Debug.EnableDbg && hasAllocateDebug())
-            Debug.println("[SMB] Over sized packet left for garbage collector");
+            Debug.println("[SMB] Non-pooled packet left for garbage collector, size=" + smbPkt.getBuffer().length);
 
         // Check if the packet has an associated packet which also needs releasing
         if (smbPkt.hasAssociatedPacket()) {
 
             // Check if the associated packet is using an over sized packet
             byte[] assocBuf = smbPkt.getAssociatedPacket().getBuffer();
-            if (assocBuf.length <= m_maxPoolBufSize) {
+            if (assocBuf.length <= m_maxPoolBufSize && smbPkt.getAssociatedPacket().usingNonPooledBuffer() == false) {
 
                 // Release the associated packets buffer back to the pool
                 m_bufferPool.releaseBuffer(smbPkt.getAssociatedPacket().getBuffer());
@@ -267,7 +282,7 @@ public class SMBPacketPool {
                     Debug.println("[SMB] Packet released bufSiz=" + smbPkt.getBuffer().length + " and assoc packet, bufSiz=" + smbPkt.getAssociatedPacket().getBuffer().length);
             }
             else if (Debug.EnableDbg && hasAllocateDebug())
-                Debug.println("[SMB] Over sized associated packet left for garbage collector");
+                Debug.println("[SMB] Non-pooled associated packet left for garbage collector, size=" + smbPkt.getAssociatedPacket().getBuffer().length);
 
             // Clear the associated packet
             smbPkt.clearAssociatedPacket();
