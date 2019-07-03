@@ -599,7 +599,7 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 
 		// Debug
 		if (Debug.EnableInfo && hasDebug(DBG_STATE)) {
-			debugPrint("## Session closing. ");
+			debugPrint("## Session closing, reason=" + reason);
 			debugPrintln(reason);
 		}
 
