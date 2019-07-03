@@ -106,6 +106,9 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
     // Use NTLMSSP or SPNEGO
     protected boolean m_useRawNTLMSSP;
 
+    // Accept NTLM logons
+    protected boolean m_allowNTLM = true;
+
     // Flag to control whether NTLMv1 is accepted
     protected boolean m_acceptNTLMv1;
 
@@ -249,6 +252,9 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
                 // DEBUG
                 if (Debug.EnableDbg && hasDebug())
                     debugOutput("       NTLMSSP");
+
+                // Clear the NTLM logons flag
+                m_allowNTLM = false;
             }
 
             // Build the SPNEGO NegTokenInit blob
@@ -328,10 +334,31 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
             }
         }
 
+        // Check if NTLM logons are disabled
+        if (params.getChild("disableNTLM") != null) {
+
+            // Indicate NTLM logons are not allowed
+            m_allowNTLM = false;
+
+            // Debug
+            if (hasDebugOutput())
+                debugOutput("[SMB] NTLM logons disabled");
+        }
+
         // Check if NTLMv1 logons are accepted
         ConfigElement disallowNTLMv1 = params.getChild("disallowNTLMv1");
 
         m_acceptNTLMv1 = disallowNTLMv1 != null ? false : true;
+
+        // Make sure either NTLMSSP or SPNEGO authentication is enabled
+        if ( allowNTLMLogon() == false && m_loginContext == null) {
+
+            // Debug
+            if (hasDebugOutput())
+                debugOutput("[SMB] No authentication methods enabled");
+
+            throw new InvalidConfigurationException("No authentication methods enabled, require NTLMSSP or SPNEGO");
+        }
     }
 
     @Override
@@ -342,6 +369,15 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
     @Override
     public byte[] getNegTokenInit() {
         return m_negTokenInit;
+    }
+
+    /**
+     * Determine if NTLM logons are allowed
+     *
+     * @return boolean
+     */
+    private final boolean allowNTLMLogon() {
+        return m_allowNTLM;
     }
 
     /**
@@ -823,6 +859,17 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
     private final AuthStatus doNtlmsspSessionSetup(SMBSrvSession sess, ClientInfo client, SecurityBlob secBlob, boolean spnego)
             throws SMBSrvException {
 
+        // Make sure NTLM logons are enabled
+        if ( allowNTLMLogon() == false) {
+
+            // Client has sent an NTLM logon
+            if (hasDebugOutput())
+                debugOutput("[SMB] NTLM disabled, received NTLM logon from client (NTLMSSP)");
+
+            // Return a logon failure status
+            throw new SMBSrvException(SMBStatus.NTLogonFailure, SMBStatus.ErrDos, SMBStatus.DOSAccessDenied);
+        }
+
         // Determine the NTLMSSP message type
         AuthStatus authSts = AuthStatus.DISALLOW;
         NTLMMessage.Type msgType = NTLMMessage.isNTLMType(secBlob.getSecurityBlob(), secBlob.getSecurityOffset());
@@ -1106,6 +1153,17 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
                 oidStr = negToken.getOidAt(0).toString();
 
             if (oidStr != null && oidStr.equals(OID.ID_NTLMSSP)) {
+
+                // Check if NTLM logons are enabled
+                if ( allowNTLMLogon() == false) {
+
+                    // Client has sent an NTLM logon
+                    if (hasDebugOutput())
+                        debugOutput("[SMB] NTLM disabled, received NTLM logon from client (SPNEGO)");
+
+                    // Return a logon failure status
+                    throw new SMBSrvException(SMBStatus.NTLogonFailure, SMBStatus.ErrDos, SMBStatus.DOSAccessDenied);
+                }
 
                 // NTLMSSP logon, get the NTLMSSP security blob that is inside the SPNEGO blob
                 byte[] ntlmsspBlob = negToken.getMechtoken();
@@ -2330,5 +2388,32 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
 
         while (strTok.hasMoreTokens())
             debugOutput(strTok.nextToken());
+    }
+
+    @Override
+    public String toString() {
+
+        StringBuilder str = new StringBuilder();
+
+        str.append( getClass().getName());
+        str.append(" - ");
+
+        if (m_useRawNTLMSSP)
+            str.append( "NTLMSSP");
+        else
+            str.append( "SPNEGO");
+
+        if ( allowNTLMLogon() == false)
+            str.append(",NoNTLM");
+
+        if ( acceptNTLMv1Logon() == false)
+            str.append(",NoNTLMv1");
+
+        if ( m_loginContext != null && m_krbRealm != null) {
+            str.append(",Kerberos=");
+            str.append( m_krbRealm);
+        }
+
+        return str.toString();
     }
 }
