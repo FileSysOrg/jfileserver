@@ -42,6 +42,7 @@ public class SMBSrvPacket {
 	private static final int SMB_ASYNC_QUEUED	= 0x0001;
 	private static final int SMB_REQUEST_PKT	= 0x0002;
 	private static final int SMB_ENCRYPT        = 0x0004;
+	private static final int SMB_NONPOOLEDBUFFER= 0x0008;
 
 	// Packet versions
     public enum Version {
@@ -555,6 +556,27 @@ public class SMBSrvPacket {
     }
 
 	/**
+	 * Check if the packet is using a non-pooled buffer, that does not need to be released back to the memory pool
+	 *
+	 * @return boolean
+	 */
+	public final boolean usingNonPooledBuffer() {
+		return (m_flags & SMB_NONPOOLEDBUFFER) != 0;
+	}
+
+	/**
+	 * Set/clear the non-pooled buffer flag
+	 *
+	 * @param nonPooled boolean
+	 */
+	public final void setUsingNonPooledBuffer(boolean nonPooled) {
+		if ( nonPooled)
+			m_flags |= SMB_NONPOOLEDBUFFER;
+		else
+			m_flags &= ~SMB_NONPOOLEDBUFFER;
+	}
+
+	/**
 	 * Clear the packet header
 	 */
 	public final void clearHeader() {
@@ -644,6 +666,9 @@ public class SMBSrvPacket {
     		str.append( getParser().getName());
 		else
 		    str.append( "<NoParser>");
+
+		if ( usingNonPooledBuffer())
+			str.append(", NonPooled");
 
         str.append("]");
 
