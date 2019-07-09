@@ -603,6 +603,10 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 			debugPrintln(reason);
 		}
 
+		// Inform the protocol handler of the hangup
+		if ( getProtocolHandler() != null)
+			getProtocolHandler().hangupSession( this, reason);
+
 		// Set the session into a NetBIOS hangup state
 		setState(SessionState.NETBIOS_HANGUP);
 	}
