@@ -20,12 +20,15 @@
 package org.filesys.smb.server.nio;
 
 import java.io.IOException;
+import java.net.StandardSocketOptions;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
+import org.filesys.debug.Debug;
 import org.filesys.smb.server.SMBPacketPool;
 import org.filesys.smb.server.PacketHandler;
 import org.filesys.smb.server.Protocol;
+import org.filesys.util.HexDump;
 
 /**
  * Channel Packet Handler Class
@@ -62,6 +65,7 @@ public abstract class ChannelPacketHandler extends PacketHandler {
 
         // Set socket options
         m_sockChannel.socket().setTcpNoDelay(true);
+        m_sockChannel.setOption(StandardSocketOptions.SO_SNDBUF, 256000);
 
         // Set the remote address
         setRemoteAddress(m_sockChannel.socket().getInetAddress());
