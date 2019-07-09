@@ -295,4 +295,13 @@ public abstract class ProtocolHandler {
 
         return sharePerm;
     }
+
+    /**
+     * Hangup session callback from the session
+     *
+     * @param sess SMBSrvSession
+     * @param reason String
+     */
+    public void hangupSession( SMBSrvSession sess, String reason) {
+    }
 }
