@@ -134,8 +134,10 @@ public class NIOSMBThreadRequest implements ThreadRequest {
                 catch (Throwable ex) {
 
                     // DEBUG
-                    if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_SOCKET))
+                    if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_SOCKET)) {
                         Debug.println("Error during packet receive, closing session sess=" + m_sess.getUniqueId() + ", addr=" + m_sess.getRemoteAddress().getHostAddress() + " ex=" + ex.getMessage());
+                        Debug.println(ex);
+                    }
 
                     // Close the session
                     m_sess.hangupSession("Client closed socket");
