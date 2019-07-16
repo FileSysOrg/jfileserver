@@ -25,7 +25,11 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.FileTime;
+import java.util.Random;
 import java.util.StringTokenizer;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import org.filesys.debug.Debug;
 import org.filesys.server.SrvSession;
@@ -59,6 +63,15 @@ public class JavaNIODiskDriver implements DiskInterface {
 
     //	SMB date used as the creation date/time for all files
     protected static long _globalCreateDate = System.currentTimeMillis();
+
+    // Background thread used for long running actions such as large file delete
+    protected ExecutorService m_fileActionsExecutor = Executors.newSingleThreadExecutor();
+
+    // Trashcan filename prefix
+    protected static final String TRASHCAN_NAME_PREFIX = "trash_";
+
+    // Random number generator for trashcan file names
+    private static Random _trashCanIdGenerator = new Random();
 
     /**
      * Class constructor
@@ -301,12 +314,64 @@ public class JavaNIODiskDriver implements DiskInterface {
             throws java.io.IOException {
 
         //  Get the full path for the file
-        DeviceContext ctx = tree.getContext();
+        JavaNIODeviceContext ctx = (JavaNIODeviceContext) tree.getContext();
         Path filePath = Paths.get( FileName.buildPath(ctx.getDeviceName(), name, null, java.io.File.separatorChar));
 
         //  Check if the file exists, and it is a file
-        if ( Files.exists( filePath) && Files.isDirectory( filePath) == false)
-            Files.delete( filePath);
+        if ( Files.exists( filePath) && Files.isDirectory( filePath) == false) {
+
+            // If the file size is below the large file threshold then delete the file
+            if ( Files.size( filePath) < ctx.getLargeFileSize()) {
+
+                // Delete the file
+                Files.delete( filePath);
+            }
+            else {
+
+                // Get the file name from the path
+                String[] paths = FileName.splitPath( name);
+                String fileName = null;
+
+                if ( paths[1] != null)
+                    fileName = paths[1];
+
+                // Create a unique name for the file in the trashcan folder
+                StringBuilder trashName = new StringBuilder();
+                trashName.append( ctx.getTrashFolder().getAbsolutePath());
+                trashName.append( File.separatorChar);
+                trashName.append( TRASHCAN_NAME_PREFIX);
+                trashName.append( sess.getSessionId());
+                trashName.append( "_");
+                trashName.append( _trashCanIdGenerator.nextLong());
+
+                final Path trashPath = Paths.get( trashName.toString());
+
+                // DEBUG
+                if ( ctx.hasDebug())
+                    Debug.println("Delete file " + name + " via trashcan");
+
+                try {
+                    // Rename the file into the trashcan folder
+                    Files.move( filePath, trashPath, StandardCopyOption.ATOMIC_MOVE);
+
+                    // Queue a delete to the background thread
+                    m_fileActionsExecutor.execute( new Runnable() {
+                        public void run() {
+                            try {
+                                Files.delete(trashPath);
+                            }
+                            catch ( Exception ex) {
+                            }
+                        }
+                    });
+                }
+                catch ( Exception ex) {
+
+                    // Failed to move the file to the trashcan folder, just delete it where it is
+                    Files.delete( filePath);
+                }
+            }
+        }
     }
 
     /**
@@ -323,7 +388,6 @@ public class JavaNIODiskDriver implements DiskInterface {
         DeviceContext ctx = tree.getContext();
         Path filePath = Paths.get( FileName.buildPath(ctx.getDeviceName(), name, null, java.io.File.separatorChar));
 
-        //  Check if the file exists, and it is a file
         if ( Files.exists( filePath, LinkOption.NOFOLLOW_LINKS)) {
 
             //	Check if the path is a file or directory
@@ -331,6 +395,26 @@ public class JavaNIODiskDriver implements DiskInterface {
                 return FileStatus.DirectoryExists;
             else
                 return FileStatus.FileExists;
+        }
+
+        // Map the path, and re-check
+        try {
+            String mappedPath = mapPath(ctx.getDeviceName(), name);
+
+            if ( mappedPath != null) {
+                filePath = Paths.get( mappedPath);
+
+                if ( Files.exists( filePath, LinkOption.NOFOLLOW_LINKS)) {
+
+                    //	Check if the path is a file or directory
+                    if ( Files.isDirectory( filePath, LinkOption.NOFOLLOW_LINKS))
+                        return FileStatus.DirectoryExists;
+                    else
+                        return FileStatus.FileExists;
+                }
+            }
+        }
+        catch ( Exception ex) {
         }
 
         //  Path does not exist or is not a file
@@ -850,6 +934,30 @@ public class JavaNIODiskDriver implements DiskInterface {
     public void truncateFile(SrvSession sess, TreeConnection tree, NetworkFile file, long siz)
             throws IOException {
 
+        // Check for a truncate to zero length of a large file
+        if ( siz == 0) {
+
+            // Access the device context
+            JavaNIODeviceContext ctx = (JavaNIODeviceContext) tree.getContext();
+
+            if ( file.getFileSize() >= ctx.getLargeFileSize()) {
+
+                // DEBUG
+                if ( ctx.hasDebug())
+                    Debug.println("Truncate large file via delete - " + file.getFullName());
+
+                // Close the existing file
+                file.closeFile();
+
+                // Delete the existing file by moving to the trashcan folder and deleting via a background thread
+                deleteFile( sess, tree, file.getFullName());
+
+                // Create a new zero length file with the original name
+                file.openFile( true);
+                return;
+            }
+        }
+
         //	Truncate or extend the file
         file.truncateFile(siz);
         file.flushFile();
@@ -892,42 +1000,43 @@ public class JavaNIODiskDriver implements DiskInterface {
     public DeviceContext createContext(String shareName, ConfigElement args)
             throws DeviceContextException {
 
-        //	Get the device name argument
-        ConfigElement path = args.getChild("LocalPath");
-        DiskDeviceContext ctx = null;
+        // Parse the configuration and return the device context for this share
+        JavaNIODeviceContext ctx = new JavaNIODeviceContext( shareName, args);
 
-        if (path != null) {
+        // If the trashcan folder is configured then check if there are any trash files left over from a previous
+        // server run
+        if ( ctx.hasTrashFolder()) {
 
-            //	Validate the path and convert to an absolute path
-            File rootDir = new File(path.getValue());
+            // Get the trashcan folder
+            Path trashPath = Paths.get( ctx.getTrashFolder().getAbsolutePath());
 
-            //	Create a device context using the absolute path
-            ctx = new DiskDeviceContext(rootDir.getAbsolutePath());
+            // Search for any trash files
+            try (DirectoryStream<Path> trashStream = Files.newDirectoryStream( trashPath, JavaNIODiskDriver.TRASHCAN_NAME_PREFIX + "*")) {
 
-            // Check if debug output is enabled
-            if ( args.getChild( "Debug") != null)
-                ctx.setDebug( true);
+                // Queue trash files for delete
+                for (final Path trashFile : trashStream) {
 
-            //	Set filesystem flags
-            ctx.setFilesystemAttributes(FileSystem.CasePreservedNames + FileSystem.UnicodeOnDisk);
+                    // DEBUG
+                    if ( ctx.hasDebug())
+                        Debug.println("Queue trash file for delete - " + trashFile.getFileName());
 
-            //	If the path is not valid then set the filesystem as unavailable
-            if (rootDir.exists() == false || rootDir.isDirectory() == false || rootDir.list() == null) {
-
-                //	Mark the filesystem as unavailable
-                ctx.setAvailable(false);
-
-                // DEBUG
-                if ( ctx.hasDebug())
-                    Debug.println("Share " + shareName + ", local path=" + rootDir.getPath() + " available");
+                    // Queue a delete to the background thread
+                    m_fileActionsExecutor.execute(new Runnable() {
+                        public void run() {
+                        try {
+                            Files.delete(trashFile);
+                        }
+                        catch (Exception ex) {
+                        }
+                        }
+                    });
+                }
+            } catch (IOException ex) {
             }
-
-            //	Return the context
-            return ctx;
         }
 
-        //	Required parameters not specified
-        throw new DeviceContextException("LocalPath parameter not specified");
+        // Return the device context
+        return ctx;
     }
 
     /**
