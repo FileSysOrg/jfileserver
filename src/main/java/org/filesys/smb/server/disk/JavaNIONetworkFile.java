@@ -20,16 +20,21 @@
 
 package org.filesys.smb.server.disk;
 
-import java.io.IOException;
-import java.io.RandomAccessFile;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.attribute.FileTime;
-
+import org.filesys.debug.Debug;
 import org.filesys.server.filesys.DiskFullException;
 import org.filesys.server.filesys.NetworkFile;
 import org.filesys.smb.SeekType;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.nio.file.attribute.FileTime;
+import java.util.EnumSet;
+import java.util.Set;
 
 /**
  * Network file implementation that uses the java.io.File class.
@@ -41,8 +46,8 @@ public class JavaNIONetworkFile extends NetworkFile {
     //	File path
     protected Path m_path;
 
-    //	Random access file used to read/write the actual file
-    protected RandomAccessFile m_io;
+    //	File channel used to read/write the actual file
+    protected FileChannel m_io;
 
     //	End of file flag
     protected boolean m_eof;
@@ -54,8 +59,8 @@ public class JavaNIONetworkFile extends NetworkFile {
      * @param netPath String
      * @exception IOException I/O error
      */
-    public JavaNIONetworkFile( Path path, String netPath)
-        throws IOException {
+    public JavaNIONetworkFile(Path path, String netPath)
+            throws IOException {
         super( path.getFileName().toString());
 
         //  Set the file path
@@ -83,7 +88,7 @@ public class JavaNIONetworkFile extends NetworkFile {
      * @exception IOException I/O error
      */
     public JavaNIONetworkFile(String name, String netPath)
-        throws IOException {
+            throws IOException {
         super(name);
 
         //  Create the path
@@ -115,7 +120,7 @@ public class JavaNIONetworkFile extends NetworkFile {
      *
      * @exception IOException I/O error
      */
-    public void closeFile() throws java.io.IOException {
+    public void closeFile() throws IOException {
 
         //  Close the file, if used
         if (m_io != null) {
@@ -143,7 +148,7 @@ public class JavaNIONetworkFile extends NetworkFile {
         //  Check if the file is open
         try {
             if (m_io != null)
-                return m_io.getFilePointer();
+                return m_io.position();
         }
         catch (Exception ex) {
         }
@@ -161,7 +166,7 @@ public class JavaNIONetworkFile extends NetworkFile {
 
         //	Flush all buffered data
         if (m_io != null)
-            m_io.getFD().sync();
+            m_io.force( false);
     }
 
     /**
@@ -170,10 +175,10 @@ public class JavaNIONetworkFile extends NetworkFile {
      * @return boolean
      * @exception IOException I/O error
      */
-    public boolean isEndOfFile() throws java.io.IOException {
+    public boolean isEndOfFile() throws IOException {
 
         //  Check if we reached end of file
-        if (m_io != null && m_io.getFilePointer() == m_io.length())
+        if (m_io != null && m_io.position() == m_io.size())
             return true;
         return false;
     }
@@ -185,7 +190,7 @@ public class JavaNIONetworkFile extends NetworkFile {
      * @exception IOException I/O error
      */
     public void openFile(boolean createFlag)
-            throws java.io.IOException {
+            throws IOException {
 
         synchronized (m_path) {
 
@@ -193,7 +198,12 @@ public class JavaNIONetworkFile extends NetworkFile {
             if (m_io == null) {
 
                 //  Open the file
-                m_io = new RandomAccessFile(m_path.toString(), getGrantedAccess() == NetworkFile.Access.READ_WRITE ? "rw" : "r");
+                Set<StandardOpenOption> openOptions = null;
+                if ( getGrantedAccess() == Access.READ_WRITE)
+                    openOptions = EnumSet.of( StandardOpenOption.READ, StandardOpenOption.WRITE);
+                else
+                    openOptions = EnumSet.of( StandardOpenOption.READ);
+                m_io = FileChannel.open( m_path, openOptions);
 
                 //	Indicate that the file is open
                 setClosed(false);
@@ -212,7 +222,7 @@ public class JavaNIONetworkFile extends NetworkFile {
      * @exception IOException I/O error
      */
     public int readFile(byte[] buf, int len, int pos, long fileOff)
-            throws java.io.IOException {
+            throws IOException {
 
         //  Open the file, if not already open
         if (m_io == null)
@@ -223,7 +233,8 @@ public class JavaNIONetworkFile extends NetworkFile {
             seekFile(fileOff, SeekType.StartOfFile);
 
         //  Read from the file
-        int rdlen = m_io.read(buf, pos, len);
+        ByteBuffer bytBuf = ByteBuffer.wrap( buf, pos, len);
+        int rdlen = m_io.read( bytBuf);
 
         //	Return the actual length of data read
         return rdlen;
@@ -249,18 +260,18 @@ public class JavaNIONetworkFile extends NetworkFile {
             //  From start of file
             case SeekType.StartOfFile:
                 if (currentPosition() != pos)
-                    m_io.seek(pos);
+                    m_io.position( pos);
                 break;
 
             //  From current position
             case SeekType.CurrentPos:
-                m_io.seek(currentPosition() + pos);
+                m_io.position( m_io.position() + pos);
                 break;
 
             //  From end of file
             case SeekType.EndOfFile: {
-                long newPos = m_io.length() + pos;
-                m_io.seek(newPos);
+                long newPos = m_io.size() + pos;
+                m_io.position(newPos);
             }
             break;
         }
@@ -282,14 +293,16 @@ public class JavaNIONetworkFile extends NetworkFile {
         if (m_io == null)
             openFile(true);
         else
-            m_io.getFD().sync();
+            m_io.force( false);
 
         //	Check if the file length is being truncated or extended
         boolean extendFile = siz > getFileSize() ? true : false;
 
         //  Set the file length
         try {
-            m_io.setLength(siz);
+
+            // Set the file to the required length
+            m_io.truncate(siz);
 
             //	Update the file size
             setFileSize(siz);
@@ -316,14 +329,17 @@ public class JavaNIONetworkFile extends NetworkFile {
      * @exception IOException I/O error
      */
     public void writeFile(byte[] buf, int len, int pos)
-            throws java.io.IOException {
+            throws IOException {
 
         //  Open the file, if not already open
         if (m_io == null)
             openFile(true);
 
         //  Write to the file
-        m_io.write(buf, pos, len);
+        ByteBuffer bytBuf = ByteBuffer.wrap( buf, pos, len);
+
+        while ( bytBuf.hasRemaining())
+            m_io.write(bytBuf);
 
         //	Update the write count for the file
         incrementWriteCount();
@@ -339,7 +355,7 @@ public class JavaNIONetworkFile extends NetworkFile {
      * @exception IOException I/O error
      */
     public void writeFile(byte[] buf, int len, int pos, long offset)
-            throws java.io.IOException {
+            throws IOException {
 
         //  Open the file, if not already open
         if (m_io == null)
@@ -347,12 +363,12 @@ public class JavaNIONetworkFile extends NetworkFile {
 
         //	We need to seek to the write position. If the write position is off the end of the file
         //	we must null out the area between the current end of file and the write position.
-        long fileLen = m_io.length();
+        long fileLen = m_io.size();
 
         if (offset > fileLen) {
 
             //	Extend the file
-            m_io.setLength(offset + len);
+            m_io.truncate(offset + len);
         }
 
         //	Check for a zero length write
@@ -360,10 +376,13 @@ public class JavaNIONetworkFile extends NetworkFile {
             return;
 
         //	Seek to the write position
-        m_io.seek(offset);
+        m_io.position(offset);
 
         //  Write to the file
-        m_io.write(buf, pos, len);
+        ByteBuffer bytBuf = ByteBuffer.wrap( buf, pos, len);
+
+        while( bytBuf.hasRemaining())
+            m_io.write(bytBuf);
 
         //	Update the write count for the file
         incrementWriteCount();
