@@ -1110,7 +1110,7 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 				catch (IOException ex) {
 
 					// Check if there is no more data, the other side has dropped the connection
-					hangupSession("Remote disconnect");
+					hangupSession("Remote disconnect: " + ex.toString());
 
 					// Clear the request packet
 					smbPkt = null;
