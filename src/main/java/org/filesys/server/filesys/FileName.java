@@ -325,6 +325,27 @@ public final class FileName {
     }
 
     /**
+     * Return the last file/folder name from the path string
+     *
+     * @param path String
+     * @return String
+     */
+    public final static String getFileNamePart(String path) {
+
+        // Check if the path has a trailing path seperator
+        String fnamePart = "";
+
+        if ( path.length() > 1 && path.endsWith( DOS_SEPERATOR_STR))
+            path = path.substring( 0, path.length() - 1);
+
+        int pos = path.lastIndexOf(DOS_SEPERATOR);
+        if ( pos != -1 && pos < path.length())
+            fnamePart = path.substring( pos + 1);
+
+        return fnamePart;
+    }
+
+    /**
      * Split the path into seperate directory path and file name strings.
      *
      * @param path Full path string.
