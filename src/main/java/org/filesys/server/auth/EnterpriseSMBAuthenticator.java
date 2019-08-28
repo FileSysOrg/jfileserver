@@ -23,6 +23,9 @@ package org.filesys.server.auth;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
@@ -195,6 +198,48 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
                 m_password = srvPassword.getValue();
             }
 
+            // Check if a custom Kerberos configuration file has been specified
+            ConfigElement krb5ConfPath = params.getChild("KerberosConfig");
+
+            if ( krb5ConfPath != null) {
+
+                // Get the Kerberos configuration path
+                String krb5Path = krb5ConfPath.getValue();
+
+                // Make sure the Kerberos configuration file exists
+                if (Files.exists( Paths.get( krb5Path), LinkOption.NOFOLLOW_LINKS)) {
+
+                    // Set the Kerberos configuration path
+                    System.setProperty( "java.security.krb5.conf", krb5Path);
+                }
+                else {
+
+                    // Configuration file does not exist
+                    throw new InvalidConfigurationException("Kerberos configuration file does not exist - " + krb5Path);
+                }
+            }
+
+            // Check if a custom login configuration file has been specified
+            ConfigElement loginConfPath = params.getChild("LoginConfig");
+
+            if ( loginConfPath != null) {
+
+                // Get the login configuration path
+                String loginPath = loginConfPath.getValue();
+
+                // Make sure the login configuration file exists
+                if (Files.exists( Paths.get( loginPath), LinkOption.NOFOLLOW_LINKS)) {
+
+                    // Set the login configuration path
+                    System.setProperty( "java.security.auth.login.config", loginPath);
+                }
+                else {
+
+                    // Configuration file does not exist
+                    throw new InvalidConfigurationException("Login configuration file does not exist - " + loginPath);
+                }
+            }
+
             // Get the login configuration entry name
             ConfigElement loginEntry = params.getChild("LoginEntry");
 
@@ -243,8 +288,8 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
             // Create the Oid list for the SPNEGO NegTokenInit, include NTLMSSP for fallback
             List<Oid> mechTypes = new ArrayList<Oid>();
 
-            mechTypes.add(OID.KERBEROS5);
             mechTypes.add(OID.MSKERBEROS5);
+            mechTypes.add(OID.KERBEROS5);
 
             if (params.getChild("disableNTLM") == null) {
                 mechTypes.add(OID.NTLMSSP);
@@ -253,7 +298,12 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
                 if (Debug.EnableDbg && hasDebug())
                     debugOutput("       NTLMSSP");
 
-                // Clear the NTLM logons flag
+                // Set the NTLM logons allowed flag
+                m_allowNTLM = true;
+            }
+            else {
+
+                // NTLM logons not allowed
                 m_allowNTLM = false;
             }
 
