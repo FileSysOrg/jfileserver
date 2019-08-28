@@ -69,6 +69,18 @@ public abstract class ProtocolHandler {
     }
 
     /**
+     * Initialize the protocol handler
+     *
+     * @param smbServer SMBServer
+     * @param smbSession SMBSrvSession
+     * @param dialect int
+     */
+    public void initialize( SMBServer smbServer, SMBSrvSession smbSession, int dialect) {
+        setSession( smbSession);
+        setDialect( dialect);
+    }
+
+    /**
      * Return the protocol handler name.
      *
      * @return String
