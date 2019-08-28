@@ -81,6 +81,8 @@ public class ConfigId {
 	public static final int SMBMaxVirtualCircuit= GroupSMB + 29;
     public static final int SMBLoadBalancerList = GroupSMB + 30;
     public static final int SMBTerminalServerList= GroupSMB + 31;
+    public static final int SMBDisableEncryption = GroupSMB + 32;
+    public static final int SMBRequireSigning	= GroupSMB + 33;
 
 	// FTP server variables
 	public static final int FTPBindAddress 		= GroupFTP + 1;
