@@ -135,10 +135,11 @@ public class DiskInfoPacker {
 
         //	Information format :-
         //	 ULONG	Volume creation date/time (NT 64bit time fomat)
-        //	 UINT		Volume serial number
-        //	 UINT	 	Volume label length
-        //	 SHORT	Reserved
-        //	 STRING	Volume label (no null)
+        //	 UINT	Volume serial number
+        //	 UINT	Volume label length
+        //	 UCHAR  Supports objects
+        //   UCHAR  Reserved
+        //	 STRING	Volume label (with null)
         if (info.hasCreationDateTime())
             buf.putLong(NTTime.toNTTime(info.getCreationDateTime()));
         else
@@ -149,13 +150,13 @@ public class DiskInfoPacker {
         else
             buf.putZeros(4);
 
-        int len = info.getVolumeLabel().length();
+        int len = info.getVolumeLabel().length() + 1;
         if (uni)
             len *= 2;
         buf.putInt(len);
 
         buf.putZeros(2);        //	reserved
-        buf.putString(info.getVolumeLabel(), uni, false);
+        buf.putString(info.getVolumeLabel(), uni, true);
     }
 
     /**
