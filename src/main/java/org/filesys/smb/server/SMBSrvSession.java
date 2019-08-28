@@ -994,11 +994,8 @@ public class SMBSrvSession extends SrvSession implements Runnable {
                     if (Debug.EnableInfo && hasDebug(DBG_NEGOTIATE))
                         debugPrintln("Assigned protocol handler - " + m_handler.getClass().getName());
 
-                    // Set the protocol handlers associated session
-                    m_handler.setSession(this);
-
-                    // Set the negotiated dialect, protocol handler may need to know
-                    m_handler.setDialect(diaIdx);
+                    // Initialize the protocol handler
+					m_handler.initialize( getSMBServer(), this, diaIdx);
 
                     // Update the session debug prefix to contain the SMB version
                     setDebugPrefix("[" + getPacketHandler().getShortName() + getSessionId() + ":" + Dialect.getMajorSMBVersion( diaIdx) + "] ");
