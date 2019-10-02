@@ -170,7 +170,7 @@ public class JDKLoggingDebug extends DebugInterfaceBase {
      */
     public void initialize(ConfigElement params, ServerConfiguration config) {
 
-        //  Get the logging properities file name
+        //  Get the logging properties file name
         ConfigElement logProps = params.getChild("Properties");
 
         //  Check if the log file has been specified
