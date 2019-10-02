@@ -179,6 +179,7 @@ public final class SMBStatus {
 	public static final int NTInvalidParameter 		= 0xC000000D;
 	public static final int NTNoSuchFile 			= 0xC000000F;
 	public static final int NTInvalidDeviceRequest 	= 0xC0000010;
+	public static final int NTEndOfFile				= 0xC0000011;
 	public static final int NTMoreProcessingRequired = 0xC0000016;
 	public static final int NTAccessDenied 			= 0xC0000022;
 	public static final int NTBufferTooSmall 		= 0xC0000023;
