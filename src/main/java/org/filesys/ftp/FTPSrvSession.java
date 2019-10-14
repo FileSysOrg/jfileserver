@@ -3561,7 +3561,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
             InetAddress remoteAddr = m_sock.getInetAddress();
             if (!addr.equals(remoteAddr)) {
                 if (Debug.EnableWarn && hasDebug(DBG_DATAPORT))
-                    debugPrintln("EPRT address [" + addr + "] is not equals to client address [" + remoteAddr + "]. For security purposes client address is used for data transmition.");
+                    debugPrintln("EPRT address [" + addr + "] is not equal to client address [" + remoteAddr + "]. For security purposes client address is used for data transmission.");
                 addr = remoteAddr;
             }
 

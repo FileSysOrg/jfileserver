@@ -599,9 +599,13 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 
 		// Debug
 		if (Debug.EnableInfo && hasDebug(DBG_STATE)) {
-			debugPrint("## Session closing. ");
+			debugPrint("## Session closing, reason=" + reason);
 			debugPrintln(reason);
 		}
+
+		// Inform the protocol handler of the hangup
+		if ( getProtocolHandler() != null)
+			getProtocolHandler().hangupSession( this, reason);
 
 		// Set the session into a NetBIOS hangup state
 		setState(SessionState.NETBIOS_HANGUP);
@@ -990,11 +994,8 @@ public class SMBSrvSession extends SrvSession implements Runnable {
                     if (Debug.EnableInfo && hasDebug(DBG_NEGOTIATE))
                         debugPrintln("Assigned protocol handler - " + m_handler.getClass().getName());
 
-                    // Set the protocol handlers associated session
-                    m_handler.setSession(this);
-
-                    // Set the negotiated dialect, protocol handler may need to know
-                    m_handler.setDialect(diaIdx);
+                    // Initialize the protocol handler
+					m_handler.initialize( getSMBServer(), this, diaIdx);
 
                     // Update the session debug prefix to contain the SMB version
                     setDebugPrefix("[" + getPacketHandler().getShortName() + getSessionId() + ":" + Dialect.getMajorSMBVersion( diaIdx) + "] ");
@@ -1017,6 +1018,22 @@ public class SMBSrvSession extends SrvSession implements Runnable {
                     return;
                 }
             }
+            else {
+
+            	// No common dialect available between the client and server
+
+				// Debug
+				if (Debug.EnableError && hasDebug(DBG_NEGOTIATE))
+					debugPrintln("No comon dialect between client and server");
+
+				// Return an error status
+				sendErrorResponseSMB(smbPkt, SMBStatus.NTInvalidParameter, SMBStatus.SRVNotSupported, SMBStatus.ErrSrv);
+
+				// Drop the session
+				setState( SessionState.NETBIOS_HANGUP);
+				return;
+
+			}
 
             // Pass the negotiate context back to the parser
             respPkt.getParser().packNegotiateResponse(getSMBServer(), this, respPkt, diaIdx, negCtx);
@@ -1090,7 +1107,7 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 				catch (IOException ex) {
 
 					// Check if there is no more data, the other side has dropped the connection
-					hangupSession("Remote disconnect");
+					hangupSession("Remote disconnect: " + ex.toString());
 
 					// Clear the request packet
 					smbPkt = null;
@@ -1103,18 +1120,8 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 				// Check the packet signature if we are in an SMB state
 				if (m_state != SessionState.NETBIOS_SESS_REQUEST) {
 
-					// Check for an SMB2 packet signature
-					if (smbPkt.isSMB2()) {
-
-						// Debug
-						if (Debug.EnableInfo && hasDebug(DBG_ERROR))
-							debugPrintln("SMB2 request received, ignoring");
-
-						continue;
-					}
-
-					// Check the packet signature (for SMB v1)
-					if (smbPkt.isSMB1() == false) {
+					// Check the packet signature (for SMB v1/2/3)
+					if (smbPkt.isSMB() == false) {
 
 						// Debug
 						if (Debug.EnableInfo && hasDebug(DBG_ERROR))
@@ -1132,10 +1139,16 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 			// Cleanup the session, then close the session/socket
 			closeSession();
 
-			if (Debug.EnableInfo && hasDebug(DBG_STATE)) {
+			if (Debug.EnableInfo && hasDebug(DBG_STATE))
 				debugPrintln("[SMB] Closed session, " + getUniqueId()
 						+ ", addr=" + getRemoteAddress().getHostAddress());
-			}
+
+			// Notify the server that the session has closed
+			getSMBServer().sessionClosed(this);
+
+			// Clear any user context
+			if (hasClientInformation())
+				getSMBServer().getSMBAuthenticator().setCurrentUser(null);
 		}
 		catch (Exception ex) {
 

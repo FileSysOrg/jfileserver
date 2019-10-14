@@ -23,9 +23,13 @@ package org.filesys.server.auth;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
+import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -104,6 +108,9 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
 
     // Use NTLMSSP or SPNEGO
     protected boolean m_useRawNTLMSSP;
+
+    // Accept NTLM logons
+    protected boolean m_allowNTLM = true;
 
     // Flag to control whether NTLMv1 is accepted
     protected boolean m_acceptNTLMv1;
@@ -190,8 +197,48 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
                 // Set the SMB service account password
                 m_password = srvPassword.getValue();
             }
-            else
-                throw new InvalidConfigurationException("SMB service account password not specified");
+
+            // Check if a custom Kerberos configuration file has been specified
+            ConfigElement krb5ConfPath = params.getChild("KerberosConfig");
+
+            if ( krb5ConfPath != null) {
+
+                // Get the Kerberos configuration path
+                String krb5Path = krb5ConfPath.getValue();
+
+                // Make sure the Kerberos configuration file exists
+                if (Files.exists( Paths.get( krb5Path), LinkOption.NOFOLLOW_LINKS)) {
+
+                    // Set the Kerberos configuration path
+                    System.setProperty( "java.security.krb5.conf", krb5Path);
+                }
+                else {
+
+                    // Configuration file does not exist
+                    throw new InvalidConfigurationException("Kerberos configuration file does not exist - " + krb5Path);
+                }
+            }
+
+            // Check if a custom login configuration file has been specified
+            ConfigElement loginConfPath = params.getChild("LoginConfig");
+
+            if ( loginConfPath != null) {
+
+                // Get the login configuration path
+                String loginPath = loginConfPath.getValue();
+
+                // Make sure the login configuration file exists
+                if (Files.exists( Paths.get( loginPath), LinkOption.NOFOLLOW_LINKS)) {
+
+                    // Set the login configuration path
+                    System.setProperty( "java.security.auth.login.config", loginPath);
+                }
+                else {
+
+                    // Configuration file does not exist
+                    throw new InvalidConfigurationException("Login configuration file does not exist - " + loginPath);
+                }
+            }
 
             // Get the login configuration entry name
             ConfigElement loginEntry = params.getChild("LoginEntry");
@@ -241,8 +288,8 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
             // Create the Oid list for the SPNEGO NegTokenInit, include NTLMSSP for fallback
             List<Oid> mechTypes = new ArrayList<Oid>();
 
-            mechTypes.add(OID.KERBEROS5);
             mechTypes.add(OID.MSKERBEROS5);
+            mechTypes.add(OID.KERBEROS5);
 
             if (params.getChild("disableNTLM") == null) {
                 mechTypes.add(OID.NTLMSSP);
@@ -250,6 +297,14 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
                 // DEBUG
                 if (Debug.EnableDbg && hasDebug())
                     debugOutput("       NTLMSSP");
+
+                // Set the NTLM logons allowed flag
+                m_allowNTLM = true;
+            }
+            else {
+
+                // NTLM logons not allowed
+                m_allowNTLM = false;
             }
 
             // Build the SPNEGO NegTokenInit blob
@@ -329,10 +384,31 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
             }
         }
 
+        // Check if NTLM logons are disabled
+        if (params.getChild("disableNTLM") != null) {
+
+            // Indicate NTLM logons are not allowed
+            m_allowNTLM = false;
+
+            // Debug
+            if (hasDebugOutput())
+                debugOutput("[SMB] NTLM logons disabled");
+        }
+
         // Check if NTLMv1 logons are accepted
         ConfigElement disallowNTLMv1 = params.getChild("disallowNTLMv1");
 
         m_acceptNTLMv1 = disallowNTLMv1 != null ? false : true;
+
+        // Make sure either NTLMSSP or SPNEGO authentication is enabled
+        if ( allowNTLMLogon() == false && m_loginContext == null) {
+
+            // Debug
+            if (hasDebugOutput())
+                debugOutput("[SMB] No authentication methods enabled");
+
+            throw new InvalidConfigurationException("No authentication methods enabled, require NTLMSSP or SPNEGO");
+        }
     }
 
     @Override
@@ -343,6 +419,15 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
     @Override
     public byte[] getNegTokenInit() {
         return m_negTokenInit;
+    }
+
+    /**
+     * Determine if NTLM logons are allowed
+     *
+     * @return boolean
+     */
+    private final boolean allowNTLMLogon() {
+        return m_allowNTLM;
     }
 
     /**
@@ -376,7 +461,10 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
             // Request for password
             else if (callbacks[i] instanceof PasswordCallback) {
                 PasswordCallback cb = (PasswordCallback) callbacks[i];
-                cb.setPassword(m_password.toCharArray());
+                if ( m_password != null)
+                    cb.setPassword(m_password.toCharArray());
+                else
+                    cb.setPassword("".toCharArray());
             }
 
             // Request for realm
@@ -821,6 +909,17 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
     private final AuthStatus doNtlmsspSessionSetup(SMBSrvSession sess, ClientInfo client, SecurityBlob secBlob, boolean spnego)
             throws SMBSrvException {
 
+        // Make sure NTLM logons are enabled
+        if ( allowNTLMLogon() == false) {
+
+            // Client has sent an NTLM logon
+            if (hasDebugOutput())
+                debugOutput("[SMB] NTLM disabled, received NTLM logon from client (NTLMSSP)");
+
+            // Return a logon failure status
+            throw new SMBSrvException(SMBStatus.NTLogonFailure, SMBStatus.ErrDos, SMBStatus.DOSAccessDenied);
+        }
+
         // Determine the NTLMSSP message type
         AuthStatus authSts = AuthStatus.DISALLOW;
         NTLMMessage.Type msgType = NTLMMessage.isNTLMType(secBlob.getSecurityBlob(), secBlob.getSecurityOffset());
@@ -1105,6 +1204,17 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
 
             if (oidStr != null && oidStr.equals(OID.ID_NTLMSSP)) {
 
+                // Check if NTLM logons are enabled
+                if ( allowNTLMLogon() == false) {
+
+                    // Client has sent an NTLM logon
+                    if (hasDebugOutput())
+                        debugOutput("[SMB] NTLM disabled, received NTLM logon from client (SPNEGO)");
+
+                    // Return a logon failure status
+                    throw new SMBSrvException(SMBStatus.NTLogonFailure, SMBStatus.ErrDos, SMBStatus.DOSAccessDenied);
+                }
+
                 // NTLMSSP logon, get the NTLMSSP security blob that is inside the SPNEGO blob
                 byte[] ntlmsspBlob = negToken.getMechtoken();
 
@@ -1204,7 +1314,7 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
         try {
 
             //  Run the session setup as a privileged action
-            SessionSetupPrivilegedAction sessSetupAction = new SessionSetupPrivilegedAction(m_accountName, negToken.getMechtoken());
+            PrivilegedAction sessSetupAction = getKerberosPrivilegedAction( negToken);
             Object result = Subject.doAs(m_loginContext.getSubject(), sessSetupAction);
 
             if (result != null) {
@@ -1252,8 +1362,9 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
                             debugOutput("[SMB] Machine account logon, " + userName + ", as null logon");
                     } else {
 
-                        // Store the full user name in the client information, indicate that this is not a guest logon
-                        client.setUserName(krbDetails.getSourceName());
+                        // Store the user name and full logon name in the client information, indicate that this is not a guest logon
+                        client.setUserName( userName);
+                        client.setLoggedOnName(krbDetails.getSourceName());
                         client.setGuest(false);
 
                         // Indicate that the session is logged on
@@ -1264,6 +1375,9 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
                     // Null logon
                     client.setLogonType(ClientInfo.LogonType.Null);
                 }
+
+                // Post Kerberos logon hook, logon can still be stopped if an exception is thrown
+                postKerberosLogon( sess, krbDetails, client);
 
                 // Indicate that the session is logged on
                 sess.setLoggedOn(true);
@@ -2256,6 +2370,41 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
     }
 
     /**
+     * Get the privileged action to run for a Kerberos logon
+     *
+     * @param negToken NegTokenInit
+     * @return PrivilegedAction
+     */
+    protected PrivilegedAction getKerberosPrivilegedAction( NegTokenInit negToken) {
+        return new SessionSetupPrivilegedAction(m_accountName, negToken.getMechtoken());
+    }
+
+    /**
+     * Kerberos authentication hook, can stop the logon even though Kerberos authentication has been successful
+     *
+     * @param sess SMBSrvSession
+     * @param krbDetails KerberosDetails
+     * @param client ClientInfo
+     * @exception SMBSrvException To prevent the user logon
+     */
+    protected void postKerberosLogon( SMBSrvSession sess, KerberosDetails krbDetails, ClientInfo client)
+        throws SMBSrvException {
+
+    }
+
+    /**
+     * NTLM authentication hook, can stop the logon even though the NTLM authentication has been successful
+     *
+     * @param sess SMBSrvSession
+     * @param client ClientInfo
+     * @throws SMBSrvException To prevent the user logon
+     */
+    protected void postNTLMLogon( SMBSrvSession sess, ClientInfo client)
+        throws SMBSrvException {
+
+    }
+
+    /**
      * Check if debug output is enabled
      *
      * @return boolean
@@ -2289,5 +2438,32 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
 
         while (strTok.hasMoreTokens())
             debugOutput(strTok.nextToken());
+    }
+
+    @Override
+    public String toString() {
+
+        StringBuilder str = new StringBuilder();
+
+        str.append( getClass().getName());
+        str.append(" - ");
+
+        if (m_useRawNTLMSSP)
+            str.append( "NTLMSSP");
+        else
+            str.append( "SPNEGO");
+
+        if ( allowNTLMLogon() == false)
+            str.append(",NoNTLM");
+
+        if ( acceptNTLMv1Logon() == false)
+            str.append(",NoNTLMv1");
+
+        if ( m_loginContext != null && m_krbRealm != null) {
+            str.append(",Kerberos=");
+            str.append( m_krbRealm);
+        }
+
+        return str.toString();
     }
 }

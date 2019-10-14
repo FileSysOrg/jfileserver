@@ -343,20 +343,6 @@ public class NegTokenInit {
 
         derSeq.addObject(mechTypesSeq);
 
-        // mechListMIC
-        //
-        // Note: This field is not as specified
-        if (m_mecListMICPrincipal != null) {
-            DERSequence derMecSeq = new DERSequence();
-            derMecSeq.setTagNo(3);
-
-            DERGeneralString mecStr = new DERGeneralString(m_mecListMICPrincipal);
-            mecStr.setTagNo(0);
-
-            derMecSeq.addObject(mecStr);
-            derSeq.addObject(derMecSeq);
-        }
-
         // negHints sequence
         DERSequence negHintsSeq = new DERSequence();
         negHintsSeq.setTagNo( 3);

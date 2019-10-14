@@ -114,7 +114,7 @@ public abstract class AccessControl {
     public abstract int allowsAccess(SrvSession sess, SharedDevice share, AccessControlManager mgr);
 
     /**
-     * Return the index of a value from a list of valid values, or 01 if not valid
+     * Return the index of a value from a list of valid values, or -1 if not valid
      *
      * @param val           String
      * @param valid         String[]

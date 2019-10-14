@@ -249,9 +249,13 @@ public class JavaNIOSearchContext extends SearchContext {
                     //	Check if we found a match
                     if (foundMatch == false) {
 
-                        //  Get the next path
-                        curPath = m_pathIter.next();
-                        m_idx++;
+                        //  Get the next path, if available
+                        if ( m_pathIter.hasNext()) {
+                            curPath = m_pathIter.next();
+                            m_idx++;
+                        }
+                        else
+                            curPath = null;
                     }
                 }
 
@@ -347,7 +351,7 @@ public class JavaNIOSearchContext extends SearchContext {
             else
                 return null;
         }
-        else if ( m_pathIter != null) {
+        else if ( m_pathIter != null && m_pathIter.hasNext()) {
 
             // Find the next matching file name
             Path curPath = m_pathIter.next();

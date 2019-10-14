@@ -43,12 +43,16 @@ public class OID {
     // Microsoft NTLM security support provider
     public static final String ID_NTLMSSP = "1.3.6.1.4.1.311.2.2.10";
 
+    // Extended SPNEGO security mechanism
+    public static final String ID_SPNEGO_EX = "1.3.6.1.4.1.311.2.2.30";
+
     // OIDs
     public static Oid SPNEGO;
     public static Oid KERBEROS5;
     public static Oid MSKERBEROS5;
     public static Oid KRB5USERTOUSER;
     public static Oid NTLMSSP;
+    public static Oid SPNEGO_EX;
 
     /**
      * Static initializer
@@ -64,6 +68,8 @@ public class OID {
             KRB5USERTOUSER = new Oid(ID_KRB5USERTOUSER);
 
             NTLMSSP = new Oid(ID_NTLMSSP);
+
+            SPNEGO_EX = new Oid(ID_SPNEGO_EX);
         }
         catch (GSSException ex) {
         }

@@ -635,15 +635,6 @@ public class NotifyChangeHandler implements Runnable {
         if ( matchPath.length() == 0 || matchPath.startsWith( FileName.DOS_SEPERATOR_STR) == false)
             matchPath = FileName.DOS_SEPERATOR_STR + matchPath;
 
-        // TEST
-        // Dump the current notify list
-        Debug.println("[Notify] Request list:");
-        for ( int reqIdx = 0; reqIdx < m_notifyList.numberOfRequests(); reqIdx++) {
-            NotifyRequest req = m_notifyList.getRequest( reqIdx);
-            Debug.println("[Notify]   Request=" + req);
-        }
-        Debug.println("--------------------");
-
         //	Search for matching requests and remove them from the main request list
         int idx = 0;
         long curTime = System.currentTimeMillis();
