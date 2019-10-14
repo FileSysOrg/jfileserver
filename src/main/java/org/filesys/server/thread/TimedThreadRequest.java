@@ -201,7 +201,8 @@ public abstract class TimedThreadRequest implements ThreadRequest, Comparable<Ti
                 setRunAtTime(System.currentTimeMillis() + (getRepeatInterval() * 1000L));
 
                 // Requeue the request
-                m_threadPool.queueTimedRequest(this);
+                if ( m_threadPool != null)
+                    m_threadPool.queueTimedRequest(this);
             } else {
 
                 // Clear the associated thread pool, request no longer queued
@@ -210,7 +211,8 @@ public abstract class TimedThreadRequest implements ThreadRequest, Comparable<Ti
         } else {
 
             // Requeue the paused request
-            m_threadPool.queueTimedRequest(this);
+            if ( m_threadPool != null)
+                m_threadPool.queueTimedRequest(this);
         }
     }
 

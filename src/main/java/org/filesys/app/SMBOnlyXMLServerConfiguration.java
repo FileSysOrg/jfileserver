@@ -139,7 +139,7 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 	private SimpleDateFormat m_dateFmt = new SimpleDateFormat("dd-MMM-yyyy hh:mm:ss");
 
 	// Pattern match for environment variable tokens
-    private Pattern m_envTokens = Pattern.compile("\\$\\{\\w+\\}");
+    private Pattern m_envTokens = Pattern.compile("\\$\\{[a-zA-Z0-9_\\.]+\\}");
 
 	/**
 	 * Default constructor
@@ -593,7 +593,15 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 				}
 			}
 		}
-		
+
+		// Check if encryption is disabled, for dialects that support encryption
+		if ( findChildNode( "disableEncryption", smb.getChildNodes()) != null)
+			smbConfig.setDisableEncryption( true);
+
+		// Check if signing is required
+		if ( findChildNode( "requireSigning", smb.getChildNodes()) != null)
+			smbConfig.setRequireSigning( true);
+
 		// Check if an authenticator has been specified
 		Element authElem = findChildNode("authenticator", smb.getChildNodes());
 		if ( authElem != null) {
@@ -611,12 +619,7 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 					throw new InvalidConfigurationException("Authenticator class not specified");
 
 				// Check the authenticator type and set the appropriate authenticator class
-				if ( authType.equalsIgnoreCase("local"))
-					authClass = "org.filesys.server.auth.LocalAuthenticator";
-				else if ( authType.equalsIgnoreCase("passthru"))
-					authClass = "org.filesys.server.auth.PassthruAuthenticator";
-				else if ( authType.equalsIgnoreCase("enterprise"))
-					authClass = "org.filesys.server.auth.EnterpriseSMBAuthenticator";
+				authClass = getSMBAuthenticatorClassForType( authType);
 			}
 			else {
 
@@ -2155,6 +2158,27 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 	}
 
 	/**
+	 * Get the SMB authenticator class name to use for the specified authenticator type
+	 *
+	 * @param authType String
+	 * @return String
+	 */
+	protected String getSMBAuthenticatorClassForType( String authType) {
+
+		// Check the authenticator type and set the appropriate authenticator class
+		String authClass = null;
+
+		if ( authType.equalsIgnoreCase("local"))
+			authClass = "org.filesys.server.auth.LocalAuthenticator";
+		else if ( authType.equalsIgnoreCase("passthru"))
+			authClass = "org.filesys.server.auth.PassthruAuthenticator";
+		else if ( authType.equalsIgnoreCase("enterprise"))
+			authClass = "org.filesys.server.auth.EnterpriseSMBAuthenticator";
+
+		return authClass;
+	}
+
+	/**
 	 * Find the specified child node in the node list
 	 * 
 	 * @param name String
@@ -2258,6 +2282,17 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 					// Replace the occurrence of the environment variable token and write to the new string
 					matcher.appendReplacement( attrOut, envValue);
 				}
+				else {
+
+					// Check for a system property
+					envValue = System.getProperty( envVar);
+
+					if ( envValue != null) {
+
+						// Replace the occurrence of the environment variable token and write to the new string
+						matcher.appendReplacement(attrOut, envValue);
+					}
+				}
 			}
 
 			// Replace the original attribute string
@@ -2339,8 +2374,9 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 						childElem = new GenericConfigElement(elem.getNodeName());
 						childElem.setValue( expandEnvVars( children.item(0).getNodeValue()));
 					}
-					else
+					else {
 						childElem = new GenericConfigElement(elem.getNodeName());
+					}
 
 					// Add any attributes
 					NamedNodeMap attribs = elem.getAttributes();

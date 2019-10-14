@@ -39,6 +39,22 @@ import org.filesys.util.DataBuffer;
  */
 public class QueryInfoPacker {
 
+    // Information level fixed length parts
+    private static final int PathStandardLen        = 36;
+    private static final int PathQueryEASizeLen     = 36;
+    private static final int PathAllEAsLen          = 4;
+    private static final int PathFileBasicLen       = 40;
+    private static final int PathFileStandardLen    = 24;
+    private static final int PathFileEAInfoLen      = 4;
+    private static final int PathFileNameLen        = 4;
+    private static final int PathFileAllLen         = 100;
+    private static final int PathFileStreamLen      = 38;
+    private static final int PathFileCompressionLen = 12;
+    private static final int NTFileInternalLen      = 8;
+    private static final int NTFilePositionLen      = 8;
+    private static final int NTAttributeTagLen      = 16;
+    private static final int NTNetworkOpenLen       = 56;
+
     /**
      * Pack a file information object into the specified buffer, using the specified information
      * level.
@@ -702,4 +718,124 @@ public class QueryInfoPacker {
         buf.putInt(4);
     }
 
+    /**
+     * Calculate the buffer space required for the specified file information and information level. Return zero length if
+     * the information level is unsupported.
+     *
+     * @param info File information
+     * @param infoLevel File information level
+     * @param uni Using Unicode strings
+     * @return int
+     */
+    public static final int calculateInformationSize( FileInfo info, int infoLevel, boolean uni) {
+
+        // Determine the information level
+        int infoLen = 0;
+
+        switch (infoLevel) {
+
+            // Standard information
+            case FileInfoLevel.PathStandard:
+                infoLen = PathStandardLen;
+                break;
+
+            // Standard information plus EA size
+            case FileInfoLevel.PathQueryEASize:
+                infoLen = PathQueryEASizeLen;
+                break;
+
+            // Extended attributes list
+            case FileInfoLevel.PathQueryEAsFromList:
+                break;
+
+            // All extended attributes
+            case FileInfoLevel.PathAllEAs:
+                infoLen = PathAllEAsLen;
+                break;
+
+            // Validate a file name
+            case FileInfoLevel.PathIsNameValid:
+                break;
+
+            // Basic file information
+            case FileInfoLevel.PathFileBasicInfo:
+            case FileInfoLevel.NTFileBasicInfo:
+                infoLen = PathFileBasicLen;
+                break;
+
+            // Standard file information
+            case FileInfoLevel.PathFileStandardInfo:
+            case FileInfoLevel.NTFileStandardInfo:
+                infoLen = PathFileStandardLen;
+                break;
+
+            // Extended attribute information
+            case FileInfoLevel.PathFileEAInfo:
+            case FileInfoLevel.NTFileEAInfo:
+                infoLen = PathFileEAInfoLen;
+                break;
+
+            // File name information
+            case FileInfoLevel.PathFileNameInfo:
+            case FileInfoLevel.NTFileNameInfo:
+            case FileInfoLevel.NTFileNormalizedName:
+                infoLen = PathFileNameLen;
+
+                // Add the file name length
+                infoLen += (info.getFileNameLength() + 1) * (uni ? 2 : 1);
+                break;
+
+            // All information
+            case FileInfoLevel.PathFileAllInfo:
+            case FileInfoLevel.NTFileAllInfo:
+                infoLen = PathFileAllLen;
+
+                // Add the file name length
+                infoLen += (info.getFileNameLength() + 1) * (uni ? 2 : 1);
+                break;
+
+            // Alternate name information
+            case FileInfoLevel.PathFileAltNameInfo:
+            case FileInfoLevel.NTFileAltNameInfo:
+                break;
+
+            // Stream information *
+            case FileInfoLevel.PathFileStreamInfo:
+            case FileInfoLevel.NTFileStreamInfo:
+                infoLen = PathFileStreamLen;
+                break;
+
+            // Compression information
+            case FileInfoLevel.PathFileCompressionInfo:
+            case FileInfoLevel.NTFileCompressionInfo:
+                infoLen = PathFileCompressionLen;
+                break;
+
+            // File internal information
+            case FileInfoLevel.NTFileInternalInfo:
+                infoLen = NTFileInternalLen;
+                break;
+
+            // File position information
+            case FileInfoLevel.NTFilePositionInfo:
+                infoLen = NTFilePositionLen;
+                break;
+
+            // Attribute tag information
+            case FileInfoLevel.NTAttributeTagInfo:
+                infoLen = NTAttributeTagLen;
+                break;
+
+            // Network open information
+            case FileInfoLevel.NTNetworkOpenInfo:
+                infoLen = NTNetworkOpenLen;
+                break;
+
+            // Unsupported information level
+            default:
+        }
+
+        // Return the length of the data
+        return infoLen;
+    }
 }

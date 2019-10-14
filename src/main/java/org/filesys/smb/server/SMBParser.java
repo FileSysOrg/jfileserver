@@ -97,7 +97,7 @@ public abstract class SMBParser {
      */
     public final void packBytes(byte[] byts, int len) {
         if (( m_reqOffset + m_pos + len) > m_smbbuf.length)
-            throw new ArrayIndexOutOfBoundsException();
+            throw new ArrayIndexOutOfBoundsException("buflen=" + m_smbbuf.length);
 
         System.arraycopy( byts, 0, m_smbbuf, m_reqOffset + m_pos, len);
         m_pos += len;
@@ -110,7 +110,7 @@ public abstract class SMBParser {
      */
     public final void packBytes(byte[] byts) {
         if (( m_reqOffset + m_pos + byts.length) > m_smbbuf.length)
-            throw new ArrayIndexOutOfBoundsException();
+            throw new ArrayIndexOutOfBoundsException("buflen=" + m_smbbuf.length);
 
         System.arraycopy( byts, 0, m_smbbuf, m_reqOffset + m_pos, byts.length);
         m_pos += byts.length;

@@ -130,6 +130,12 @@ public class SMBConfigSection extends ConfigSection {
     // Per session virtual circuit limit
     private int m_virtualCircuitLimit = VirtualCircuitList.DefMaxCircuits;
 
+    // Disable encryption, for dialects that support it
+    private boolean m_disableEncryption;
+
+    // Require signing of requests/responses
+    private boolean m_requireSigning = false;
+
     //--------------------------------------------------------------------------------
     //  Win32 NetBIOS configuration
     //
@@ -607,6 +613,20 @@ public class SMBConfigSection extends ConfigSection {
     public final boolean isNativeCodeDisabled() {
         return m_disableNativeCode;
     }
+
+    /**
+     * Check if encryption is enabled for SMB dialects that support it
+     *
+     * @return boolean
+     */
+    public final boolean hasDisableEncryption() { return m_disableEncryption; }
+
+    /**
+     * Check if signing is required
+     *
+     * @return boolean
+     */
+    public final boolean isSigningRequired() { return m_requireSigning; }
 
     /**
      * Set the authenticator to be used to authenticate users and share connections.
@@ -1392,6 +1412,42 @@ public class SMBConfigSection extends ConfigSection {
         //  Inform listeners, validate the configuration change
         int sts = fireConfigurationChange(ConfigId.SMBMaxVirtualCircuit, new Integer(maxVC));
         m_virtualCircuitLimit = maxVC;
+
+        //  Return the change status
+        return sts;
+    }
+
+    /**
+     * Set the disable encryption flag
+     *
+     * @param disableEnc boolean
+     * @return int
+     * @throws InvalidConfigurationException Failed to set the disable NIO flag
+     */
+    public final int setDisableEncryption(boolean disableEnc)
+            throws InvalidConfigurationException {
+
+        //  Inform listeners, validate the configuration change
+        int sts = fireConfigurationChange(ConfigId.SMBDisableEncryption, new Boolean(disableEnc));
+        m_disableEncryption = disableEnc;
+
+        //  Return the change status
+        return sts;
+    }
+
+    /**
+     * Set the require signing flag
+     *
+     * @param requireSign boolean
+     * @return int
+     * @throws InvalidConfigurationException Failed to set the disable NIO flag
+     */
+    public final int setRequireSigning(boolean requireSign)
+            throws InvalidConfigurationException {
+
+        //  Inform listeners, validate the configuration change
+        int sts = fireConfigurationChange(ConfigId.SMBRequireSigning, new Boolean(requireSign));
+        m_requireSigning = requireSign;
 
         //  Return the change status
         return sts;

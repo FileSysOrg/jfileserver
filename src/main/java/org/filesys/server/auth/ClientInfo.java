@@ -71,6 +71,9 @@ public class ClientInfo {
     //	NFS authentication type
     private int m_nfsAuthType = -1;
 
+    // Logged on name, may be a principal name
+    private String m_loggedOnName;
+
     /**
      * Class constructor
      *
@@ -279,6 +282,24 @@ public class ClientInfo {
     }
 
     /**
+     * Check if the client has a logged on name
+     *
+     * @return boolean
+     */
+    public final boolean hasLoggedOnName() {
+        return m_loggedOnName != null;
+    }
+
+    /**
+     * Get the logged on user name
+     *
+     * @return String
+     */
+    public final String getLoggedOnName() {
+        return m_loggedOnName;
+    }
+
+    /**
      * Set the process id
      *
      * @param pid int
@@ -413,6 +434,15 @@ public class ClientInfo {
     }
 
     /**
+     * Set the logged on user name
+     *
+     * @param fullName String
+     */
+    public final void setLoggedOnName(String fullName) {
+        m_loggedOnName = fullName;
+    }
+
+    /**
      * Display the client information as a string
      *
      * @return String
@@ -439,6 +469,11 @@ public class ClientInfo {
 
         if (isGuest())
             str.append(",Guest");
+
+        if ( hasLoggedOnName()) {
+            str.append(", loggedOnAs=");
+            str.append( getLoggedOnName());
+        }
         str.append("]");
 
         return str.toString();

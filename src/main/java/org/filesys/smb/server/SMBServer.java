@@ -211,6 +211,9 @@ public class SMBServer extends NetworkFileServer implements Runnable, Configurat
                 // Create the SMB packet pool using the global memory pool
                 m_packetPool = new SMBPacketPool(m_coreConfig.getMemoryPool(), m_coreConfig.getThreadPool());
 
+                // Set the maximum oversized packet size
+                m_packetPool.setMaximumOverSizedAllocation( m_coreConfig.getMaximumOversizedPacket());
+
                 // Check if packet pool debugging is enabled
                 if ((m_smbConfig.getSessionDebugFlags() & SMBSrvSession.DBG_PKTPOOL) != 0)
                     m_packetPool.setDebug(true);

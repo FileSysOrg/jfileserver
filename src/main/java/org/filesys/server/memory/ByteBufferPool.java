@@ -163,11 +163,12 @@ public class ByteBufferPool {
     public String toString() {
         StringBuilder str = new StringBuilder();
 
-        str.append("[BufferLists: ");
+        str.append("[BufferLists:\n");
 
         for (int i = 0; i < m_bufferLists.length; i++) {
+            str.append("  ");
             str.append(m_bufferLists[i].toString());
-            str.append(" ");
+            str.append("\n");
         }
 
         str.append("]");

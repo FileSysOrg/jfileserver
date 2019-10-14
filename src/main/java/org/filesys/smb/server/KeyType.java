@@ -30,7 +30,7 @@ public class KeyType {
     public static final String KeyExchangeKey = "KeyExchangeKey";
     public static final String NTLMServerSigningKey = "NTLMServerSigningKey";
     public static final String NTLMClientSigningKey = "NTLMClientSigningKey";
-    public static final String NTLMServerSealingKey = "NTLMServerSelaingKey";
+    public static final String NTLMServerSealingKey = "NTLMServerSealingKey";
     public static final String NTLMClientSealingKey = "NTLMClientSealingKey";
     public static final String NTLMServerRC4Context = "NTLMServerRC4Context";
     public static final String NTLMClientRC4Context = "NTLMClientRC4Context";
