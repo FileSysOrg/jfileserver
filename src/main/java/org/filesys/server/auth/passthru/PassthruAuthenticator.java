@@ -538,7 +538,7 @@ public class PassthruAuthenticator extends SMBAuthenticator implements SessionLi
             VirtualCircuit vc = new VirtualCircuit(vcNum, client);
             uid = sess.addVirtualCircuit(vc);
 
-            if (uid == VirtualCircuit.InvalidUID) {
+            if (uid == VirtualCircuit.InvalidID) {
 
                 // DEBUG
                 if (hasDebug() && sess.hasDebug(SMBSrvSession.DBG_NEGOTIATE))

@@ -51,17 +51,17 @@ public class VirtualCircuit {
     private static final int DefaultSearches = 8;
     private static final int MaxSearches = 256;
 
-    // Invalid UID value
-    public static final int InvalidUID = -1;
+    // Invalid id value
+    public static final int InvalidID = -1;
 
     // Search slot marker object, indicates a search slot is in use before the actual search context
     // is stored in the slot
     public static final SearchContextAdapter SearchSlotMarker = new SearchContextAdapter();
 
-    // Virtual circuit UID value
+    // Virtual circuit id value
     //
     // Allocated by the server and sent by the client to identify the virtual circuit
-    private int m_uid = -1;
+    private int m_vcId = -1;
 
     // Virtual circuit number
     private int m_vcNum;
@@ -96,12 +96,12 @@ public class VirtualCircuit {
     }
 
     /**
-     * Return the virtual circuit UID
+     * Return the virtual circuit id
      *
      * @return int
      */
-    public final int getUID() {
-        return m_uid;
+    public final int getId() {
+        return m_vcId;
     }
 
     /**
@@ -280,7 +280,7 @@ public class VirtualCircuit {
      *
      * @return int
      */
-    private synchronized final int getSearchCount() {
+    protected synchronized final int getSearchCount() {
         if ( m_search == null)
             return 0;
         return m_search.numberOfSearches();
@@ -314,12 +314,12 @@ public class VirtualCircuit {
     }
 
     /**
-     * Set the UID for the circuit
+     * Set the id for the circuit
      *
-     * @param uid int
+     * @param id int
      */
-    public final void setUID(int uid) {
-        m_uid = uid;
+    public final void setId(int id) {
+        m_vcId = id;
     }
 
     /**
@@ -331,7 +331,7 @@ public class VirtualCircuit {
 
         //  Debug
         if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_STATE))
-            sess.debugPrintln("Cleanup vc=" + getVCNumber() + ", UID=" + getUID() + ", searches=" + getSearchCount() + ", treeConns=" + getConnectionCount());
+            sess.debugPrintln("Cleanup vc=" + getVCNumber() + ", id=" + getId() + ", searches=" + getSearchCount() + ", treeConns=" + getConnectionCount());
 
         //  Check if there are any active searches
         if (m_search != null && m_search.numberOfSearches() > 0) {
@@ -387,12 +387,12 @@ public class VirtualCircuit {
      * @return String
      */
     public String toString() {
-        StringBuffer str = new StringBuffer();
+        StringBuilder str = new StringBuilder();
 
         str.append("[");
         str.append(getVCNumber());
         str.append(":");
-        str.append(getUID());
+        str.append(getId());
         str.append(",");
         str.append(getClientInformation());
         str.append(",Tree=");

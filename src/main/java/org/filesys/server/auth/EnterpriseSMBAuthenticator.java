@@ -745,7 +745,7 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
             VirtualCircuit vc = new VirtualCircuit(vcNum, client);
             uid = sess.addVirtualCircuit(vc);
 
-            if (uid == VirtualCircuit.InvalidUID) {
+            if (uid == VirtualCircuit.InvalidID) {
 
                 // DEBUG
                 if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_NEGOTIATE))
@@ -2016,7 +2016,7 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
         VirtualCircuit vc = new VirtualCircuit(vcNum, client);
         int uid = sess.addVirtualCircuit(vc);
 
-        if (uid == VirtualCircuit.InvalidUID) {
+        if (uid == VirtualCircuit.InvalidID) {
 
             // DEBUG
             if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_NEGOTIATE))

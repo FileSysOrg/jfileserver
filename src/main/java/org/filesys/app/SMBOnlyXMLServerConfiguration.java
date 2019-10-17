@@ -72,6 +72,7 @@ import org.filesys.smb.Dialect;
 import org.filesys.smb.DialectSelector;
 import org.filesys.smb.server.SMBConfigSection;
 import org.filesys.smb.server.SMBSrvSession;
+import org.filesys.smb.server.SMBV1VirtualCircuitList;
 import org.filesys.smb.server.VirtualCircuitList;
 import org.filesys.smb.util.DriveMapping;
 import org.filesys.smb.util.DriveMappingList;
@@ -581,9 +582,9 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 					// Parse the value, and range check
 					int maxVC = Integer.parseInt( maxVCVal);
 					
-					if ( maxVC < VirtualCircuitList.MinCircuits || maxVC > VirtualCircuitList.MaxCircuits)
-						throw new InvalidConfigurationException("Maximum virtual circuits value out of range, valid range " + VirtualCircuitList.MinCircuits + " - " +
-								VirtualCircuitList.MaxCircuits);
+					if ( maxVC < SMBV1VirtualCircuitList.MinCircuits || maxVC > SMBV1VirtualCircuitList.MaxCircuits)
+						throw new InvalidConfigurationException("Maximum virtual circuits value out of range, valid range " + SMBV1VirtualCircuitList.MinCircuits + " - " +
+								SMBV1VirtualCircuitList.MaxCircuits);
 					
 					// Set the maximum virtual circuits per session
 					smbConfig.setMaximumVirtualCircuits( maxVC);
