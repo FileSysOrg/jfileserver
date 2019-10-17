@@ -2838,7 +2838,7 @@ class CoreProtocolHandler extends ProtocolHandler {
         if (vc.getConnectionCount() == 0 && vc.isLoggedOn() == false) {
 
             // Remove the virtual circuit
-            m_sess.removeVirtualCircuit(vc.getUID());
+            m_sess.removeVirtualCircuit(vc.getId());
 
             // Debug
             if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_TREE))

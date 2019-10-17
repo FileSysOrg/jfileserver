@@ -27,7 +27,7 @@ package org.filesys.smb.server;
 public class DefaultSrvSessionFactory implements SrvSessionFactory {
 
     // Maximum number of virtual circuits per session
-    private int m_maxVirtualCircuit = VirtualCircuitList.DefMaxCircuits;
+    private int m_maxVirtualCircuit = SMBV1VirtualCircuitList.DefMaxCircuits;
 
     /**
      * Create a server session object
