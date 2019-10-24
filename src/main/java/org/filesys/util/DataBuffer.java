@@ -44,6 +44,9 @@ public class DataBuffer {
     // Long word alignment adjustment
     private int m_longAdjust;
 
+    // Buffer alignment required, when packing various information structures
+    private boolean m_alignBuffer = true;
+
     /**
      * Default constructor
      */
@@ -107,12 +110,51 @@ public class DataBuffer {
     }
 
     /**
+     * Create a data buffer to read data from or write data to an external buffer
+     *
+     * @param buf byte[]
+     * @param off int
+     * @param len int
+     * @param alignRequired boolean
+     */
+    public DataBuffer(byte[] buf, int off, int len, boolean alignRequired) {
+        m_data = buf;
+        m_offset = off;
+        m_pos = off;
+        m_endpos = off + len;
+
+        // Indicate that this is an external buffer, do not try and extend it
+        m_external = true;
+
+        // Indicate if buffer alignment is required
+        m_alignBuffer = alignRequired;
+    }
+
+    /**
      * Return the data buffer
      *
      * @return byte[]
      */
     public final byte[] getBuffer() {
         return m_data;
+    }
+
+    /**
+     * Check if buffer alignment is required, after packing a structure
+     *
+     * @return boolean
+     */
+    public final boolean hasAlignmentRequired() {
+        return m_alignBuffer;
+    }
+
+    /**
+     * Set the alignment required flag
+     *
+     * @param alignReq boolean
+     */
+    public final void setAlignmentRequired( boolean alignReq) {
+        m_alignBuffer = alignReq;
     }
 
     /**
@@ -572,6 +614,18 @@ public class DataBuffer {
     }
 
     /**
+     * Pack an integer at the specified buffer position, it is assumed the buffer does not need extending
+     *
+     * @param pos int
+     * @param ival int
+     */
+    public final void putIntAtPosition(int pos, int ival) {
+
+        // Pack the integer value
+        DataPacker.putIntelInt(ival, m_data, pos);
+    }
+
+    /**
      * Append a string to the buffer
      *
      * @param str String
@@ -865,6 +919,9 @@ public class DataBuffer {
         str.append(m_offset);
         str.append("/");
         str.append(getLength());
+
+        if ( hasAlignmentRequired() == false)
+            str.append(" NoAlign");
         str.append("]");
 
         return str.toString();
