@@ -68,8 +68,8 @@ public final class HexDump {
     public static final void Dump(byte[] byt, int len, int offset, PrintStream stream) {
 
         //	Create buffers for the ASCII and Hex output
-        StringBuffer ascBuf = new StringBuffer();
-        StringBuffer hexBuf = new StringBuffer();
+        StringBuilder ascBuf = new StringBuilder();
+        StringBuilder hexBuf = new StringBuilder();
 
         //  Dump 16 byte blocks from the array until the length has been reached
         int dlen = 0;
@@ -108,8 +108,8 @@ public final class HexDump {
     public static final void Dump(byte[] byt, int len, int offset, DebugInterface dbgDev) {
 
         //	Create buffers for the ASCII and Hex output
-        StringBuffer ascBuf = new StringBuffer();
-        StringBuffer hexBuf = new StringBuffer();
+        StringBuilder ascBuf = new StringBuilder();
+        StringBuilder hexBuf = new StringBuilder();
 
         //  Dump 16 byte blocks from the array until the length has been reached
         int dlen = 0;
@@ -200,7 +200,7 @@ public final class HexDump {
         if (gap != null)
             buflen += buf.length * gap.length();
 
-        StringBuffer hex = new StringBuffer(buflen);
+        StringBuilder hex = new StringBuilder(buflen);
 
         //	Convert the bytes to hex-ASCII
         for (int i = 0; i < len; i++) {
@@ -241,7 +241,7 @@ public final class HexDump {
         if (gap != null)
             buflen += buf.length * gap.length();
 
-        StringBuffer hex = new StringBuffer(buflen);
+        StringBuilder hex = new StringBuilder(buflen);
 
         // Convert the bytes to hex-ASCII
         for (int i = 0; i < len; i++) {
@@ -408,7 +408,10 @@ public final class HexDump {
     private static final String generatePositionString(int off) {
 
         //  Create a buffer position string
-        StringBuffer posStr = new StringBuffer("" + off + " - ");
+        StringBuilder posStr = new StringBuilder( 8);
+        posStr.append( Integer.toString( off));
+        posStr.append(" - ");
+        
         while (posStr.length() < 8)
             posStr.insert(0, " ");
 
@@ -425,7 +428,7 @@ public final class HexDump {
      * @param hexBuf Buffer for Hex output
      * @return New offset value
      */
-    private static final int generateLine(byte[] byt, int off, StringBuffer ascBuf, StringBuffer hexBuf) {
+    private static final int generateLine(byte[] byt, int off, StringBuilder ascBuf, StringBuilder hexBuf) {
 
         //  Check if there is enough buffer space to dump 16 bytes
         int dumplen = byt.length - off;
