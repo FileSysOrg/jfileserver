@@ -37,6 +37,7 @@ public interface VirtualCircuitList {
      *
      * @param vcNum int
      * @param client ClientInfo
+     * @return VirtualCircuit
      */
     public VirtualCircuit createVirtualCircuit(int vcNum, ClientInfo client);
 
