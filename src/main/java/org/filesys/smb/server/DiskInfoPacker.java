@@ -140,9 +140,9 @@ public class DiskInfoPacker {
         //	 UCHAR  Supports objects
         //   UCHAR  Reserved
         //	 STRING	Volume label (with null)
-//        if (info.hasCreationDateTime())
-//            buf.putLong(NTTime.toNTTime(info.getCreationDateTime()));
-//        else
+        if (info.hasCreationDateTime())
+            buf.putLong(NTTime.toNTTime(info.getCreationDateTime()));
+        else
             buf.putZeros(8);
 
         if (info.hasSerialNumber())
