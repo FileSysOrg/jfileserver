@@ -306,7 +306,24 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 	}
 
 	/**
-	 * Cleanup any resources owned by this session, close virtual circuits and change notificatio requests.
+	 * Get the virtual circuit list
+	 *
+	 * @return VirtualCircuitList
+	 */
+	protected final VirtualCircuitList getVirtualCircuitList() {
+		return m_vcircuits;
+	}
+
+	/**
+	 * Clear the virtual circuit list
+	 */
+	protected final void clearVirtualCircuitList() {
+		if ( m_vcircuits != null)
+			m_vcircuits = null;
+	}
+
+	/**
+	 * Cleanup any resources owned by this session, close virtual circuits and change notification requests.
 	 */
 	protected final void cleanupSession() {
 
@@ -366,7 +383,7 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 				debugPrintln("Closed packet handler for client: " + m_pktHandler.getClientName());
 		}
 		catch (Exception ex) {
-			Debug.println(ex);
+//			Debug.println(ex);
 		}
 	}
 
@@ -375,11 +392,24 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 	 */
 	public final void closeSession() {
 
-		// Cleanup the session (open files/virtual circuits/searches)
-		cleanupSession();
+		// If this is a persistent session then do not cleanup the current session state, unless the server is shutting down
+		if ( isPersistentSession() == false || getSMBServer().hasShutdown()) {
 
-		// Call the base class
-		super.closeSession();
+			// Cleanup the session (open files/virtual circuits/searches)
+			cleanupSession();
+
+			// Call the base class
+			super.closeSession();
+		}
+		else {
+
+			// Add the session to the disconnected session list
+			getSMBServer().addDisconnectedSession( this);
+
+			// DEBUG
+			if (Debug.EnableInfo && hasDebug(DBG_STATE))
+				debugPrintln("[SMB] Add session to disconnected session list, sessId=" + getSessionId() + "/" + getUniqueId());
+		}
 
 		try {
 
@@ -396,7 +426,6 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 				debugPrintln(ex);
 			}
 		}
-
 	}
 
 	/**
@@ -480,6 +509,13 @@ public class SMBSrvSession extends SrvSession implements Runnable {
     }
 
 	/**
+	 * Clear the packet handler
+	 */
+	protected final void clearPacketHandler() {
+		m_pktHandler = null;
+	}
+
+	/**
 	 * Return the SMB packet pool from the packet handler
 	 *
 	 * @return SMBPacketPool
@@ -513,6 +549,17 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 	 */
 	public final InetAddress getRemoteAddress() {
 		return m_pktHandler.getRemoteAddress();
+	}
+
+	/**
+	 * Return the client network address string
+	 *
+	 * @return String
+	 */
+	public final String getRemoteAddressString() {
+		if ( m_pktHandler != null)
+			return m_pktHandler.getRemoteAddress().getHostAddress();
+		return "Unknown";
 	}
 
 	/**
@@ -1052,7 +1099,7 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 
 				// Debug
 				if (Debug.EnableError && hasDebug(DBG_NEGOTIATE))
-					debugPrintln("No comon dialect between client and server");
+					debugPrintln("No common dialect between client and server");
 
 				// Return an error status
 				sendErrorResponseSMB(smbPkt, SMBStatus.NTInvalidParameter, SMBStatus.SRVNotSupported, SMBStatus.ErrSrv);
@@ -1956,6 +2003,18 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 
 		// Return the count of sessions disconnected
 		return discCnt;
+	}
+
+	/**
+	 * Transfer the session details to this session
+	 *
+	 * @param otherSess SMBSrvSession
+	 */
+	public final void transferSession( SMBSrvSession otherSess) {
+
+		// Transfer the virtual circuit list from the previous session to this session
+		m_vcircuits = otherSess.getVirtualCircuitList();
+		otherSess.clearVirtualCircuitList();
 	}
 
 	/**

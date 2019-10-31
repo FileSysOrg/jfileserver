@@ -576,7 +576,7 @@ public class SMBRequestHandler extends RequestHandler implements Runnable {
 
                     // DEBUG
                     if (Debug.EnableInfo && hasDebug())
-                        Debug.println("[SMB] Closing idle session, " + sess.getUniqueId() + ", addr=" + sess.getRemoteAddress().getHostAddress());
+                        Debug.println("[SMB] Closing idle session, " + sess.getUniqueId() + ", addr=" + sess.getRemoteAddressString());
 
                     // Close the session
                     sess.closeSession();
