@@ -1263,7 +1263,7 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
 
             // Unknown SPNEGO token type
             if (hasDebugOutput())
-                debugOutput("[SMB] Unknown SPNEGO token type");
+                debugOutput("[SMB] Unknown SPNEGO token type=" + tokType);
 
             // Clear any session setup state
             sess.removeAllSetupObjects( client.getProcessId());
