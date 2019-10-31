@@ -53,6 +53,12 @@ public abstract class SrvSession {
     // Session/user is logged on/validated
     private boolean m_loggedOn;
 
+    // Indicate if this is a persistent session that will survive passed a socket disconnection
+    private boolean m_persistentSess;
+
+    // Time the session was disconnected
+    private long m_disconnectTime;
+
     // Client details
     private static ThreadLocal<ClientInfo> m_clientInfo = new ThreadLocal<ClientInfo>();
 
@@ -281,6 +287,13 @@ public abstract class SrvSession {
     }
 
     /**
+     * Determine if this is a persistent session
+     *
+     * @return boolean
+     */
+    public final boolean isPersistentSession() { return m_persistentSess; }
+
+    /**
      * Determine if the session has been shut down
      *
      * @return boolean
@@ -389,6 +402,43 @@ public abstract class SrvSession {
     public final void setLoggedOn(boolean loggedOn) {
         m_loggedOn = loggedOn;
     }
+
+    /**
+     * Set the persistent session setting for this session
+     *
+     * @param persistSess Boolean
+     */
+    public final void setPersistentSession(boolean persistSess) { m_persistentSess = persistSess; }
+
+    /**
+     * Check if the session has a disconnected system timestamp
+     *
+     * @return boolean
+     */
+    public final boolean isDisconnectedSession() {
+        return m_disconnectTime != 0L ? true : false;
+    }
+
+    /**
+     * Get the system time that the session was disconnected
+     *
+     * @return long
+     */
+    public final long getDisconnectedAt() {
+        return m_disconnectTime;
+    }
+
+    /**
+     * Set the session disconnected system time
+     *
+     * @param disconnectTime long
+     */
+    public final void setDisconnectedAt(long disconnectTime) { m_disconnectTime = disconnectTime; }
+
+    /**
+     * Clear the session disconnected system time
+     */
+    public final void clearDisconnectedAt() { m_disconnectTime = 0L; }
 
     /**
      * Set the process id
@@ -567,8 +617,9 @@ public abstract class SrvSession {
     }
 
     /**
-     * Set the Driver State.   A place for the content driver to
-     * store state in the session.
+     * Return the session details as a string
+     *
+     * @return String
      */
     public String toString() {
         StringBuilder str = new StringBuilder();
@@ -579,6 +630,12 @@ public abstract class SrvSession {
         str.append(getUniqueId());
         str.append(",proto=");
         str.append(getProtocolName());
+
+        if ( isPersistentSession())
+            str.append(" Persistent");
+        if ( isDisconnectedSession())
+            str.append(" Disconnected");
+
         str.append("]");
 
         return str.toString();
