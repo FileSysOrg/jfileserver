@@ -78,7 +78,14 @@ public class NIOSMBThreadRequest implements ThreadRequest {
 
                     // Get the packet handler and read in the SMB request
                     PacketHandler pktHandler = m_sess.getPacketHandler();
-                    smbPkt = pktHandler.readPacket();
+                    if ( pktHandler != null)
+                        smbPkt = pktHandler.readPacket();
+                    else {
+                        smbPkt = null;
+                        morePkts = false;
+
+                        continue;
+                    }
 
                     // If the request packet is not valid then close the session
                     if (smbPkt == null) {
@@ -135,7 +142,7 @@ public class NIOSMBThreadRequest implements ThreadRequest {
 
                     // DEBUG
                     if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_SOCKET)) {
-                        Debug.println("Error during packet receive, closing session sess=" + m_sess.getUniqueId() + ", addr=" + m_sess.getRemoteAddress().getHostAddress() + " ex=" + ex.getMessage());
+                        Debug.println("Error during packet receive, closing session sess=" + m_sess.getUniqueId() + ", addr=" + m_sess.getRemoteAddressString() + " ex=" + ex.getMessage());
                         Debug.println(ex);
                     }
 
@@ -169,7 +176,7 @@ public class NIOSMBThreadRequest implements ThreadRequest {
                     Debug.println("Sent queued async packets (NIO) count=" + asyncCnt + ", sess=" + m_sess.getUniqueId() + ", addr=" + m_sess.getRemoteAddress().getHostAddress());
             }
 
-            // Re-enable read events for this socket channel, if there were no errors
+            // Re-enable read events for this socket channel, if there were no errors, and the session has not been reconnected
             if (pktError == false && (pktCount < MaxPacketsPerRun || asyncPkt == true)) {
 
                 // Re-enable read events for this socket channel
