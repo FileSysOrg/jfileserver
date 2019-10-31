@@ -70,8 +70,8 @@ public class SMBServer extends NetworkFileServer implements Runnable, Configurat
     public static final int SMBNetBIOSNamesAdded = ServerListener.ServerCustomEvent;
 
     // Disconnected session expiry time
-    private static final long SMBDisconnectExpiryTime       = 30000L;   // 30 seconds
-    private static final long SMBDisconnectExpiryTimeSecs   = SMBDisconnectExpiryTime / 1000L;
+    private static final long SMBDisconnectExpiryTime       = 5 * 60L * 1000L;  // 5 mins
+    private static final long SMBDisconnectExpiryCheckSecs  = 30L;  // 30 secs
 
     // Configuration sections
     private SMBConfigSection m_smbConfig;
@@ -110,7 +110,7 @@ public class SMBServer extends NetworkFileServer implements Runnable, Configurat
          * Constructor
          */
         public SMBDisconnectedSessionTimedRequest() {
-            super("SMBDisconnectedSessionExpiry", -SMBDisconnectExpiryTimeSecs, SMBDisconnectExpiryTimeSecs);
+            super("SMBDisconnectedSessionExpiry", -SMBDisconnectExpiryCheckSecs, SMBDisconnectExpiryCheckSecs);
         }
 
         /**
