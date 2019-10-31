@@ -350,8 +350,7 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 				// Remove the notify requests from the associated device context notify list
 				for (int i = 0; i < m_notifyList.numberOfRequests(); i++) {
 
-					// Get the current change notification request and remove from the global notify
-					// list
+					// Get the current change notification request and remove from the global notify list
 					NotifyRequest curReq = m_notifyList.getRequest(i);
 					if (curReq.getDiskContext().hasChangeHandler())
 						curReq.getDiskContext().getChangeHandler().removeNotifyRequests(this);
@@ -403,12 +402,20 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 		}
 		else {
 
+			// Remove the session from the active session list
+			getSMBServer().findActiveSession( getSessionId());
+
 			// Add the session to the disconnected session list
 			getSMBServer().addDisconnectedSession( this);
 
 			// DEBUG
 			if (Debug.EnableInfo && hasDebug(DBG_STATE))
 				debugPrintln("[SMB] Add session to disconnected session list, sessId=" + getSessionId() + "/" + getUniqueId());
+
+			// Cleanup the disconnected sessions virtual circuits, open files, searches as the client will not currently
+			// try to re-use them
+			cleanupSession();
+
 		}
 
 		try {
@@ -1409,7 +1416,7 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 		}
 
 		// Check if the session has been closed, either cleanly or due to an exception
-		if (m_state == SessionState.NETBIOS_HANGUP) {
+		if (m_state == SessionState.NETBIOS_HANGUP && isPersistentSession() == false) {
 
 			// Cleanup the session, make sure all resources are released
 			cleanupSession();
