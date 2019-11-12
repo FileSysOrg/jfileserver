@@ -638,12 +638,12 @@ public abstract class SMBParser {
     public abstract int getErrorCode();
 
     /**
-     * Check if the negotiate request requires a session setup/logon
+     * Get the next session state depending on the negotiated dialect
      *
      * @param dialectId int
-     * @return boolean
+     * @return SessionState
      */
-    public abstract boolean requireSessionSetup( int dialectId);
+    public abstract SessionState nextStateForDialect( int dialectId);
 
     /**
      * Build an error response
