@@ -91,7 +91,7 @@ public class MemorySize {
 		else {
 
 			//	Convert a numeric byte value
-			val = Long.valueOf(sizeStr).longValue();
+			val = Long.valueOf(sizeStr);
 		}
 
 		//	Apply the multiplier
@@ -109,7 +109,7 @@ public class MemorySize {
 
 		//	Strip the trailing size indicator
 		String sizStr = val.substring(0, val.length() - 1);
-		return Long.valueOf(sizStr).longValue();
+		return Long.valueOf(sizStr);
 	}
 
 	/**
