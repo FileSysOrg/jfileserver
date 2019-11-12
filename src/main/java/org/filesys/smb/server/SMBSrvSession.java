@@ -1126,10 +1126,8 @@ public class SMBSrvSession extends SrvSession implements Runnable {
             // Check if the negotiated SMB dialect supports the session setup command, if not then bypass the session setup phase
             if ( diaIdx == -1)
                 setState(SessionState.NETBIOS_HANGUP);
-            else if (smbPkt.getParser().requireSessionSetup( diaIdx))
-                setState(SessionState.SMB_SESSSETUP);
             else
-                setState(SessionState.SMB_SESSION);
+            	setState( respPkt.getParser().nextStateForDialect( diaIdx));
 
             // If a dialect was selected inform the server that the session has been opened
             if (diaIdx != -1)
