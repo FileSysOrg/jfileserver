@@ -259,7 +259,7 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 	 * @param srvCore Element
 	 * @exception InvalidConfigurationException Error parsing the configuration
 	 */
-	protected final void procServerCoreElement(Element srvCore)
+	protected void procServerCoreElement(Element srvCore)
 		throws InvalidConfigurationException {
 
 		// Create the core server configuration section
@@ -485,7 +485,7 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 	 * @param global Element
 	 * @exception InvalidConfigurationException Error parsing the configuration
 	 */
-	protected final void procGlobalElement(Element global)
+	protected void procGlobalElement(Element global)
 		throws InvalidConfigurationException {
 
 		// Create the global configuration section
@@ -537,7 +537,7 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 	 * @param smb Element
 	 * @exception InvalidConfigurationException Error parsing the configuration
 	 */
-	protected final void procSMBServerElement(Element smb)
+	protected void procSMBServerElement(Element smb)
 		throws InvalidConfigurationException {
 
 		// Check if the SMB element is valid
@@ -660,7 +660,7 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 	 * @param smbConfig SMBConfigSection
 	 * @exception InvalidConfigurationException Error parsing the configuration
 	 */
-	protected final void procHostElement(Element host, SMBConfigSection smbConfig)
+	protected void procHostElement(Element host, SMBConfigSection smbConfig)
 		throws InvalidConfigurationException {
 
 		// Check if the host element is valid
@@ -1345,7 +1345,7 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 	 * @param security Element
 	 * @exception InvalidConfigurationException Error parsing the configuration
 	 */
-	protected final void procSecurityElement(Element security)
+	protected void procSecurityElement(Element security)
 		throws InvalidConfigurationException {
 
 		// Check if the security element is valid
