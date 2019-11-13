@@ -828,7 +828,7 @@ public class JavaNIODiskDriver implements DiskInterface {
 
             //	Build the path to the file
             DeviceContext ctx = tree.getContext();
-            Path filePath = Paths.get( FileName.buildPath(ctx.getDeviceName(), name, null, java.io.File.separatorChar));
+            Path filePath = Paths.get( mapPath( ctx.getDeviceName(), name));
 
             //	Update the file/folder modify date/time
             Files.setLastModifiedTime( filePath, FileTime.fromMillis( info.getModifyDateTime()));
