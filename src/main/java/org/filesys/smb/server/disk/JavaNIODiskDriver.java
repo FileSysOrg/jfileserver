@@ -231,7 +231,7 @@ public class JavaNIODiskDriver implements DiskInterface {
 
         //  Get the full path for the new file
         DeviceContext ctx = tree.getContext();
-        Path newPath = Paths.get( FileName.buildPath(ctx.getDeviceName(), params.getPath(), null, java.io.File.separatorChar));
+        Path newPath = Paths.get( mapPath( ctx.getDeviceName(), params.getPath()));
 
         //  Check if the file already exists
         if ( Files.exists( newPath, LinkOption.NOFOLLOW_LINKS))
