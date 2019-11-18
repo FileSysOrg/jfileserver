@@ -72,7 +72,8 @@ public abstract class NetworkFile {
         CREATED,
         DELAYED_CLOSE,
         CLOSED,
-        FORCE_CLOSE
+        FORCE_CLOSE,
+        PREVIOUS_VERSION
     };
 
     // File identifier and parent directory identifier
@@ -479,6 +480,13 @@ public abstract class NetworkFile {
     }
 
     /**
+     * Check if the file is a previous version
+     *
+     * @return boolean
+     */
+    public final boolean isPreviousVersion() { return m_flags.contains( Flags.PREVIOUS_VERSION); }
+
+    /**
      * Determine if the file modification date/time is valid
      *
      * @return boolean
@@ -700,6 +708,13 @@ public abstract class NetworkFile {
     public final void setModifyDate(long dattim) {
         m_modifyDate = dattim;
     }
+
+    /**
+     * Set or clear the previous version flag
+     *
+     * @param prevVer boolean
+     */
+    public final void setPreviousVersion(boolean prevVer) { setStatusFlag(Flags.PREVIOUS_VERSION, prevVer); }
 
     /**
      * Set/clear a file status flag
@@ -1094,6 +1109,9 @@ public abstract class NetworkFile {
         str.append(getFileId());
         str.append("/");
         str.append(getDirectoryId());
+
+        if ( isPreviousVersion())
+            str.append( " Ver");
 
         str.append("]");
 

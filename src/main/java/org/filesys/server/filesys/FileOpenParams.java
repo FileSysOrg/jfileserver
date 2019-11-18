@@ -108,6 +108,9 @@ public class FileOpenParams {
     // Oplock owner details, if an oplock as been requested
     private OplockOwner m_oplockOwner;
 
+    // Timestamp of a previous version
+    private long m_prevVersion;
+
     /**
      * Class constructor for Core SMB dialect Open SMB requests
      *
@@ -629,6 +632,24 @@ public class FileOpenParams {
     }
 
     /**
+     * Check if the open is for a previous version of a file
+     *
+     * @return boolean
+     */
+    public final boolean isPreviousVersion() {
+        return m_prevVersion != 0L ? true : false;
+    }
+
+    /**
+     * Return the previous version timestamp
+     *
+     * @return long
+     */
+    public final long getPreviousVersionDateTime() {
+        return m_prevVersion;
+    }
+
+    /**
      * Return the requested oplock type
      *
      * @return OplockType
@@ -829,6 +850,15 @@ public class FileOpenParams {
     }
 
     /**
+     * Set the previous version timestamp
+     *
+     * @param tstamp long
+     */
+    public final void setPreviousVersionDateTime(long tstamp) {
+        m_prevVersion = tstamp;
+    }
+
+    /**
      * Convert a Core/LanMan access mode to an NT access mode
      *
      * @param accessMode int
@@ -997,6 +1027,13 @@ public class FileOpenParams {
             if (requestExtendedResponse())
                 str.append(",ExtResp");
         }
+
+        // Previous version open
+        if ( isPreviousVersion()) {
+            str.append(",PrevVer=");
+            str.append( getPreviousVersionDateTime());
+        }
+
         str.append("]");
 
         return str.toString();
