@@ -320,6 +320,9 @@ public class QueryInfoPacker {
         // Pack the delete pending and directory flags
         buf.putByte(info.hasDeleteOnClose() ? 1 : 0);
         buf.putByte(info.isDirectory() ? 1 : 0);
+
+        // Pack the reserved field
+        buf.putZeros( 2);
     }
 
     /**
