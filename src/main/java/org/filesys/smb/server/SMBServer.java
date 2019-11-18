@@ -46,6 +46,7 @@ import org.filesys.server.core.SharedDevice;
 import org.filesys.server.filesys.DiskInterface;
 import org.filesys.server.filesys.NetworkFileServer;
 import org.filesys.server.thread.ThreadRequestPool;
+import org.filesys.server.thread.TimedThreadRequest;
 import org.filesys.smb.Dialect;
 import org.filesys.smb.DialectSelector;
 import org.filesys.smb.ServerType;
@@ -68,6 +69,10 @@ public class SMBServer extends NetworkFileServer implements Runnable, Configurat
     // SMB server custom server events
     public static final int SMBNetBIOSNamesAdded = ServerListener.ServerCustomEvent;
 
+    // Disconnected session expiry time
+    private static final long SMBDisconnectExpiryTime       = 5 * 60L * 1000L;  // 5 mins
+    private static final long SMBDisconnectExpiryCheckSecs  = 30L;  // 30 secs
+
     // Configuration sections
     private SMBConfigSection m_smbConfig;
     private CoreServerConfigSection m_coreConfig;
@@ -81,6 +86,9 @@ public class SMBServer extends NetworkFileServer implements Runnable, Configurat
     // Active session list
     private SrvSessionList m_sessions;
 
+    // List of disconnected persistent sessions
+    private SrvSessionList m_disconnectedSessList;
+
     // Server type flags, used when announcing the host
     private int m_srvType = ServerType.WorkStation + ServerType.Server;
 
@@ -92,6 +100,28 @@ public class SMBServer extends NetworkFileServer implements Runnable, Configurat
 
     // NetBIOS LANA monitor
     private LANAMonitor m_lanaMonitor;
+
+    /**
+     * SMB Disconnected Session Expiry Timed Thread Request Class
+     */
+    private class SMBDisconnectedSessionTimedRequest extends TimedThreadRequest {
+
+        /**
+         * Constructor
+         */
+        public SMBDisconnectedSessionTimedRequest() {
+            super("SMBDisconnectedSessionExpiry", -SMBDisconnectExpiryCheckSecs, SMBDisconnectExpiryCheckSecs);
+        }
+
+        /**
+         * Expiry checker method
+         */
+        protected void runTimedRequest() {
+
+            // Check for expired leases
+            checkForExpiredSessions();
+        }
+    }
 
     /**
      * Create an SMB server using the specified configuration.
@@ -116,6 +146,9 @@ public class SMBServer extends NetworkFileServer implements Runnable, Configurat
 
         // Add the session to the session list
         m_sessions.addSession(sess);
+
+        // Indicate this is not a disconnected session
+        sess.setDisconnectedAt( 0L);
 
         // Propagate the debug settings to the new session
         if (Debug.EnableInfo && hasDebug()) {
@@ -589,6 +622,28 @@ public class SMBServer extends NetworkFileServer implements Runnable, Configurat
             sess.closeSession();
         }
 
+        // Close and disconnected sessions
+        if ( hasDisconnectedSessions()) {
+
+            // DEBUG
+            if ( hasDebug())
+                Debug.println("[SMB] Disconnected sessions=" + m_disconnectedSessList.numberOfSessions());
+
+            enm = m_disconnectedSessList.enumerateSessions();
+
+            while ( enm.hasMoreElements()) {
+
+                // Get the session id and associated session
+                SMBSrvSession sess = (SMBSrvSession) enm.nextElement();
+
+                // Inform listeners that the session has been closed
+                fireSessionClosedEvent(sess);
+
+                // Close the session
+                sess.closeSession();
+            }
+        }
+
         // Wait for the main server thread to close
         if (m_srvThread != null) {
 
@@ -776,5 +831,119 @@ public class SMBServer extends NetworkFileServer implements Runnable, Configurat
 
         // Send the event to registered listeners, encode the LANA id in the top of the event id
         fireServerEvent(SMBNetBIOSNamesAdded + (lana << 16));
+    }
+
+    /**
+     * Check if there are disconnected sessions
+     *
+     * @return boolean
+     */
+    public final boolean hasDisconnectedSessions() {
+        if ( m_disconnectedSessList == null)
+            return false;
+        return m_disconnectedSessList.numberOfSessions() > 0 ? true : false;
+    }
+
+    /**
+     * Check for a disconnected persistent session
+     *
+     * @param sessId int
+     * @return SMBSrvSession
+     */
+    public final synchronized SMBSrvSession findDisconnectedSession(int sessId) {
+
+        // Check if there are any disconnected sessions
+        if ( m_disconnectedSessList == null)
+            return null;
+
+        // Search for the disconnected session
+        return (SMBSrvSession) m_disconnectedSessList.removeSession( sessId);
+    }
+
+    /**
+     * Check for a persistent session on the active session list
+     *
+     * @param sessId int
+     * @return SMBSrvSession
+     */
+    public final synchronized SMBSrvSession findActiveSession(int sessId) {
+
+        SMBSrvSession sess = (SMBSrvSession) m_sessions.findSession( sessId);
+        if ( sess != null && sess.isPersistentSession()) {
+
+            // Remove the session from the active session list
+            m_sessions.removeSession( sessId);
+        }
+        else {
+            sess = null;
+        }
+
+        // Return the session, or null
+        return sess;
+    }
+
+    /**
+     * Add a session to the disconnected session list
+     *
+     * @param sess SMBSrvSession
+     */
+    public final synchronized void addDisconnectedSession(SMBSrvSession sess) {
+
+        // Check if the disconnected session list has been allocated
+        if ( m_disconnectedSessList == null) {
+
+            // Create the disconnected session list
+            m_disconnectedSessList = new SrvSessionList();
+
+            // Add a timer to check for expired disconnected sessions
+            getThreadPool().queueTimedRequest( new SMBDisconnectedSessionTimedRequest());
+        }
+
+        // Set the system time that the session was disconnected
+        sess.setDisconnectedAt( System.currentTimeMillis());
+
+        // Add the disconnected session
+        m_disconnectedSessList.addSession( sess);
+    }
+
+    /**
+     * Check for expired disconnected sessions
+     */
+    private final void checkForExpiredSessions() {
+
+        // Make sure the disconnected session list is valid
+        if ( m_disconnectedSessList == null || m_disconnectedSessList.numberOfSessions() == 0)
+            return;
+
+        synchronized ( m_disconnectedSessList) {
+
+            // Enumerate the disconnected session list for expired sessions
+            Enumeration<SrvSession> enm = m_disconnectedSessList.enumerateSessions();
+            long timeNow = System.currentTimeMillis();
+
+            while( enm.hasMoreElements()) {
+
+                // Check the current disconnected session
+                SMBSrvSession curSess = (SMBSrvSession) enm.nextElement();
+
+                if ( curSess != null && curSess.isDisconnectedSession()) {
+
+                    // Check if the disconnected session has expired
+                    if (( curSess.getDisconnectedAt() + SMBDisconnectExpiryTime) < timeNow) {
+
+                        // Disconnected session has expired, remove it from the list and cleanup the session
+                        m_disconnectedSessList.removeSession( curSess.getSessionId());
+
+                        // DEBUG
+                        if ( hasDebug())
+                            Debug.println("[SMB] Disconnected session expired, sess=" + curSess);
+
+                        // Cleanup the disconnected session
+                        curSess.setPersistentSession( false);
+                        curSess.closeSession();
+                    }
+                }
+            }
+        }
     }
 }

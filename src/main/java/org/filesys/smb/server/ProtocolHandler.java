@@ -316,4 +316,16 @@ public abstract class ProtocolHandler {
      */
     public void hangupSession( SMBSrvSession sess, String reason) {
     }
+
+    /**
+     * Get a virtual circuit list
+     *
+     * @param maxVC int
+     * @return VirtualCircuitList
+     */
+    public VirtualCircuitList createVirtualCircuitList( int maxVC) {
+
+        // Default is to return an SMB v1 virtual circuit list
+        return new SMBV1VirtualCircuitList( maxVC);
+    }
 }

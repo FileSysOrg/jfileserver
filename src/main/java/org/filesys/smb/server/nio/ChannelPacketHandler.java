@@ -53,7 +53,7 @@ public abstract class ChannelPacketHandler extends PacketHandler {
      * @param typ         Protocol
      * @param name        String
      * @param shortName   String
-     * @param packetPool  CIFSPacketPool
+     * @param packetPool  SMBPacketPool
      * @throws IOException If a network error occurs
      */
     public ChannelPacketHandler(SocketChannel sockChannel, Protocol typ, String name, String shortName, SMBPacketPool packetPool)

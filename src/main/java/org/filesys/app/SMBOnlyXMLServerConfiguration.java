@@ -72,6 +72,7 @@ import org.filesys.smb.Dialect;
 import org.filesys.smb.DialectSelector;
 import org.filesys.smb.server.SMBConfigSection;
 import org.filesys.smb.server.SMBSrvSession;
+import org.filesys.smb.server.SMBV1VirtualCircuitList;
 import org.filesys.smb.server.VirtualCircuitList;
 import org.filesys.smb.util.DriveMapping;
 import org.filesys.smb.util.DriveMappingList;
@@ -258,7 +259,7 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 	 * @param srvCore Element
 	 * @exception InvalidConfigurationException Error parsing the configuration
 	 */
-	protected final void procServerCoreElement(Element srvCore)
+	protected void procServerCoreElement(Element srvCore)
 		throws InvalidConfigurationException {
 
 		// Create the core server configuration section
@@ -484,7 +485,7 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 	 * @param global Element
 	 * @exception InvalidConfigurationException Error parsing the configuration
 	 */
-	protected final void procGlobalElement(Element global)
+	protected void procGlobalElement(Element global)
 		throws InvalidConfigurationException {
 
 		// Create the global configuration section
@@ -536,7 +537,7 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 	 * @param smb Element
 	 * @exception InvalidConfigurationException Error parsing the configuration
 	 */
-	protected final void procSMBServerElement(Element smb)
+	protected void procSMBServerElement(Element smb)
 		throws InvalidConfigurationException {
 
 		// Check if the SMB element is valid
@@ -581,9 +582,9 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 					// Parse the value, and range check
 					int maxVC = Integer.parseInt( maxVCVal);
 					
-					if ( maxVC < VirtualCircuitList.MinCircuits || maxVC > VirtualCircuitList.MaxCircuits)
-						throw new InvalidConfigurationException("Maximum virtual circuits value out of range, valid range " + VirtualCircuitList.MinCircuits + " - " +
-								VirtualCircuitList.MaxCircuits);
+					if ( maxVC < SMBV1VirtualCircuitList.MinCircuits || maxVC > SMBV1VirtualCircuitList.MaxCircuits)
+						throw new InvalidConfigurationException("Maximum virtual circuits value out of range, valid range " + SMBV1VirtualCircuitList.MinCircuits + " - " +
+								SMBV1VirtualCircuitList.MaxCircuits);
 					
 					// Set the maximum virtual circuits per session
 					smbConfig.setMaximumVirtualCircuits( maxVC);
@@ -659,7 +660,7 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 	 * @param smbConfig SMBConfigSection
 	 * @exception InvalidConfigurationException Error parsing the configuration
 	 */
-	protected final void procHostElement(Element host, SMBConfigSection smbConfig)
+	protected void procHostElement(Element host, SMBConfigSection smbConfig)
 		throws InvalidConfigurationException {
 
 		// Check if the host element is valid
@@ -1344,7 +1345,7 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 	 * @param security Element
 	 * @exception InvalidConfigurationException Error parsing the configuration
 	 */
-	protected final void procSecurityElement(Element security)
+	protected void procSecurityElement(Element security)
 		throws InvalidConfigurationException {
 
 		// Check if the security element is valid

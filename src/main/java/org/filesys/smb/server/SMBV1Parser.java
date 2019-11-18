@@ -1632,15 +1632,23 @@ public class SMBV1Parser extends SMBParser {
     }
 
     /**
-     * Check if the negotiate request requires a session setup/logon
+     * Get the next session state depending on the negotiated dialect
      *
      * @param dialectId int
-     * @return boolean
+     * @return SessionState
      */
-    public boolean requireSessionSetup( int dialectId) {
+    public SessionState nextStateForDialect( int dialectId) {
 
-        // Check if the SMB v1 dialect selected supports session setup
-        return Dialect.DialectSupportsCommand( dialectId, PacketTypeV1.SessionSetupAndX);
+        if ( Dialect.DialectSupportsCommand( dialectId, PacketTypeV1.SessionSetupAndX)) {
+
+            // Negotiated dialect requires authentication
+            return SessionState.SMB_SESSSETUP;
+        }
+        else {
+
+            // Negotiated dialect does not require authentication
+            return SessionState.SMB_SESSION;
+        }
     }
 
     /**

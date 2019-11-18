@@ -400,7 +400,8 @@ public class FindInfoPacker {
         buf.putString(info.getFileName(), uni, false);
 
         //	Align the buffer pointer and set the offset to the next file information entry
-        buf.longwordAlign();
+        if ( buf.hasAlignmentRequired())
+            buf.longwordAlign();
 
         int curPos = buf.getPosition();
         buf.setPosition(startPos);
@@ -479,7 +480,8 @@ public class FindInfoPacker {
         buf.putString(info.getFileName(), uni, false);
 
         //	Align the buffer pointer and set the offset to the next file information entry
-        buf.longwordAlign();
+        if ( buf.hasAlignmentRequired())
+            buf.longwordAlign();
 
         int curPos = buf.getPosition();
         buf.setPosition(startPos);
@@ -563,7 +565,8 @@ public class FindInfoPacker {
         buf.putString(info.getFileName(), uni, false);
 
         //	Align the buffer pointer and set the offset to the next file information entry
-        buf.longwordAlign();
+        if ( buf.hasAlignmentRequired())
+            buf.longwordAlign();
 
         int curPos = buf.getPosition();
         buf.setPosition(startPos);
@@ -652,7 +655,8 @@ public class FindInfoPacker {
         buf.putString(info.getFileName(), uni, false);
 
         //	Align the buffer pointer and set the offset to the next file information entry
-        buf.longwordAlign();
+        if ( buf.hasAlignmentRequired())
+            buf.longwordAlign();
 
         int curPos = buf.getPosition();
         buf.setPosition(startPos);
@@ -749,7 +753,8 @@ public class FindInfoPacker {
         buf.putString(info.getFileName(), uni, false);
 
         //	Align the buffer pointer and set the offset to the next file information entry
-        buf.longwordAlign();
+        if ( buf.hasAlignmentRequired())
+            buf.longwordAlign();
 
         int curPos = buf.getPosition();
         buf.setPosition(startPos);
@@ -852,7 +857,8 @@ public class FindInfoPacker {
         buf.putInt(0);
 
         //	Align the buffer pointer and set the offset to the next file information entry
-        buf.longwordAlign();
+        if ( buf.hasAlignmentRequired())
+            buf.longwordAlign();
 
         int curPos = buf.getPosition();
         buf.setPosition(startPos);
@@ -1031,7 +1037,8 @@ public class FindInfoPacker {
         buf.putString(info.getFileName(), uni, false);
 
         //  Align the buffer pointer and set the offset to the next file information entry
-        buf.longwordAlign();
+        if ( buf.hasAlignmentRequired())
+           buf.longwordAlign();
 
         int curPos = buf.getPosition();
         buf.setPosition(startPos);
