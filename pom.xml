@@ -49,7 +49,7 @@
         <dependency>
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcprov-jdk15on</artifactId>
-            <version>1.48</version>
+            <version>1.64</version>
         </dependency>
     </dependencies>
 
@@ -238,7 +238,7 @@
         <connection>scm:git:git@github.com:FileSysOrg/jfileserver.git</connection>
         <developerConnection>scm:git:git@github.com:FileSysOrg/jfileserver.git</developerConnection>
         <url>https://github.com/FileSysOrg/jfileserver</url>
-      <tag>jfileserver-1.0.0</tag>
+      <tag>jfileserver-1.2.0</tag>
   </scm>
 
     <distributionManagement>
