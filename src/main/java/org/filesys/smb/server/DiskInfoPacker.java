@@ -150,13 +150,13 @@ public class DiskInfoPacker {
         else
             buf.putZeros(4);
 
-        int len = info.getVolumeLabel().length() + 1;
+        int len = info.getVolumeLabel().length();
         if (uni)
             len *= 2;
         buf.putInt(len);
 
         buf.putZeros(2);        //	reserved
-        buf.putString(info.getVolumeLabel(), uni, true);
+        buf.putString(info.getVolumeLabel(), uni, false);
     }
 
     /**

@@ -429,7 +429,7 @@ public abstract class SMBAuthenticator implements ISMBAuthenticator {
         VirtualCircuit vc = new VirtualCircuit(vcNum, client);
         int uid = sess.addVirtualCircuit(vc);
 
-        if (uid == VirtualCircuit.InvalidUID) {
+        if (uid == VirtualCircuit.InvalidID) {
 
             // DEBUG
             if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_NEGOTIATE))

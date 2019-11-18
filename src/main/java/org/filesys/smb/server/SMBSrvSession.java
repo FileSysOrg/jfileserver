@@ -34,6 +34,7 @@ import org.filesys.netbios.RFCNetBIOSProtocol;
 import org.filesys.server.SrvSession;
 import org.filesys.server.SrvSessionList;
 import org.filesys.server.auth.AuthenticatorException;
+import org.filesys.server.auth.ClientInfo;
 import org.filesys.server.filesys.*;
 import org.filesys.server.thread.ThreadRequestPool;
 import org.filesys.smb.*;
@@ -129,6 +130,9 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 	private int m_maxBufSize;
 	private int m_maxMultiplex;
 
+	// Maximum virtual circuits allowed
+	private int m_maxVC;
+
 	// Client capabilities
 	private int m_clientCaps;
 
@@ -143,15 +147,6 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 	
     // Session keys/contexts, for signing/encryption
 	private HashMap<String, Object> m_sessionKeys;
-
-	/**
-	 * Temporary default constructor
-     *
-     * TODO: Remove this constructor
-	 */
-	public SMBSrvSession() {
-		super(-1, null, "TEST", null);
-	}
 
 	/**
 	 * Class constructor.
@@ -174,7 +169,7 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 			setState(SessionState.SMB_NEGOTIATE);
 		}
 
-		// Initialize the virtual circuit list
+		// Set the maximum number of virtual circuits for this session
 		setMaximumVirtualCircuits(maxVC);
 	}
 
@@ -214,6 +209,27 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 	}
 
 	/**
+	 * Create a new virtual circuit object
+	 *
+	 * @param vcNum int
+	 * @param client ClientInfo
+	 * @return VirtualCircuit
+	 */
+	public synchronized final VirtualCircuit createVirtualCircuit(int vcNum, ClientInfo client) {
+
+		// Check if the virtual circuit list has been allocated
+		if (m_vcircuits == null) {
+			if ( m_handler != null)
+				m_vcircuits = m_handler.createVirtualCircuitList( getMaximumVirtualCircuits());
+			else
+				return null;
+		}
+
+		// Create a new virtual circuit object
+		return m_vcircuits.createVirtualCircuit( vcNum, client);
+	}
+
+	/**
 	 * Add a new virtual circuit, return the allocated UID
 	 *
 	 * @param vc VirtualCircuit
@@ -221,9 +237,17 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 	 */
 	public synchronized final int addVirtualCircuit(VirtualCircuit vc) {
 
+		// Make sure the virtual circuit is valid
+		if ( vc == null)
+			return VirtualCircuit.InvalidID;
+
 		// Check if the virtual circuit list has been allocated
-		if (m_vcircuits == null)
-			m_vcircuits = new VirtualCircuitList();
+		if (m_vcircuits == null) {
+			if ( m_handler != null)
+				m_vcircuits = m_handler.createVirtualCircuitList( getMaximumVirtualCircuits());
+			else
+				return VirtualCircuit.InvalidID;
+		}
 
 		// Add the new virtual circuit
 		return m_vcircuits.addCircuit(vc);
@@ -232,17 +256,21 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 	/**
 	 * Find a virtual circuit with the allocated UID
 	 *
-	 * @param uid int
+	 * @param id int
 	 * @return VirtualCircuit
 	 */
-	public final VirtualCircuit findVirtualCircuit(int uid) {
+	public final VirtualCircuit findVirtualCircuit(int id) {
 
 		// Check if the virtual circuit list has been allocated
-		if (m_vcircuits == null)
-			m_vcircuits = new VirtualCircuitList();
+		if (m_vcircuits == null) {
+			if ( m_handler != null)
+				m_vcircuits = m_handler.createVirtualCircuitList( getMaximumVirtualCircuits());
+			else
+				return null;
+		}
 
-		// Find the virtual circuit with the specified UID
-		VirtualCircuit vc = m_vcircuits.findCircuit(uid);
+		// Find the virtual circuit with the specified id
+		VirtualCircuit vc = m_vcircuits.findCircuit(id);
 		if (vc != null) {
 
 			// Set the session client information from the virtual circuit
@@ -259,13 +287,13 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 	/**
 	 * Remove a virtual circuit
 	 *
-	 * @param uid int
+	 * @param id int
 	 */
-	public final void removeVirtualCircuit(int uid) {
+	public final void removeVirtualCircuit(int id) {
 
-		// Remove the virtual circuit with the specified UID
+		// Remove the virtual circuit with the specified id
 		if (m_vcircuits != null)
-			m_vcircuits.removeCircuit(uid, this);
+			m_vcircuits.removeCircuit(id, this);
 	}
 
 	/**
@@ -278,19 +306,43 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 	}
 
 	/**
-	 * Cleanup any resources owned by this session, close virtual circuits and change notificatio requests.
+	 * Get the virtual circuit list
+	 *
+	 * @return VirtualCircuitList
+	 */
+	protected final VirtualCircuitList getVirtualCircuitList() {
+		return m_vcircuits;
+	}
+
+	/**
+	 * Clear the virtual circuit list
+	 */
+	protected final void clearVirtualCircuitList() {
+		if ( m_vcircuits != null)
+			m_vcircuits = null;
+	}
+
+	/**
+	 * Cleanup any resources owned by this session, close virtual circuits and change notification requests.
 	 */
 	protected final void cleanupSession() {
 
 		// Debug
 		try {
-			// DEBUG
-			if (Debug.EnableInfo && hasDebug(DBG_STATE))
-				debugPrintln("Cleanup session, vcircuits=" + m_vcircuits.getCircuitCount() + ", changeNotify="
-						+ getNotifyChangeCount());
 
-			// Clear the virtual circuit list
-			m_vcircuits.clearCircuitList(this);
+			// Virtual circuit list may be null if the client did not authenticate a session
+			if ( m_vcircuits != null) {
+
+				// DEBUG
+				if (Debug.EnableInfo && hasDebug(DBG_STATE))
+					debugPrintln("Cleanup session, vcircuits=" + m_vcircuits.getCircuitCount() + ", changeNotify="
+							+ getNotifyChangeCount());
+
+				// Clear the virtual circuit list
+				m_vcircuits.clearCircuitList(this);
+			}
+			else if ( Debug.EnableInfo && hasDebug(DBG_STATE))
+				debugPrintln("Cleanup session, vcircuits=null, changeNotify=" + getNotifyChangeCount());
 
 			// Check if there are active change notification requests
 			if (m_notifyList != null && m_notifyList.numberOfRequests() > 0) {
@@ -298,8 +350,7 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 				// Remove the notify requests from the associated device context notify list
 				for (int i = 0; i < m_notifyList.numberOfRequests(); i++) {
 
-					// Get the current change notification request and remove from the global notify
-					// list
+					// Get the current change notification request and remove from the global notify list
 					NotifyRequest curReq = m_notifyList.getRequest(i);
 					if (curReq.getDiskContext().hasChangeHandler())
 						curReq.getDiskContext().getChangeHandler().removeNotifyRequests(this);
@@ -308,8 +359,6 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 
 			// Delete any temporary shares that were created for this session
 			getSMBServer().deleteTemporaryShares(this);
-
-
 		}
 		finally {
 			// Commit any outstanding transaction that may have been started during cleanup
@@ -333,7 +382,7 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 				debugPrintln("Closed packet handler for client: " + m_pktHandler.getClientName());
 		}
 		catch (Exception ex) {
-			Debug.println(ex);
+//			Debug.println(ex);
 		}
 	}
 
@@ -342,11 +391,32 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 	 */
 	public final void closeSession() {
 
-		// Cleanup the session (open files/virtual circuits/searches)
-		cleanupSession();
+		// If this is a persistent session then do not cleanup the current session state, unless the server is shutting down
+		if ( isPersistentSession() == false || getSMBServer().hasShutdown()) {
 
-		// Call the base class
-		super.closeSession();
+			// Cleanup the session (open files/virtual circuits/searches)
+			cleanupSession();
+
+			// Call the base class
+			super.closeSession();
+		}
+		else {
+
+			// Remove the session from the active session list
+			getSMBServer().findActiveSession( getSessionId());
+
+			// Add the session to the disconnected session list
+			getSMBServer().addDisconnectedSession( this);
+
+			// DEBUG
+			if (Debug.EnableInfo && hasDebug(DBG_STATE))
+				debugPrintln("[SMB] Add session to disconnected session list, sessId=" + getSessionId() + "/" + getUniqueId());
+
+			// Cleanup the disconnected sessions virtual circuits, open files, searches as the client will not currently
+			// try to re-use them
+			cleanupSession();
+
+		}
 
 		try {
 
@@ -363,7 +433,6 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 				debugPrintln(ex);
 			}
 		}
-
 	}
 
 	/**
@@ -447,6 +516,13 @@ public class SMBSrvSession extends SrvSession implements Runnable {
     }
 
 	/**
+	 * Clear the packet handler
+	 */
+	protected final void clearPacketHandler() {
+		m_pktHandler = null;
+	}
+
+	/**
 	 * Return the SMB packet pool from the packet handler
 	 *
 	 * @return SMBPacketPool
@@ -480,6 +556,17 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 	 */
 	public final InetAddress getRemoteAddress() {
 		return m_pktHandler.getRemoteAddress();
+	}
+
+	/**
+	 * Return the client network address string
+	 *
+	 * @return String
+	 */
+	public final String getRemoteAddressString() {
+		if ( m_pktHandler != null)
+			return m_pktHandler.getRemoteAddress().getHostAddress();
+		return "Unknown";
 	}
 
 	/**
@@ -796,15 +883,10 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 	 *
 	 * @param maxVC int
 	 */
-	public synchronized final void setMaximumVirtualCircuits(int maxVC) {
+	public final void setMaximumVirtualCircuits(int maxVC) {
 
-		// Can only set the virtual circuit limit before the virtual circuit list has been allocated
-		// to the session
-		if (m_vcircuits != null)
-			throw new RuntimeException("Virtual circuit list is already allocated");
-
-		// Create the virtual circuit list with the required limit
-		m_vcircuits = new VirtualCircuitList(maxVC);
+		// Just set the maximum virtual circuits for this session, the actual list will be allocated later
+		m_maxVC = maxVC;
 	}
 
 	/**
@@ -1024,7 +1106,7 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 
 				// Debug
 				if (Debug.EnableError && hasDebug(DBG_NEGOTIATE))
-					debugPrintln("No comon dialect between client and server");
+					debugPrintln("No common dialect between client and server");
 
 				// Return an error status
 				sendErrorResponseSMB(smbPkt, SMBStatus.NTInvalidParameter, SMBStatus.SRVNotSupported, SMBStatus.ErrSrv);
@@ -1044,10 +1126,8 @@ public class SMBSrvSession extends SrvSession implements Runnable {
             // Check if the negotiated SMB dialect supports the session setup command, if not then bypass the session setup phase
             if ( diaIdx == -1)
                 setState(SessionState.NETBIOS_HANGUP);
-            else if (smbPkt.getParser().requireSessionSetup( diaIdx))
-                setState(SessionState.SMB_SESSSETUP);
             else
-                setState(SessionState.SMB_SESSION);
+            	setState( respPkt.getParser().nextStateForDialect( diaIdx));
 
             // If a dialect was selected inform the server that the session has been opened
             if (diaIdx != -1)
@@ -1334,7 +1414,7 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 		}
 
 		// Check if the session has been closed, either cleanly or due to an exception
-		if (m_state == SessionState.NETBIOS_HANGUP) {
+		if (m_state == SessionState.NETBIOS_HANGUP && isPersistentSession() == false) {
 
 			// Cleanup the session, make sure all resources are released
 			cleanupSession();
@@ -1928,6 +2008,18 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 
 		// Return the count of sessions disconnected
 		return discCnt;
+	}
+
+	/**
+	 * Transfer the session details to this session
+	 *
+	 * @param otherSess SMBSrvSession
+	 */
+	public final void transferSession( SMBSrvSession otherSess) {
+
+		// Transfer the virtual circuit list from the previous session to this session
+		m_vcircuits = otherSess.getVirtualCircuitList();
+		otherSess.clearVirtualCircuitList();
 	}
 
 	/**

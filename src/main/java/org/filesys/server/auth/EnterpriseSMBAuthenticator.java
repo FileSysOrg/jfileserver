@@ -745,7 +745,7 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
             VirtualCircuit vc = new VirtualCircuit(vcNum, client);
             uid = sess.addVirtualCircuit(vc);
 
-            if (uid == VirtualCircuit.InvalidUID) {
+            if (uid == VirtualCircuit.InvalidID) {
 
                 // DEBUG
                 if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_NEGOTIATE))
@@ -1263,7 +1263,7 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
 
             // Unknown SPNEGO token type
             if (hasDebugOutput())
-                debugOutput("[SMB] Unknown SPNEGO token type");
+                debugOutput("[SMB] Unknown SPNEGO token type=" + tokType);
 
             // Clear any session setup state
             sess.removeAllSetupObjects( client.getProcessId());
@@ -1708,12 +1708,7 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
 
                 if (clientHmac != null && srvHmac != null && clientHmac.length == srvHmac.length) {
 
-                    int i = 0;
-
-                    while (i < clientHmac.length && clientHmac[i] == srvHmac[i])
-                        i++;
-
-                    if (i != clientHmac.length) {
+                    if ( Arrays.equals( clientHmac, srvHmac) == false) {
 
                         // Return a logon failure
                         throw new SMBSrvException(SMBStatus.NTLogonFailure, SMBStatus.ErrDos, SMBStatus.DOSAccessDenied);
@@ -1852,12 +1847,8 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
             byte[] clientHash = type3Msg.getNTLMHash();
 
             if (clientHash != null && localHash != null && clientHash.length == localHash.length) {
-                int i = 0;
 
-                while (i < clientHash.length && clientHash[i] == localHash[i])
-                    i++;
-
-                if (i != clientHash.length) {
+                if ( Arrays.equals( clientHash, localHash) == false) {
 
                     // Return a logon failure
                     throw new SMBSrvException(SMBStatus.NTLogonFailure, SMBStatus.ErrDos, SMBStatus.DOSAccessDenied);
@@ -2016,7 +2007,7 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
         VirtualCircuit vc = new VirtualCircuit(vcNum, client);
         int uid = sess.addVirtualCircuit(vc);
 
-        if (uid == VirtualCircuit.InvalidUID) {
+        if (uid == VirtualCircuit.InvalidID) {
 
             // DEBUG
             if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_NEGOTIATE))

@@ -128,7 +128,7 @@ public class SMBConfigSection extends ConfigSection {
     private int m_clientSocketTimeout = DefSessionTimeout;
 
     // Per session virtual circuit limit
-    private int m_virtualCircuitLimit = VirtualCircuitList.DefMaxCircuits;
+    private int m_virtualCircuitLimit = SMBV1VirtualCircuitList.DefMaxCircuits;
 
     // Disable encryption, for dialects that support it
     private boolean m_disableEncryption;
