@@ -21,6 +21,7 @@
 package org.filesys.smb.server;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 import org.filesys.debug.Debug;
@@ -198,6 +199,38 @@ public class VirtualCircuit {
 
             //  Remove the connection from the connection list
             m_connections.remove(treeId);
+        }
+    }
+
+    /**
+     * Remove all tree connections from the active connection list
+     *
+     * @param sess SrvSession
+     */
+    public synchronized void removeAllConnections(SrvSession sess) {
+
+        //  Check if the tree id is valid
+        if (m_connections == null)
+            return;
+
+        // Remove the tree connections
+        Iterator<Integer> iterId = m_connections.keySet().iterator();
+
+        while ( iterId.hasNext()) {
+
+            // Get the current tree connection
+            Integer treeId = iterId.next();
+            TreeConnection tree = m_connections.get( treeId);
+
+            //  Close the connection, release resources
+            if (tree != null) {
+
+                //  Close the connection
+                tree.closeConnection(sess);
+
+                //  Remove the connection from the connection list
+                iterId.remove();
+            }
         }
     }
 
