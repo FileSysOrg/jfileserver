@@ -1543,8 +1543,9 @@ public class SMBV1Parser extends SMBParser {
      *
      * @param errClass int
      * @param errCode int
+     * @param protocolHandler ProtocolHandler
      */
-    public void buildErrorResponse( int errClass, int errCode) {
+    public void buildErrorResponse( int errClass, int errCode, ProtocolHandler protocolHandler) {
 
         // Build an SMB v1 error response
         //
