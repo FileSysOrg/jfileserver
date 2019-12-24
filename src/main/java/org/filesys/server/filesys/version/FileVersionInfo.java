@@ -25,7 +25,7 @@ import java.util.Date;
  *
  * <p>Contains the details of a previous version of a file</p>
  */
-public class FileVersionInfo {
+public class FileVersionInfo implements Comparable<FileVersionInfo> {
 
     // Date/time formatter
     private static SimpleDateFormat _dateTimeFormat = new SimpleDateFormat( "YYYY.MM.dd-HH.mm.ss");
@@ -59,5 +59,20 @@ public class FileVersionInfo {
      */
     public final String toString() {
         return _dateTimeFormat.format( new Date( m_timestamp));
+    }
+
+    /**
+     * Compare file version info objects
+     *
+     * @param verInfo FileVersionInfo
+     * @return int
+     */
+    public int compareTo(FileVersionInfo verInfo) {
+        if ( getTimestamp() < verInfo.getTimestamp())
+            return -1;
+        else if ( getTimestamp() == verInfo.getTimestamp())
+            return 0;
+        else
+            return 1;
     }
 }
