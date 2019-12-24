@@ -18,6 +18,7 @@
 package org.filesys.smb.server;
 
 import org.filesys.server.auth.AuthenticatorException;
+import org.filesys.server.filesys.postprocess.PostRequestProcessor;
 import org.filesys.server.locking.OpLockDetailsAdapter;
 import org.filesys.smb.dcerpc.UUID;
 import org.filesys.util.DataPacker;
@@ -38,6 +39,9 @@ public abstract class SMBParser {
 
     // Offset of the current request within a compound request
     protected int m_reqOffset;
+
+    // Request post processor, called after the protocol response has been sent
+    protected PostRequestProcessor m_postProcess;
 
     /**
      * Class constructor
@@ -562,6 +566,33 @@ public abstract class SMBParser {
     }
 
     /**
+     * Check if the parser has a post processor
+     *
+     * @return boolean
+     */
+    public final boolean hasPostProcessor() {
+        return m_postProcess != null ? true : false;
+    }
+
+    /**
+     * Return the associated request post processor
+     *
+     * @return PostRequetProcesser
+     */
+    public final PostRequestProcessor getPostProcessor() {
+        return m_postProcess;
+    }
+
+    /**
+     * Set the request post processor
+     *
+     * @param postProcessor PostRequestProcessor
+     */
+    public final void setPostProcessor(PostRequestProcessor postProcessor) {
+        m_postProcess = postProcessor;
+    }
+
+    /**
      * Check if the received SMB packet is valid
      *
      * @param reqWords Minimum number of parameter words expected.
@@ -650,8 +681,9 @@ public abstract class SMBParser {
      *
      * @param errClass int
      * @param errCode int
+     * @param protocolHandler ProtocolHandler
      */
-    public abstract void buildErrorResponse( int errClass, int errCode);
+    public abstract void buildErrorResponse( int errClass, int errCode, ProtocolHandler protocolHandler);
 
     /**
      * Parse a negotiate request and return the list of request SMB dialects

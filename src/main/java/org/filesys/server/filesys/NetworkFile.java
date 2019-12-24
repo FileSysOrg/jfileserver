@@ -73,7 +73,9 @@ public abstract class NetworkFile {
         DELAYED_CLOSE,
         CLOSED,
         FORCE_CLOSE,
-        PREVIOUS_VERSION
+        PREVIOUS_VERSION,
+        POST_CLOSE_FILE     // close the file using the same worker thread that processes the client close request but after the
+                            // protocol layer has responded to the client
     };
 
     // File identifier and parent directory identifier
@@ -485,6 +487,13 @@ public abstract class NetworkFile {
      * @return boolean
      */
     public final boolean isPreviousVersion() { return m_flags.contains( Flags.PREVIOUS_VERSION); }
+
+    /**
+     * Check if the file requires close file post processing
+     *
+     * @return boolean
+     */
+    public final boolean requiresPostCloseProcessing() { return m_flags.contains( Flags.POST_CLOSE_FILE); }
 
     /**
      * Determine if the file modification date/time is valid
