@@ -702,10 +702,10 @@ public class QueryInfoPacker {
     private static void packFileAttributeTagInfo(FileInfo info, DataBuffer buf) {
 
         // Information format :-
-        // ULONG Unknown1
-        // ULONG Unknown2
-        buf.putLong(0);
-        buf.putLong(0);
+        // UINT FileAttributes
+        // UINT ReparseTag
+        buf.putInt(info.getFileAttributes());
+        buf.putInt(0);
     }
 
     /**
