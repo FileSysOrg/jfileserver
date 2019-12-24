@@ -127,9 +127,10 @@ public class NotifyRequest {
      * @param id        long
      * @param treeId    int
      * @param procId    int
+     * @param vcId      int
      * @param maxRespLen int
      */
-    public NotifyRequest(Set<NotifyChange> filter, boolean watchTree, SMBSrvSession sess, NetworkFile dir, long id, int treeId, int procId, int maxRespLen) {
+    public NotifyRequest(Set<NotifyChange> filter, boolean watchTree, SMBSrvSession sess, NetworkFile dir, long id, int treeId, int procId, int vcId, int maxRespLen) {
         m_filter = filter;
         m_watchTree = watchTree;
         m_sess = sess;
@@ -139,6 +140,7 @@ public class NotifyRequest {
 
         m_tid = treeId;
         m_pid = procId;
+        m_uid = vcId;
 
         m_maxRespLen = maxRespLen;
 
@@ -367,6 +369,15 @@ public class NotifyRequest {
      * @return int
      */
     public final int getUserId() {
+        return m_uid;
+    }
+
+    /**
+     * Get the virtual circuit id of the request
+     *
+     * @return int
+     */
+    public final int getVirtualCircuitId() {
         return m_uid;
     }
 
