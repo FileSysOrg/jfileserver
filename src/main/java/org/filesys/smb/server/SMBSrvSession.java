@@ -1699,7 +1699,6 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 
 			// Send the asynchronous response immediately
 			sendResponseSMB(pkt, len);
-			m_pktHandler.flushPacket();
 
 			// Indicate that the SMB response has been sent
 			sts = true;
