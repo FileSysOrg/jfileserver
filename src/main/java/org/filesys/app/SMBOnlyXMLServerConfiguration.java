@@ -595,14 +595,6 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 			}
 		}
 
-		// Check if encryption is disabled, for dialects that support encryption
-		if ( findChildNode( "disableEncryption", smb.getChildNodes()) != null)
-			smbConfig.setDisableEncryption( true);
-
-		// Check if signing is required
-		if ( findChildNode( "requireSigning", smb.getChildNodes()) != null)
-			smbConfig.setRequireSigning( true);
-
 		// Check if an authenticator has been specified
 		Element authElem = findChildNode("authenticator", smb.getChildNodes());
 		if ( authElem != null) {
