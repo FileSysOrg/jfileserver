@@ -201,7 +201,13 @@ public class LocalOpLockDetails extends OpLockDetailsAdapter {
      * request within a reasonable time.
      */
     public final void setOplockBreakFailed() {
+
+        // Mark the oplock break as failed, timed out
         m_failedBreak = true;
+
+        // DEBUG
+        if ( m_ownerSess != null && m_ownerSess.hasDebug( SMBSrvSession.DBG_OPLOCK))
+            m_ownerSess.debugPrintln("*** Oplock break failed, timed out");
     }
 
     /**
