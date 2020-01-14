@@ -138,6 +138,11 @@ public class VolumeInfo {
     }
 
     /**
+     * Clear the volume creation date/time
+     */
+    public final void clearCreationDateTime() { m_created = null; }
+
+    /**
      * Return the volume information as a string
      *
      * @return String
