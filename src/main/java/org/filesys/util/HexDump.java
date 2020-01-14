@@ -74,6 +74,7 @@ public final class HexDump {
         //  Dump 16 byte blocks from the array until the length has been reached
         int dlen = 0;
         int doff = offset;
+        int endoff = offset + len;
         String posStr = null;
 
         while (dlen < len) {
@@ -85,7 +86,7 @@ public final class HexDump {
             posStr = generatePositionString(doff);
 
             //  Dump a block of data, update the data offset
-            doff = generateLine(byt, doff, ascBuf, hexBuf);
+            doff = generateLine(byt, doff, ascBuf, hexBuf, endoff);
 
             //	Output the current record
             stream.print(posStr);
@@ -114,6 +115,7 @@ public final class HexDump {
         //  Dump 16 byte blocks from the array until the length has been reached
         int dlen = 0;
         int doff = offset;
+        int endoff = offset + len;
         String posStr = null;
 
         while (dlen < len) {
@@ -125,7 +127,7 @@ public final class HexDump {
             posStr = generatePositionString(doff);
 
             //  Dump a block of data, update the data offset
-            doff = generateLine(byt, doff, ascBuf, hexBuf);
+            doff = generateLine(byt, doff, ascBuf, hexBuf, endoff);
 
             //	Output the current record
             dbgDev.debugPrintln(posStr + hexBuf.toString() + ascBuf.toString());
@@ -426,9 +428,10 @@ public final class HexDump {
      * @param off    Offset to start data dump
      * @param ascBuf Buffer for ASCII output
      * @param hexBuf Buffer for Hex output
+     * @param endOff Position of the end of the used buffer
      * @return New offset value
      */
-    private static final int generateLine(byte[] byt, int off, StringBuilder ascBuf, StringBuilder hexBuf) {
+    private static final int generateLine(byte[] byt, int off, StringBuilder ascBuf, StringBuilder hexBuf, int endOff) {
 
         //  Check if there is enough buffer space to dump 16 bytes
         int dumplen = byt.length - off;
@@ -444,7 +447,7 @@ public final class HexDump {
             //  Output the hex string
             hexBuf.append(Integer.toHexString((curbyt & 0xF0) >> 4));
             hexBuf.append(Integer.toHexString(curbyt & 0x0F));
-            hexBuf.append(" ");
+            hexBuf.append(off == endOff ? "]" : " ");
 
             //  Output the character equivalent, if printable
             if (Character.isLetterOrDigit((char) curbyt) || Character.getType((char) curbyt) != Character.CONTROL)
