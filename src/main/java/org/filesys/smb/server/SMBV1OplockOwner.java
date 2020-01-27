@@ -18,6 +18,7 @@
 package org.filesys.smb.server;
 
 import org.filesys.server.locking.OplockOwner;
+import org.filesys.smb.OpLockType;
 
 /**
  * SMB V1 Oplock Owner Class
@@ -110,6 +111,37 @@ public class SMBV1OplockOwner implements OplockOwner {
         // Compare the SMB V1 oplock owner details
         SMBV1OplockOwner v1Owner = (SMBV1OplockOwner) obj;
 
+        return getTreeId() == v1Owner.getTreeId() && getUserId() == v1Owner.getUserId() && getProcessId() == v1Owner.getProcessId() &&
+                getFileId() == v1Owner.getFileId();
+    }
+
+    /**
+     * Check if the oplock owner matches this oplock owner for the type of oplock
+     *
+     * @param opType    OplockType
+     * @param opOwner   OplockOwner
+     * @return boolean
+     */
+    public boolean isOwner(OpLockType opType, OplockOwner opOwner) {
+
+        // Make sure the object is valid, and is the same type
+        if ( opOwner == null || opOwner instanceof SMBV1OplockOwner == false)
+            return false;
+
+        // Compare the SMB V1 oplock owner details
+        SMBV1OplockOwner v1Owner = (SMBV1OplockOwner) opOwner;
+
+        // For a batch oplock do not check the file id
+        if ( opType == OpLockType.LEVEL_BATCH) {
+
+            // Check for the same user/process
+            if ( getTreeId() == v1Owner.getTreeId() && getUserId() == v1Owner.getUserId() && getProcessId() == v1Owner.getProcessId())
+                return true;
+            else
+                return false;
+        }
+
+        // Check for the same user/process/file id
         return getTreeId() == v1Owner.getTreeId() && getUserId() == v1Owner.getUserId() && getProcessId() == v1Owner.getProcessId() &&
                 getFileId() == v1Owner.getFileId();
     }
