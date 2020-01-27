@@ -197,6 +197,21 @@ public class OpLockHelper {
                             return;
                         }
 
+                        // Check for a batch oplock, is the owner the same
+                        if ( oplock.getLockType() == OpLockType.LEVEL_BATCH && params.requestBatchOpLock()) {
+
+                            // Check if the current oplock owner is the same as the requestor
+                            if ( localOpLock.getOplockOwner().isOwner( OpLockType.LEVEL_BATCH, params.getOplockOwner())) {
+
+                                // DEBUG
+                                if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.DBG_OPLOCK))
+                                    sess.debugPrintln("No oplock break, oplock owner, params=" + params + ", oplock=" + oplock);
+
+                                // Oplock break not required
+                                return;
+                            }
+                        }
+
                         // Check if the oplock has a failed break timeout, do not send another break request to the client, fail the open
                         // request with an access denied error
                         if (oplock.hasOplockBreakFailed()) {
