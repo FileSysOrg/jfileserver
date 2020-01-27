@@ -625,7 +625,7 @@ public abstract class FileStateCache {
                 // DEBUG
                 if (hasDebug())
                     Debug.println("File already open by pid=" + fstate.getProcessId() +
-                            ", sharingMode=" + fstate.getSharedAccess().name());
+                            ", sharingMode=" + fstate.getSharedAccess().name() + ", open params=" + params);
 
                 // Check if the open action indicates a new file create
                 if (params.getOpenAction() == CreateDisposition.CREATE)
