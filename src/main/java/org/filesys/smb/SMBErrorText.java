@@ -759,6 +759,15 @@ public final class SMBErrorText {
             case SMBStatus.NTVolumeNotUpgraded:
                 errtext = "Volume not upgraded";
                 break;
+            case SMBStatus.NTInvalidDeviceRequest:
+                errtext = "Invalid device request";
+                break;
+            case SMBStatus.NTEndOfFile:
+                errtext = "End of file";
+                break;
+            case SMBStatus.NTPasswordChangeReq:
+                errtext = "Password change required";
+                break;
             case SMBStatus.SMBInvalidSMB:
                 errtext = "Invalid SMB, or not supported";
                 break;
