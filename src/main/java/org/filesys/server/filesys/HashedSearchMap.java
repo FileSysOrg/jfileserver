@@ -47,6 +47,7 @@ public class HashedSearchMap extends SearchMap {
     public HashedSearchMap( int maxSearches) {
         setMaximumNumberOfSearches( maxSearches >= DefaultSearches ? maxSearches : DefaultSearches);
     }
+
     /**
      * Allocate a slot in the active searches list for a new search.
      *
@@ -68,7 +69,7 @@ public class HashedSearchMap extends SearchMap {
      *                  in use
      * @exception TooManySearchesException Too many active searches
      */
-    public boolean allocateSearchSlotWithId(int searchId)
+    public synchronized boolean allocateSearchSlotWithId(int searchId)
             throws TooManySearchesException {
 
         //  Check if the search array has been allocated
@@ -103,7 +104,7 @@ public class HashedSearchMap extends SearchMap {
      * @param ctxId int
      * @return SearchContext
      */
-    public SearchContext deallocateSearchSlot(int ctxId) {
+    public synchronized SearchContext deallocateSearchSlot(int ctxId) {
 
         //  Check if the search array has been allocated and that the index is valid
         if (m_search == null)
@@ -131,7 +132,7 @@ public class HashedSearchMap extends SearchMap {
      * @param srchId int
      * @return SearchContext
      */
-    public SearchContext findSearchContext(int srchId) {
+    public synchronized SearchContext findSearchContext(int srchId) {
 
         //  Check if the search array is valid
         if (m_search == null)
@@ -147,7 +148,7 @@ public class HashedSearchMap extends SearchMap {
      * @param slot Slot to store the search context.
      * @param srch SearchContext
      */
-    public void setSearchContext(int slot, SearchContext srch) {
+    public synchronized void setSearchContext(int slot, SearchContext srch) {
 
         //  Check if the search slot id is valid
         if (m_search == null)
@@ -162,7 +163,7 @@ public class HashedSearchMap extends SearchMap {
      *
      * @return int
      */
-    public int numberOfSearches() {
+    public synchronized int numberOfSearches() {
         if ( m_search == null)
             return 0;
         return m_search.size();
@@ -171,7 +172,7 @@ public class HashedSearchMap extends SearchMap {
     /**
      * Close all active searches
      */
-    public void closeAllSearches() {
+    public synchronized void closeAllSearches() {
 
         //  Close all active searches
         Iterator<Integer> searchKeyIter = m_search.keySet().iterator();
@@ -180,7 +181,7 @@ public class HashedSearchMap extends SearchMap {
 
             // Remove the search context from the active search list
             Integer searchKey = searchKeyIter.next();
-            SearchContext searchCtx = m_search.remove( searchKey);
+            SearchContext searchCtx = m_search.get( searchKey);
 
             if ( searchCtx != null) {
 
@@ -191,5 +192,8 @@ public class HashedSearchMap extends SearchMap {
                 }
             }
         }
+
+        // Clear the search list
+        m_search.clear();
     }
 }
