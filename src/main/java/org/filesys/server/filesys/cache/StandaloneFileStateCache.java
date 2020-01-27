@@ -334,8 +334,8 @@ public class StandaloneFileStateCache extends FileStateCache {
                     // file
                     if (state.hasExpired(curTime) && state.getOpenCount() == 0) {
 
-                        // Check if there is a state listener
-                        if (hasStateListener() && getStateListener().fileStateExpired(state) == true) {
+                        // Check if there is a state listener to veto the file state expiration
+                        if (hasStateListener() == false || getStateListener().fileStateExpired(state) == true) {
 
                             // Remove the expired file state
                             enm.remove();
