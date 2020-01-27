@@ -17,6 +17,8 @@
 
 package org.filesys.server.locking;
 
+import org.filesys.smb.OpLockType;
+
 /**
  * Oplock Owner Interface
  *
@@ -24,4 +26,12 @@ package org.filesys.server.locking;
  */
 public interface OplockOwner {
 
+    /**
+     * Check if the oplock owner matches this oplock owner for the type of oplock
+     *
+     * @param opType    OplockType
+     * @param opOwner   OplockOwner
+     * @return boolean
+     */
+    public boolean isOwner(OpLockType opType, OplockOwner opOwner);
 }
