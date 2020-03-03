@@ -343,6 +343,9 @@ public class JavaNIONetworkFile extends NetworkFile {
 
         //	Update the write count for the file
         incrementWriteCount();
+
+        // Update the new file length
+        setFileSize( m_io.size());
     }
 
     /**
@@ -386,5 +389,11 @@ public class JavaNIONetworkFile extends NetworkFile {
 
         //	Update the write count for the file
         incrementWriteCount();
+
+        // Update the current file size if we have written passed the current end of file
+        long newLen = offset + len;
+
+        if ( newLen > getFileSize())
+            setFileSize( newLen);
     }
 }
