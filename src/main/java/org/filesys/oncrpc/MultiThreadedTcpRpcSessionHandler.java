@@ -24,6 +24,8 @@ import java.net.InetAddress;
 import java.net.Socket;
 
 import org.filesys.server.NetworkServer;
+import org.filesys.server.core.NoPooledMemoryException;
+import org.filesys.server.thread.ThreadRequestPool;
 
 
 /**
@@ -45,7 +47,7 @@ public class MultiThreadedTcpRpcSessionHandler extends TcpRpcSessionHandler {
     private RpcPacketPool m_packetPool;
 
     //	Request handler thread pool
-    private RpcRequestThreadPool m_threadPool;
+    private ThreadRequestPool m_threadPool;
 
     /**
      * Class constructor
@@ -67,17 +69,16 @@ public class MultiThreadedTcpRpcSessionHandler extends TcpRpcSessionHandler {
      * Initialize the session socket handler
      *
      * @param server NetworkServer
+     * @param pktPool RpcPacketPool
+     * @param threadPool ThreadRequestPool
      * @exception IOException Socket error
      */
-    public void initializeSessionHandler(NetworkServer server) throws IOException {
+    public void initializeSessionHandler(NetworkServer server, RpcPacketPool pktPool, ThreadRequestPool threadPool)
+        throws IOException {
 
-        //	If the packet pool has not been created, create a default packet pool
-        if (m_packetPool == null)
-            m_packetPool = new RpcPacketPool(DefaultSmallPacketSize, DefaultPacketPoolSize, getMaximumRpcSize(), DefaultPacketPoolSize);
-
-        //	Create the RPC request handling thread pool, if not already created
-        if (m_threadPool == null)
-            m_threadPool = new RpcRequestThreadPool(getHandlerName(), getRpcProcessor());
+        // Use the specified packet pool and thread pool
+        m_packetPool = pktPool;
+        m_threadPool = threadPool;
 
         //	Call the base class initialization
         super.initializeSessionHandler(server);
@@ -88,25 +89,13 @@ public class MultiThreadedTcpRpcSessionHandler extends TcpRpcSessionHandler {
      *
      * @param size int
      * @return RpcPacket
+     * @exception NoPooledMemoryException No pooled memory available
      */
-    protected final RpcPacket allocateRpcPacket(int size) {
+    protected final RpcPacket allocateRpcPacket(int size)
+        throws NoPooledMemoryException {
 
         //	Allocate an RPC packet from the packet pool
         return m_packetPool.allocatePacket(size);
-    }
-
-    /**
-     * Queue an RPC request to the thread pool for processing
-     *
-     * @param rpc RpcPacket
-     */
-    protected final void queueRpcRequest(RpcPacket rpc) {
-
-        //	DEBUG
-//    Debug.println("MTRpcSessHandler Queue rpc=" + rpc.toString());
-
-        //	Queue the RPC request to the thread pool for processing
-        m_threadPool.queueRpcRequest(rpc);
     }
 
     /**
@@ -120,80 +109,7 @@ public class MultiThreadedTcpRpcSessionHandler extends TcpRpcSessionHandler {
     protected TcpRpcPacketHandler createPacketHandler(int sessId, Socket sock)
             throws IOException {
 
-        //	Create a multi-threaded packet handler to use the session handlers thread pool to
-        //	process the RPC requests
-        return new MultiThreadedTcpRpcPacketHandler(this, sessId, getRpcProcessor(), sock, getMaximumRpcSize());
-    }
-
-    /**
-     * Set the packet pool size
-     *
-     * @param smallSize int
-     * @param smallPool int
-     * @param largeSize int
-     * @param largePool int
-     */
-    public final void setPacketPool(int smallSize, int smallPool, int largeSize, int largePool) {
-
-        //	Create the packet pool, if not already initialized
-        if (m_packetPool == null) {
-
-            //	Create the packet pool
-            m_packetPool = new RpcPacketPool(smallSize, smallPool, largeSize, largePool);
-        }
-    }
-
-    /**
-     * Set the packet pool size
-     *
-     * @param poolSize int
-     */
-    public final void setPacketPool(int poolSize) {
-
-        //	Create the packet pool, if not already initialized
-        if (m_packetPool == null) {
-
-            //	Create the packet pool
-            m_packetPool = new RpcPacketPool(DefaultSmallPacketSize, poolSize, getMaximumRpcSize(), poolSize);
-        }
-    }
-
-    /**
-     * Set the packet pool
-     *
-     * @param pktPool RpcPacketPool
-     */
-    public final void setPacketPool(RpcPacketPool pktPool) {
-
-        //	Set the packet pool, if not already initialized
-        if (m_packetPool == null)
-            m_packetPool = pktPool;
-    }
-
-    /**
-     * Set the thread pool size
-     *
-     * @param numThreads int
-     */
-    public final void setThreadPool(int numThreads) {
-
-        //	Create the thread pool, if not already initialized
-        if (m_threadPool == null) {
-
-            //	Create the thread pool
-            m_threadPool = new RpcRequestThreadPool(getHandlerName(), numThreads, getRpcProcessor());
-        }
-    }
-
-    /**
-     * Set the thread pool
-     *
-     * @param threadPool RpcRequestThreadPool
-     */
-    public final void setThreadPool(RpcRequestThreadPool threadPool) {
-
-        //	Set the thread pool, if not already initialized
-        if (m_threadPool == null)
-            m_threadPool = threadPool;
+        //	Create a multi-threaded packet handler to use the session handlers thread pool to process the RPC requests
+        return new MultiThreadedTcpRpcPacketHandler(this, sessId, getRpcProcessor(), sock, getMaximumRpcSize(), m_packetPool, m_threadPool);
     }
 }

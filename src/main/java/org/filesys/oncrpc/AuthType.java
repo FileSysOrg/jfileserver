@@ -19,31 +19,61 @@
 
 package org.filesys.oncrpc;
 
+import org.filesys.oncrpc.nfs.v3.NFS3;
+
 /**
  * Authentication Types Class
  *
  * @author gkspencer
  */
-public final class AuthType {
+public enum AuthType {
+    Null(0),
+    Unix(1),
+    Short(2),
+    DES(3),
 
-    //	Authentication type contants
-    public static final int Null    = 0;
-    public static final int Unix    = 1;
-    public static final int Short   = 2;
-    public static final int DES     = 3;
+    Invalid(0xFFFF);
 
-    //	Authentication type strings
-    private static final String[] _authTypes = {"Null", "Unix", "Short", "DES"};
+    private final int authType;
 
     /**
-     * Return the authentication type as string
+     * Enum constructor
      *
-     * @param type int
-     * @return String
+     * @param typ int
      */
-    public static final String getTypeAsString(int type) {
-        if (type < 0 || type >= _authTypes.length)
-            return "" + type;
-        return _authTypes[type];
+    AuthType(int typ) { authType = typ; }
+
+    /**
+     * Return the authentication type as an int
+     *
+     * @return int
+     */
+    public final int intValue() { return authType; }
+
+    /**
+     * Create an authentication type from an int
+     *
+     * @param typ int
+     * @return AuthType
+     */
+    public static final AuthType fromInt(int typ) {
+        AuthType aType = Invalid;
+
+        switch( typ) {
+            case 0:
+                aType = Null;
+                break;
+            case 1:
+                aType = Unix;
+                break;
+            case 2:
+                aType = Short;
+                break;
+            case 3:
+                aType = DES;
+                break;
+        }
+
+        return aType;
     }
 }

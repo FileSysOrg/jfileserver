@@ -36,7 +36,7 @@ import org.springframework.extensions.config.ConfigElement;
 public class DefaultRpcAuthenticator implements RpcAuthenticator {
 
     //	Authentication types supported by this implementation
-    private int[] _authTypes = {AuthType.Null, AuthType.Unix};
+    private AuthType[] _authTypes = {AuthType.Null, AuthType.Unix};
 
     //	Debug enable
     private boolean m_debug;
@@ -44,12 +44,12 @@ public class DefaultRpcAuthenticator implements RpcAuthenticator {
     /**
      * Authenticate an RPC client and create a unique session id key.
      *
-     * @param authType int
+     * @param authType AuthType
      * @param rpc      RpcPacket
      * @return Object
      * @exception RpcAuthenticationException Authentication error
      */
-    public Object authenticateRpcClient(int authType, RpcPacket rpc)
+    public Object authenticateRpcClient(AuthType authType, RpcPacket rpc)
             throws RpcAuthenticationException {
 
         //	Create a unique session key depending on the authentication type
@@ -58,12 +58,12 @@ public class DefaultRpcAuthenticator implements RpcAuthenticator {
         switch (authType) {
 
             //	Null authentication
-            case AuthType.Null:
+            case Null:
                 sessKey = new Integer(rpc.getClientAddress().hashCode());
                 break;
 
             //	Unix authentication
-            case AuthType.Unix:
+            case Unix:
 
                 //	Get the gid and uid from the credentials data in the request
                 rpc.positionAtCredentialsData();
@@ -81,11 +81,11 @@ public class DefaultRpcAuthenticator implements RpcAuthenticator {
 
         //	Check if the session key is valid, if not then the authentication type is unsupported
         if (sessKey == null)
-            throw new RpcAuthenticationException(Rpc.AuthBadCred, "Unsupported auth type, " + authType);
+            throw new RpcAuthenticationException(Rpc.AuthSts.BadCred, "Unsupported auth type, " + authType);
 
         //	DEBUG
         if (Debug.EnableInfo && hasDebug())
-            Debug.println("RpcAuth: RPC from " + rpc.getClientDetails() + ", authType=" + AuthType.getTypeAsString(authType) +
+            Debug.println("RpcAuth: RPC from " + rpc.getClientDetails() + ", authType=" + authType.name() +
                     ", sessKey=" + sessKey);
 
         //	Return the session key
@@ -104,9 +104,9 @@ public class DefaultRpcAuthenticator implements RpcAuthenticator {
     /**
      * Return the authentication types that are supported by this implementation.
      *
-     * @return int[]
+     * @return AuthType[]
      */
-    public int[] getRpcAuthenticationTypes() {
+    public AuthType[] getRpcAuthenticationTypes() {
         return _authTypes;
     }
 
@@ -123,23 +123,23 @@ public class DefaultRpcAuthenticator implements RpcAuthenticator {
         ClientInfo cInfo = ClientInfo.createInfo("", null);
 
         //	Get the authentication type
-        int authType = rpc.getCredentialsType();
+        AuthType authType = rpc.getCredentialsType();
         cInfo.setNFSAuthenticationType(authType);
 
         //	Unpack the client details from the RPC request
         switch (authType) {
 
             //	Null authentication
-            case AuthType.Null:
+            case Null:
                 cInfo.setClientAddress(rpc.getClientAddress().getHostAddress());
 
                 //	DEBUG
                 if (Debug.EnableInfo && hasDebug())
-                    Debug.println("RpcAuth: Client info, type=" + AuthType.getTypeAsString(authType) + ", addr=" + rpc.getClientAddress().getHostAddress());
+                    Debug.println("RpcAuth: Client info, type=" + authType.name() + ", addr=" + rpc.getClientAddress().getHostAddress());
                 break;
 
             //	Unix authentication
-            case AuthType.Unix:
+            case Unix:
 
                 //	Unpack the credentials data
                 rpc.positionAtCredentialsData();
@@ -160,7 +160,7 @@ public class DefaultRpcAuthenticator implements RpcAuthenticator {
 
                 //	DEBUG
                 if (Debug.EnableInfo && hasDebug())
-                    Debug.println("RpcAuth: Client info, type=" + AuthType.getTypeAsString(authType) + ", name=" + cInfo.getClientAddress() +
+                    Debug.println("RpcAuth: Client info, type=" + authType.name() + ", name=" + cInfo.getClientAddress() +
                             ", uid=" + cInfo.getUid() + ", gid=" + cInfo.getGid() + ", groups=" + grpLen);
                 break;
         }

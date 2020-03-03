@@ -25,6 +25,8 @@ import java.net.InetAddress;
 
 import org.filesys.debug.Debug;
 import org.filesys.server.NetworkServer;
+import org.filesys.server.core.NoPooledMemoryException;
+import org.filesys.server.thread.ThreadRequestPool;
 
 /**
  * Multi-Threaded UDP RPC Datagram Handler Class
@@ -45,7 +47,7 @@ public class MultiThreadedUdpRpcDatagramHandler extends UdpRpcDatagramHandler im
     private RpcPacketPool m_packetPool;
 
     //	Request handler thread pool
-    private RpcRequestThreadPool m_threadPool;
+    private ThreadRequestPool m_threadPool;
 
     //	RPC response queue
     private RpcRequestQueue m_txQueue;
@@ -175,24 +177,22 @@ public class MultiThreadedUdpRpcDatagramHandler extends UdpRpcDatagramHandler im
      * Initialize the session handler
      *
      * @param server NetworkServer
+     * @param pktPool RpcPacketPool
+     * @param threadPool ThreadRequestPool
      * @exception IOException Socket error
      */
-    public void initializeSessionHandler(NetworkServer server)
+    public void initializeSessionHandler(NetworkServer server, RpcPacketPool pktPool, ThreadRequestPool threadPool)
             throws IOException {
+
+        // Set the global packet pool and thread pool to use
+        m_packetPool = pktPool;
+        m_threadPool = threadPool;
 
         //	Create the RPC response queue
         m_txQueue = new RpcRequestQueue();
 
         //	Create the datagram sender thread
         m_txThread = new DatagramSender("UDP_Tx_" + getProtocolName());
-
-        //	If the packet pool has not been created, create a default packet pool
-        if (m_packetPool == null)
-            m_packetPool = new RpcPacketPool(DefaultSmallPacketSize, DefaultPacketPoolSize, getMaximumDatagramSize(), DefaultPacketPoolSize);
-
-        //	Create the RPC request handling thread pool, if not already created
-        if (m_threadPool == null)
-            m_threadPool = new RpcRequestThreadPool(getHandlerName(), getRpcProcessor());
 
         // Call the base class initialization
         super.initializeSessionHandler(server);
@@ -217,7 +217,7 @@ public class MultiThreadedUdpRpcDatagramHandler extends UdpRpcDatagramHandler im
         m_rxPkt.setBuffer(pkt.getData(), 0, pkt.getLength());
 
         //	Set the client details
-        m_rxPkt.setClientDetails(pkt.getAddress(), pkt.getPort(), Rpc.UDP);
+        m_rxPkt.setClientDetails(pkt.getAddress(), pkt.getPort(), Rpc.ProtocolId.UDP);
 
         //	Set the packet handler interface to be used to send the RPC reply
         m_rxPkt.setPacketHandler(this);
@@ -237,8 +237,11 @@ public class MultiThreadedUdpRpcDatagramHandler extends UdpRpcDatagramHandler im
      */
     protected final void queueRpcRequest(RpcPacket rpc) {
 
-        //	Queue the RPC request to the thread pool for processing
-        m_threadPool.queueRpcRequest(rpc);
+        //	Link the RPC request to this handler
+        rpc.setPacketHandler(this);
+
+        //	Queue the RPC request to the session handlers thread pool for processing
+        m_threadPool.queueRequest( new RpcThreadRequest( rpc, getRpcProcessor(), this));
     }
 
     /**
@@ -246,8 +249,10 @@ public class MultiThreadedUdpRpcDatagramHandler extends UdpRpcDatagramHandler im
      *
      * @param bufSize int
      * @return byte[]
+     * @exception NoPooledMemoryException No pooled memory available
      */
-    protected byte[] allocateBuffer(int bufSize) {
+    protected byte[] allocateBuffer(int bufSize)
+        throws NoPooledMemoryException {
 
         //	Allocate an RPC packet from the packet pool
         m_rxPkt = m_packetPool.allocatePacket(bufSize);
@@ -270,39 +275,6 @@ public class MultiThreadedUdpRpcDatagramHandler extends UdpRpcDatagramHandler im
     }
 
     /**
-     * Set the packet pool size
-     *
-     * @param smallSize int
-     * @param smallPool int
-     * @param largeSize int
-     * @param largePool int
-     */
-    public final void setPacketPool(int smallSize, int smallPool, int largeSize, int largePool) {
-
-        //	Create the packet pool, if not already initialized
-        if (m_packetPool == null) {
-
-            //	Create the packet pool
-            m_packetPool = new RpcPacketPool(smallSize, smallPool, largeSize, largePool);
-        }
-    }
-
-    /**
-     * Set the packet pool size
-     *
-     * @param poolSize int
-     */
-    public final void setPacketPool(int poolSize) {
-
-        //	Create the packet pool, if not already initialized
-        if (m_packetPool == null) {
-
-            //	Create the packet pool
-            m_packetPool = new RpcPacketPool(DefaultSmallPacketSize, poolSize, getMaximumDatagramSize(), poolSize);
-        }
-    }
-
-    /**
      * Set the packet pool
      *
      * @param pktPool RpcPacketPool
@@ -315,26 +287,11 @@ public class MultiThreadedUdpRpcDatagramHandler extends UdpRpcDatagramHandler im
     }
 
     /**
-     * Set the thread pool size
-     *
-     * @param numThreads int
-     */
-    public final void setThreadPool(int numThreads) {
-
-        //	Create the thread pool, if not already initialized
-        if (m_threadPool == null) {
-
-            //	Create the thread pool
-            m_threadPool = new RpcRequestThreadPool(getHandlerName(), numThreads, getRpcProcessor());
-        }
-    }
-
-    /**
      * Set the thread pool
      *
-     * @param threadPool RpcRequestThreadPool
+     * @param threadPool ThreadRequestPool
      */
-    public final void setThreadPool(RpcRequestThreadPool threadPool) {
+    public final void setThreadPool(ThreadRequestPool threadPool) {
 
         //	Set the thread pool, if not already initialized
         if (m_threadPool == null)
@@ -353,5 +310,12 @@ public class MultiThreadedUdpRpcDatagramHandler extends UdpRpcDatagramHandler im
 
         //	Call the base class
         super.closeSessionHandler(server);
+    }
+
+    @Override
+    public RpcPacket receiveRpc() throws IOException {
+
+        // Not used for datagrams
+        return null;
     }
 }

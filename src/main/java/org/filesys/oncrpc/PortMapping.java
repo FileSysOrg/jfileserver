@@ -33,7 +33,7 @@ public class PortMapping {
     private int m_versionId;
 
     //	Protocol type (UDP or TCP)
-    private int m_protocol;
+    private Rpc.ProtocolId m_protocol;
 
     //	Port
     private int m_port;
@@ -43,10 +43,10 @@ public class PortMapping {
      *
      * @param progId   int
      * @param verId    int
-     * @param protocol int
+     * @param protocol Rpc.ProtocolId
      * @param port     int
      */
-    public PortMapping(int progId, int verId, int protocol, int port) {
+    public PortMapping(int progId, int verId, Rpc.ProtocolId protocol, int port) {
         m_programId = progId;
         m_versionId = verId;
         m_protocol = protocol;
@@ -74,9 +74,9 @@ public class PortMapping {
     /**
      * Return the protocol type
      *
-     * @return int
+     * @return Rpc.ProtocolId
      */
-    public final int getProtocol() {
+    public final Rpc.ProtocolId getProtocol() {
         return m_protocol;
     }
 
@@ -97,7 +97,7 @@ public class PortMapping {
     public int hashCode() {
 
         //	Create a hash code from the program id + version + protocol
-        return generateHashCode(m_programId, m_versionId, m_protocol);
+        return generateHashCode(m_programId, m_versionId, m_protocol.ordinal());
     }
 
     /**
@@ -126,7 +126,7 @@ public class PortMapping {
         str.append(getProgramId());
         str.append(":");
         str.append(getVersionId());
-        str.append(getProtocol() == Rpc.TCP ? ",TCP," : ",UDP,");
+        str.append(getProtocol().name());
         str.append(getPort());
         str.append("]");
 

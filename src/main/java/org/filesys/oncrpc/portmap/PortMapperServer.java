@@ -146,10 +146,10 @@ public class PortMapperServer extends NetworkServer implements RpcProcessor {
             tcpThread.start();
 
             //	Add port mapper entries for the portmapper service
-            PortMapping portMap = new PortMapping(PortMapper.ProgramId, PortMapper.VersionId, Rpc.UDP, getPort());
+            PortMapping portMap = new PortMapping(PortMapper.ProgramId, PortMapper.VersionId, Rpc.ProtocolId.UDP, getPort());
             addPortMapping(portMap);
 
-            portMap = new PortMapping(PortMapper.ProgramId, PortMapper.VersionId, Rpc.TCP, getPort());
+            portMap = new PortMapping(PortMapper.ProgramId, PortMapper.VersionId, Rpc.ProtocolId.TCP, getPort());
             addPortMapping(portMap);
         }
         catch (Exception ex) {
@@ -202,7 +202,7 @@ public class PortMapperServer extends NetworkServer implements RpcProcessor {
         if (rpc.getProgramId() != PortMapper.ProgramId) {
 
             //	Request is not for us
-            rpc.buildAcceptErrorResponse(Rpc.StsProgUnavail);
+            rpc.buildAcceptErrorResponse(Rpc.AcceptSts.ProgUnavail);
             return rpc;
         } else if (rpc.getProgramVersion() != PortMapper.VersionId) {
 
@@ -216,31 +216,32 @@ public class PortMapperServer extends NetworkServer implements RpcProcessor {
 
         //	Process the RPC request
         RpcPacket response = null;
+        PortMapper.ProcedureId procId = PortMapper.ProcedureId.fromInt( rpc.getProcedureId());
 
-        switch (rpc.getProcedureId()) {
+        switch ( procId) {
 
             //	Null request
-            case PortMapper.ProcNull:
+            case Null:
                 response = procNull(rpc);
                 break;
 
             //	Set a port
-            case PortMapper.ProcSet:
+            case Set:
                 response = procSet(rpc);
                 break;
 
             //	Release a port
-            case PortMapper.ProcUnSet:
+            case UnSet:
                 response = procUnSet(rpc);
                 break;
 
             //	Get the port for a service
-            case PortMapper.ProcGetPort:
+            case GetPort:
                 response = procGetPort(rpc);
                 break;
 
             //	Dump ports request
-            case PortMapper.ProcDump:
+            case Dump:
                 response = procDump(rpc);
                 break;
         }
@@ -273,13 +274,13 @@ public class PortMapperServer extends NetworkServer implements RpcProcessor {
         //	Get the call parameters
         int progId = rpc.unpackInt();
         int verId = rpc.unpackInt();
-        int proto = rpc.unpackInt();
+        Rpc.ProtocolId proto = Rpc.ProtocolId.fromInt(rpc.unpackInt());
         int port = rpc.unpackInt();
 
         //	DEBUG
         if (Debug.EnableInfo && hasDebug())
             Debug.println("[PortMap] Set port program=" + Rpc.getServiceName(progId) + ", version=" + verId +
-                    ", protocol=" + (proto == Rpc.TCP ? "TCP" : "UDP") + ", port=" + port);
+                    ", protocol=" + proto.name() + ", port=" + port);
 
         //	Check if the port is already mapped
         PortMapping portMap = findPortMapping(progId, verId, proto);
@@ -323,13 +324,13 @@ public class PortMapperServer extends NetworkServer implements RpcProcessor {
         //	Get the call parameters
         int progId = rpc.unpackInt();
         int verId = rpc.unpackInt();
-        int proto = rpc.unpackInt();
+        Rpc.ProtocolId proto = Rpc.ProtocolId.fromInt(rpc.unpackInt());
         int port = rpc.unpackInt();
 
         //	DEBUG
         if (Debug.EnableInfo && hasDebug())
             Debug.println("[PortMap] UnSet port program=" + Rpc.getServiceName(progId) + ", version=" + verId +
-                    ", protocol=" + (proto == Rpc.TCP ? "TCP" : "UDP") + ", port=" + port);
+                    ", protocol=" + proto.name() + ", port=" + port);
 
         //	Check if the port is mapped, and it is not an attempt to remove a portmapper portt
         PortMapping portMap = findPortMapping(progId, verId, proto);
@@ -364,7 +365,7 @@ public class PortMapperServer extends NetworkServer implements RpcProcessor {
         //	Get the call parameters
         int progId = rpc.unpackInt();
         int verId = rpc.unpackInt();
-        int proto = rpc.unpackInt();
+        Rpc.ProtocolId proto = Rpc.ProtocolId.fromInt(rpc.unpackInt());
 
         //	Find the required port mapping
         PortMapping portMap = findPortMapping(progId, verId, proto);
@@ -372,7 +373,7 @@ public class PortMapperServer extends NetworkServer implements RpcProcessor {
         //	DEBUG
         if (Debug.EnableInfo && hasDebug())
             Debug.println("[PortMap] Get port program=" + Rpc.getServiceName(progId) + ", version=" + verId +
-                    ", protocol=" + (proto == Rpc.TCP ? "TCP" : "UDP") +
+                    ", protocol=" + proto.name() +
                     ", port=" + (portMap != null ? portMap.getPort() : 0));
 
         //	Build the response header
@@ -439,7 +440,7 @@ public class PortMapperServer extends NetworkServer implements RpcProcessor {
         m_mappings.put(key, portMap);
 
         //	Add a port mapping with a version id of zero
-        key = new Integer(PortMapping.generateHashCode(portMap.getProgramId(), 0, portMap.getProtocol()));
+        key = new Integer(PortMapping.generateHashCode(portMap.getProgramId(), 0, portMap.getProtocol().intValue()));
         m_noVerMappings.put(key, portMap);
 
         //	Indicate that the mapping was added
@@ -458,7 +459,7 @@ public class PortMapperServer extends NetworkServer implements RpcProcessor {
         Integer key = new Integer(portMap.hashCode());
         Object removedObj = m_mappings.remove(key);
 
-        key = new Integer(PortMapping.generateHashCode(portMap.getProgramId(), 0, portMap.getProtocol()));
+        key = new Integer(PortMapping.generateHashCode(portMap.getProgramId(), 0, portMap.getProtocol().intValue()));
         m_noVerMappings.remove(key);
 
         //	Return a status indicating if the mapping was removed
@@ -470,13 +471,13 @@ public class PortMapperServer extends NetworkServer implements RpcProcessor {
      *
      * @param progId int
      * @param verId  int
-     * @param proto  int
+     * @param proto  Rpc.ProtocolId
      * @return PortMapping
      */
-    private final PortMapping findPortMapping(int progId, int verId, int proto) {
+    private final PortMapping findPortMapping(int progId, int verId, Rpc.ProtocolId proto) {
 
         //	Create a key for the RPC service
-        Integer key = new Integer(PortMapping.generateHashCode(progId, verId, proto));
+        Integer key = new Integer(PortMapping.generateHashCode(progId, verId, proto.intValue()));
 
         //	Search for the required port mapping, including the version id
         PortMapping portMap = m_mappings.get(key);

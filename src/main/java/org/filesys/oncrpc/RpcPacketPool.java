@@ -20,8 +20,17 @@
 package org.filesys.oncrpc;
 
 import org.filesys.debug.Debug;
+import org.filesys.server.core.NoPooledMemoryException;
+import org.filesys.server.memory.ByteBufferPool;
+import org.filesys.server.thread.ThreadRequestPool;
+import org.filesys.server.thread.TimedThreadRequest;
+import org.filesys.smb.server.SMBPacketPool;
+import org.filesys.smb.server.SMBSrvPacket;
+import org.filesys.smb.server.SMBV1;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -35,329 +44,353 @@ import java.util.List;
 public class RpcPacketPool {
 
     // Constants
-    //
-    // Default small/large packet sizes
-    public static final int DefaultSmallSize = 512;
-    public static final int DefaultLargeSize = 32768;
+    public static final long RpcAllocateWaitTime   = 250;    // milliseconds
+    public static final long RpcLeaseTime          = 5000;    // 5 seconds
+    public static final long RpcLeaseTimeSecs      = RpcLeaseTime / 1000L;
 
-    public static final int DefaultSmallLimit = -1; // no allocation limit
-    public static final int DefaultLargeLimit = -1; // " " "
+    // Main byte buffer pool and thread pool
+    private ByteBufferPool m_bufferPool;
+    private ThreadRequestPool m_threadPool;
 
-    // Small/large packet lists
-    private List<RpcPacket> m_smallPackets;
-    private List<RpcPacket> m_largePackets;
-
-    // Small packet size and maximum allowed packets
-    private int m_smallPktSize;
-    private int m_smallPktLimit;
-
-    // Large packet size and maximum allowed packets
-    private int m_largePktSize;
-    private int m_largePktLimit;
-
-    // Count of allocated small/large packets
-    private int m_smallPktCount;
-    private int m_largePktCount;
+    // Track leased out packets/byte buffers
+    private HashMap<RpcPacket, RpcPacket> m_leasedPkts = new HashMap<RpcPacket, RpcPacket>();
 
     // Debug enable
-    private static final boolean m_debug = false;
+    private boolean m_debug;
+    private boolean m_allocDebug;
+
+    // Allow over sized packet allocations, maximum over sized packet size to allow
+    private boolean m_allowOverSize = true;
+    private int m_maxOverSize = 128 * 1024;        // 128K
+
+    // Maximum buffer size that the pool provides
+    private int m_maxPoolBufSize;
 
     /**
-     * Default constructor
+     * RPC Packet Pool Lease Expiry Timed Thread Request Class
      */
-    public RpcPacketPool() {
+    private class RpcLeaseExpiryTimedRequest extends TimedThreadRequest {
 
-        // Create the small/large packet lists
-        m_smallPackets = new ArrayList<RpcPacket>();
-        m_largePackets = new ArrayList<RpcPacket>();
+        /**
+         * Constructor
+         */
+        public RpcLeaseExpiryTimedRequest() {
+            super("RpcPacketPoolExpiry", -RpcLeaseTimeSecs, RpcLeaseTimeSecs);
+        }
 
-        // Set the packet sizes/limits
-        m_smallPktSize = DefaultSmallSize;
-        m_smallPktLimit = DefaultSmallLimit;
+        /**
+         * Expiry checker method
+         */
+        protected void runTimedRequest() {
 
-        m_largePktSize = DefaultLargeSize;
-        m_largePktLimit = DefaultLargeLimit;
+            // Check for expired leases
+            checkForExpiredLeases();
+        }
     }
 
     /**
      * Class constructor
      *
-     * @param smallSize  int
-     * @param smallLimit int
-     * @param largeSize  int
-     * @param largeLimit int
+     * @param bufPool    byteBufferPool
+     * @param threadPool ThreadRequestPool
      */
-    public RpcPacketPool(int smallSize, int smallLimit, int largeSize, int largeLimit) {
+    public RpcPacketPool(ByteBufferPool bufPool, ThreadRequestPool threadPool) {
+        m_bufferPool = bufPool;
+        m_threadPool = threadPool;
 
-        // Create the small/large packet lists
-        m_smallPackets = new ArrayList<RpcPacket>();
-        m_largePackets = new ArrayList<RpcPacket>();
+        // Set the maximum pooled buffer size
+        m_maxPoolBufSize = m_bufferPool.getLargestSize();
 
-        // Save the packet sizes/limits
-        m_smallPktSize = smallSize;
-        m_smallPktLimit = smallLimit;
-
-        m_largePktSize = largeSize;
-        m_largePktLimit = largeLimit;
+        // Queue the SMB packet lease expiry timed request
+        m_threadPool.queueTimedRequest(new RpcPacketPool.RpcLeaseExpiryTimedRequest());
     }
 
     /**
-     * Class constructor
+     * Allocate an RPC packet with the specified buffer size
      *
-     * @param largeSize  int
-     * @param largeLimit int
-     */
-    public RpcPacketPool(int largeSize, int largeLimit) {
-
-        // Create the small/large packet lists
-        m_smallPackets = new ArrayList<RpcPacket>();
-        m_largePackets = new ArrayList<RpcPacket>();
-
-        // Save the packet sizes/limits
-        m_smallPktSize = DefaultSmallSize;
-        m_smallPktLimit = largeLimit;
-
-        m_largePktSize = largeSize;
-        m_largePktLimit = largeLimit;
-    }
-
-    /**
-     * Return the small packet size
-     *
-     * @return int
-     */
-    public final int getSmallPacketSize() {
-        return m_smallPktSize;
-    }
-
-    /**
-     * Return the count of allocated small packets
-     *
-     * @return int
-     */
-    public final int getSmallPacketCount() {
-        return m_smallPktCount;
-    }
-
-    /**
-     * Return the small packet allocation limit
-     *
-     * @return int
-     */
-    public final int getSmallPacketAllocationLimit() {
-        return m_smallPktLimit;
-    }
-
-    /**
-     * Return the count of available large packets
-     *
-     * @return int
-     */
-    public final int availableLargePackets() {
-        return m_largePackets.size();
-    }
-
-    /**
-     * Return the large packet size
-     *
-     * @return int
-     */
-    public final int getLargePacketSize() {
-        return m_largePktSize;
-    }
-
-    /**
-     * Return the count of allocated large packets
-     *
-     * @return int
-     */
-    public final int getLargePacketCount() {
-        return m_largePktCount;
-    }
-
-    /**
-     * Return the large packet allocation limit
-     *
-     * @return int
-     */
-    public final int getLargePacketAllocationLimit() {
-        return m_largePktLimit;
-    }
-
-    /**
-     * Return the count of available small packets
-     *
-     * @return int
-     */
-    public final int availableSmallPackets() {
-        return m_smallPackets.size();
-    }
-
-    /**
-     * Allocate a packet from the packet pool
-     *
-     * @param reqSize int
+     * @param reqSiz int
      * @return RpcPacket
+     * @throws NoPooledMemoryException No pooled memory available
      */
-    public final RpcPacket allocatePacket(int reqSize) {
+    public final RpcPacket allocatePacket(int reqSiz)
+            throws NoPooledMemoryException {
 
-        // Check if the packet should come from the small or large packet list
-        RpcPacket pkt = null;
+        // Check if the buffer can be allocated from the pool
+        byte[] buf = null;
+        boolean nonPooled = false;
 
-        if (reqSize <= m_smallPktSize) {
+        if (reqSiz <= m_maxPoolBufSize) {
 
-            // Allocate a packet from the small packet list
-            pkt = allocateSmallPacket();
+            // Allocate the byte buffer for the RPC packet
+            buf = m_bufferPool.allocateBuffer(reqSiz, RpcAllocateWaitTime);
+        }
+
+        // Check if over sized allocations are allowed
+        else if (allowsOverSizedAllocations() && reqSiz <= getMaximumOverSizedAllocation()) {
 
             // DEBUG
-            if (m_debug)
-                Debug.println("RpcPacketPool Allocated (small) " + pkt.getBuffer() + ", len=" + pkt.getBuffer().length
-                        + ", list=" + m_smallPackets.size() + "/" + m_smallPktLimit);
-        } else {
+            if (Debug.EnableDbg && hasAllocateDebug())
+                Debug.println("[RPC] Allocating an over-sized packet, reqSiz=" + reqSiz);
 
-            // Allocate a packet from the large packet list
-            pkt = allocateLargePacket();
+            // Allocate an over sized packet
+            buf = new byte[reqSiz];
+            nonPooled = true;
+        }
+
+        // Check if the buffer was allocated
+        if (buf == null) {
+
+            // Try and allocate a non-pooled buffer if under the maximum buffer size
+            if ( reqSiz < m_maxPoolBufSize) {
+                buf = new byte[reqSiz];
+
+                // Mark as a non-pooled buffer so there is no lease, it is not from the pool
+                nonPooled = true;
+            }
+            else {
+
+                // DEBUG
+                if (Debug.EnableDbg && hasDebug())
+                    Debug.println("[RPC] Packet allocate failed, reqSiz=" + reqSiz);
+
+                // Throw an exception, no memory available
+                throw new NoPooledMemoryException("Request size " + reqSiz + "/max size=" + m_maxPoolBufSize);
+            }
+        }
+
+        // Create the RPC packet
+        RpcPacket packet = new RpcPacket(buf);
+
+        // Set the lease time, if allocated from a pool, and add to the leased packet list
+        if (nonPooled == false) {
+
+            // Set the owner memory pool for the packet
+            packet.setOwnerPacketPool( this);
+
+            // Add the packet to the list of leased out packets
+            synchronized (m_leasedPkts) {
+                packet.setLeaseTime(System.currentTimeMillis() + RpcLeaseTime);
+                m_leasedPkts.put(packet, packet);
+            }
+        }
+
+        // Return the SMB packet with the allocated byte buffer
+        return packet;
+    }
+
+    /**
+     * Allocate an associated RPC packet with the specified buffer size, and copy bytes from the original RPC
+     *
+     * @param reqSiz int
+     * @param assocRpc RpcPacket
+     * @param copyLen int
+     * @return RpcPacket
+     * @throws NoPooledMemoryException No pooled memory available
+     */
+    public final RpcPacket allocateAssociatedPacket(int reqSiz, RpcPacket assocRpc, int copyLen)
+            throws NoPooledMemoryException {
+
+        // Allocate an RPC packet
+        RpcPacket packet = allocatePacket( reqSiz);
+
+        if ( packet == null)
+            return packet;
+
+        // Associate the new packet with the original packet
+        assocRpc.setAssociatedPacket( packet);
+
+        // Copy bytes from the original packet to the new packet
+        if ( copyLen > 0) {
+
+            // Copy data to the new packet
+            System.arraycopy( assocRpc.getBuffer(), 0, packet.getBuffer(), 0, copyLen);
+        }
+        else if ( copyLen == -1) {
+
+            // Copy the request header to the new packet
+            System.arraycopy(assocRpc.getBuffer(), 0, packet.getBuffer(), 0, assocRpc.getRequestHeaderLength());
+        }
+
+        // Return the new packet
+        return packet;
+    }
+
+    /**
+     * Release an RPC packet buffer back to the pool
+     *
+     * @param rpcPkt RpcPacket
+     */
+    public final void releasePacket(RpcPacket rpcPkt) {
+
+        // Clear the lease time, remove from the leased packet list
+        if (rpcPkt.hasLeaseTime()) {
+
+            // Check if the packet lease time has expired
+            if (hasDebug() && rpcPkt.getLeaseTime() < System.currentTimeMillis())
+                Debug.println("[RPC] Release expired packet: pkt=" + rpcPkt);
+
+            synchronized (m_leasedPkts) {
+                rpcPkt.clearLeaseTime();
+                m_leasedPkts.remove(rpcPkt);
+            }
+        }
+
+        // Check if the packet is an over sized packet, just let the garbage collector pick it up
+        if (rpcPkt.getBuffer().length <= m_maxPoolBufSize && rpcPkt.isAllocatedFromPool()) {
+
+            // Release the buffer from the SMB packet back to the pool
+            m_bufferPool.releaseBuffer(rpcPkt.getBuffer());
 
             // DEBUG
-            if (m_debug)
-                Debug.println("RpcPacketPool Allocated (large) " + pkt.getBuffer() + ", len=" + pkt.getBuffer().length
-                        + ", list=" + m_largePackets.size() + "/" + m_largePktLimit);
+            if (Debug.EnableDbg && hasAllocateDebug())
+                Debug.println("[RPC] Packet released bufSiz=" + rpcPkt.getBuffer().length);
         }
-
-        // Return the allocated packet
-        return pkt;
+        else if (Debug.EnableDbg && hasAllocateDebug())
+            Debug.println("[RPC] Non-pooled packet left for garbage collector, size=" + rpcPkt.getBuffer().length);
     }
 
     /**
-     * Release an RPC packet back to the pool
-     *
-     * @param pkt RpcPacket
+     * Check for expired packet leases
      */
-    public final void releasePacket(RpcPacket pkt) {
+    private final void checkForExpiredLeases() {
 
-        // Check if the packet should be released to the small or large list
-        if (pkt.getBuffer().length >= m_largePktSize) {
+        try {
 
-            // Release the packet to the large packet list
-            synchronized (m_largePackets) {
+            // Check if there are any packets leased out
+            if (hasDebug()) {
 
-                // Add the packet back to the free list
-                m_largePackets.add(pkt);
+                synchronized (m_leasedPkts) {
 
-                // Signal any waiting threads that there are packets available
-                m_largePackets.notify();
+                    if (m_leasedPkts.isEmpty() == false) {
 
-                // DEBUG
-                if (m_debug)
-                    Debug.println("RpcPacketPool Released (large) " + pkt.getBuffer() + ", len=" + pkt.getBuffer().length
-                            + ", list=" + m_largePackets.size());
-            }
-        } else {
+                        // Iterate the leased out packet list
+                        Iterator<RpcPacket> leaseIter = m_leasedPkts.keySet().iterator();
+                        long timeNow = System.currentTimeMillis();
 
-            // Release the packet to the small packet list
-            synchronized (m_smallPackets) {
+                        while (leaseIter.hasNext()) {
 
-                // Add the packet back to the free list
-                m_smallPackets.add(pkt);
+                            // Get the current leased packet and check if it has timed out
+                            RpcPacket curPkt = leaseIter.next();
+                            if (curPkt.hasLeaseTime() && curPkt.getLeaseTime() < timeNow) {
 
-                // Signal any waiting threads that there are packets available
-                m_smallPackets.notify();
-
-                // DEBUG
-                if (m_debug)
-                    Debug.println("RpcPacketPool Released (small) " + pkt.getBuffer() + ", len=" + pkt.getBuffer().length);
-            }
-        }
-    }
-
-    /**
-     * Allocate, or create, a small RPC packet
-     *
-     * @return RpcPacket
-     */
-    private final RpcPacket allocateSmallPacket() {
-
-        RpcPacket pkt = null;
-
-        synchronized (m_smallPackets) {
-
-            // Check if there is a packet available from the small packet list
-            if (m_smallPackets.size() > 0) {
-
-                // Remove a packet from the head of the free list
-                pkt = m_smallPackets.remove(0);
-            } else if (m_smallPktLimit == -1 || m_smallPktCount < m_smallPktLimit) {
-
-                // Allocate a new packet
-                pkt = new RpcPacket(m_smallPktSize, this);
-                m_smallPktCount++;
-            } else {
-
-                // Wait for a packet to be released to the small packet list
-                try {
-
-                    // Wait for a packet
-                    m_smallPackets.wait();
-
-                    // Try to get the packet from the small packet list again
-                    if (m_smallPackets.size() > 0) {
-
-                        // Remove a packet from the head of the free list
-                        pkt = m_smallPackets.remove(0);
+                                // Report the packet, lease expired
+                                Debug.println("[RPC] Packet lease expired, pkt=" + curPkt);
+                            }
+                        }
                     }
                 }
-                catch (InterruptedException ex) {
-                }
             }
         }
-
-        // Return the allocated packet
-        return pkt;
+        catch (Throwable ex) {
+            Debug.println(ex);
+        }
     }
 
     /**
-     * Allocate, or create, a large RPC packet
+     * Get the byte buffer pool
      *
-     * @return RpcPacket
+     * @return ByteBufferPool
      */
-    private final RpcPacket allocateLargePacket() {
+    public final ByteBufferPool getBufferPool() {
+        return m_bufferPool;
+    }
 
-        RpcPacket pkt = null;
+    /**
+     * Return the length of the smallest packet size available
+     *
+     * @return int
+     */
+    public final int getSmallestSize() {
+        return m_bufferPool.getSmallestSize();
+    }
 
-        synchronized (m_largePackets) {
+    /**
+     * Return the length of the largest packet size available
+     *
+     * @return int
+     */
+    public final int getLargestSize() {
+        return m_bufferPool.getLargestSize();
+    }
 
-            // Check if there is a packet available from the large packet list
-            if (m_largePackets.size() > 0) {
+    /**
+     * Check if over sized packet allocations are allowed
+     *
+     * @return boolean
+     */
+    public final boolean allowsOverSizedAllocations() {
+        return m_allowOverSize;
+    }
 
-                // Remove a packet from the head of the free list
-                pkt = m_largePackets.remove(0);
-            } else if (m_largePktLimit == -1 || m_largePktCount < m_largePktLimit) {
+    /**
+     * Return the maximum size of over sized packet that is allowed
+     *
+     * @return int
+     */
+    public final int getMaximumOverSizedAllocation() {
+        return m_maxOverSize;
+    }
 
-                // Allocate a new packet
-                pkt = new RpcPacket(m_largePktSize, this);
-                m_largePktCount++;
-            } else {
+    /**
+     * Enable/disable debug output
+     *
+     * @param ena boolean
+     */
+    public final void setDebug(boolean ena) {
+        m_debug = ena;
+    }
 
-                // Wait for a packet to be released to the large packet list
-                try {
+    /**
+     * Enable/disable allocate/release debug output
+     *
+     * @param ena boolean
+     */
+    public final void setAllocateDebug(boolean ena) {
+        m_allocDebug = ena;
+    }
 
-                    // Wait for a packet
-                    while (m_largePackets.isEmpty())
-                        m_largePackets.wait();
+    /**
+     * Check if debug output is enabled
+     *
+     * @return boolean
+     */
+    public final boolean hasDebug() {
+        return m_debug;
+    }
 
-                    // Try to get the packet from the large packet list again
-                    if (m_largePackets.size() > 0) {
+    /**
+     * Check if allocate/release debug is enabled
+     *
+     * @return boolean
+     */
+    public final boolean hasAllocateDebug() {
+        return m_allocDebug;
+    }
 
-                        // Remove a packet from the head of the free list
-                        pkt = m_largePackets.remove(0);
-                    }
-                }
-                catch (InterruptedException ex) {
-                }
-            }
-        }
+    /**
+     * Enable/disable over sized packet allocations
+     *
+     * @param ena boolean
+     */
+    public final void setAllowOverSizedAllocations(boolean ena) {
+        m_allowOverSize = ena;
+    }
 
-        // Return the allocated packet
-        return pkt;
+    /**
+     * Set the maximum size of over sized packet that is allowed
+     *
+     * @param maxSize int
+     */
+    public final void setMaximumOverSizedAllocation(int maxSize) {
+        m_maxOverSize = maxSize;
+    }
+
+    /**
+     * Return the packet pool details as a string
+     *
+     * @return String
+     */
+    public String toString() {
+        return m_bufferPool.toString();
     }
 }

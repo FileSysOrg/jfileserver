@@ -19,6 +19,12 @@
 
 package org.filesys.oncrpc.mount;
 
+import org.filesys.oncrpc.nfs.v3.NFS3;
+import org.filesys.oncrpc.portmap.PortMapper;
+
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Mount Server Constants Class
  *
@@ -32,54 +38,170 @@ public final class Mount {
     public static final int VersionId3      = 3;
 
     //	RPC procedure ids (version 1)
-    public static final int ProcNull1       = 0;
-    public static final int ProcMnt1        = 1;
-    public static final int ProcDump1       = 2;
-    public static final int ProcUMnt1       = 3;
-    public static final int ProcUMntAll1    = 4;
-    public static final int ProcExport1     = 5;
-    public static final int ProcExportAll1  = 6;
+    public enum ProcedureId1 {
+        Null(0),
+        Mnt(1),
+        Dump(2),
+        UMnt(3),
+        UMntAll(4),
+        Export(5),
+        ExportAll(6),
 
-    public static final int ProcMax1        = 6;
+        Invalid(0xFFFF);
+
+        private final int procId;
+
+        // Mapping procedure name to id
+        private static Map<Integer, Mount.ProcedureId1> _idMap = new HashMap<>();
+
+        /**
+         * Static initializer
+         */
+        static {
+            for ( Mount.ProcedureId1 id : Mount.ProcedureId1.values())
+                _idMap.put( id.intValue(), id);
+        }
+
+        /**
+         * Enum constructor
+         *
+         * @param id int
+         */
+        ProcedureId1(int id) { procId = id; }
+
+        /**
+         * Return the procedure id as an int
+         *
+         * @return int
+         */
+        public final int intValue() { return procId; }
+
+        /**
+         * Create a procedure id type from an int
+         *
+         * @param typ int
+         * @return ProcedureId1
+         */
+        public static final Mount.ProcedureId1 fromInt(int typ) {
+
+            if ( _idMap.containsKey( typ))
+                return _idMap.get( typ);
+
+            return Invalid;
+        }
+    }
 
     //	RPC procedure ids (version 3)
-    public static final int ProcNull3       = 0;
-    public static final int ProcMnt3        = 1;
-    public static final int ProcDump3       = 2;
-    public static final int ProcUMnt3       = 3;
-    public static final int ProcUMntAll3    = 4;
-    public static final int ProcExport3     = 5;
+    public enum ProcedureId3 {
+        Null(0),
+        Mnt(1),
+        Dump(2),
+        UMnt(3),
+        UMntAll(4),
+        Export(5),
 
-    public static final int ProcMax3        = 5;
+        Invalid(0xFFFF);
+
+        private final int procId;
+
+        // Mapping procedure name to id
+        private static Map<Integer, Mount.ProcedureId3> _idMap = new HashMap<>();
+
+        /**
+         * Static initializer
+         */
+        static {
+            for ( Mount.ProcedureId3 id : Mount.ProcedureId3.values())
+                _idMap.put( id.intValue(), id);
+        }
+
+        /**
+         * Enum constructor
+         *
+         * @param id int
+         */
+        ProcedureId3(int id) { procId = id; }
+
+        /**
+         * Return the procedure id as an int
+         *
+         * @return int
+         */
+        public final int intValue() { return procId; }
+
+        /**
+         * Create a procedure id type from an int
+         *
+         * @param typ int
+         * @return ProcedureId3
+         */
+        public static final Mount.ProcedureId3 fromInt(int typ) {
+
+            if ( _idMap.containsKey( typ))
+                return _idMap.get( typ);
+
+            return Invalid;
+        }
+    }
 
     //	Mount server status codes
-    public static final int StsSuccess      = 0;
-    public static final int StsPerm         = 1;
-    public static final int StsNoEnt        = 2;
-    public static final int StsIO           = 5;
-    public static final int StsAccess       = 13;
-    public static final int StsNotDir       = 20;
-    public static final int StsInval        = 22;
-    public static final int StsNameTooLong  = 63;
-    public static final int StsNotSupp      = 10004;
-    public static final int StsServerFault  = 10006;
+    public enum StatusCode {
+        Success(0),
+        Perm(1),
+        NoEnt(2),
+        IO(5),
+        Access(13),
+        NotDir(20),
+        InVal(22),
+        NameTooLong(63),
+        NotSupp(10004),
+        ServerFault(10006),
+
+        Invalid(0xFFFF);
+
+        private final int stsCode;
+
+        // Mapping status code to id
+        private static Map<Integer, Mount.StatusCode> _stsMap = new HashMap<>();
+
+        /**
+         * Static initializer
+         */
+        static {
+            for ( Mount.StatusCode sts : Mount.StatusCode.values())
+                _stsMap.put( sts.intValue(), sts);
+        }
+
+        /**
+         * Enum constructor
+         *
+         * @param id int
+         */
+        StatusCode(int id) { stsCode = id; }
+
+        /**
+         * Return the status code as an int
+         *
+         * @return int
+         */
+        public final int intValue() { return stsCode; }
+
+        /**
+         * Create a status code type from an int
+         *
+         * @param sts int
+         * @return StatusCode
+         */
+        public static final Mount.StatusCode fromInt(int sts) {
+
+            if ( _stsMap.containsKey( sts))
+                return _stsMap.get( sts);
+
+            return Invalid;
+        }
+    }
 
     //	Data structure limits
     public static final int FileHandleSize1 = 32;
     public static final int FileHandleSize3 = 32;        //	can be 64 for v3
-
-    //	RPC procedure names
-    private static final String[] _procNames = {"Null", "Mount", "Dump", "UnMount", "UnMountAll", "Export", "ExportAll"};
-
-    /**
-     * Return a procedure id as a name
-     *
-     * @param id int
-     * @return String
-     */
-    public final static String getProcedureName(int id) {
-        if (id < 0 || id > ProcMax1)
-            return null;
-        return _procNames[id];
-    }
 }
