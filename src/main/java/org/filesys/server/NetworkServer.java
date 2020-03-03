@@ -469,7 +469,7 @@ public abstract class NetworkServer {
                 sessListener.sessionClosed(sess);
             }
             catch (Exception ex) {
-// TODO:				debugPrintln("Session listener error [closed]: " + ex.toString());
+				sess.debugPrintln("Session listener error [closed]: " + ex.toString());
             }
         }
     }
@@ -494,7 +494,7 @@ public abstract class NetworkServer {
                 sessListener.sessionLoggedOn(sess);
             }
             catch (Exception ex) {
-// TODO:				debugPrintln("Session listener error [logon]: " + ex.toString());
+				sess.debugPrintln("Session listener error [logon]: " + ex.toString());
             }
         }
     }
@@ -519,7 +519,7 @@ public abstract class NetworkServer {
                 sessListener.sessionCreated(sess);
             }
             catch (Exception ex) {
-// TODO:				debugPrintln("Session listener error [open]: " + ex.toString());
+    			sess.debugPrintln("Session listener error [open]: " + ex.toString());
             }
         }
     }
