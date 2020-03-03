@@ -40,7 +40,7 @@ public class TcpipSMBChannelHandler extends ChannelPacketHandler {
      * Class constructor
      *
      * @param sockChannel SocketChannel
-     * @param packetPool  CIFSPacketPool
+     * @param packetPool  SMBPacketPool
      * @throws IOException If a network error occurs
      */
     public TcpipSMBChannelHandler(SocketChannel sockChannel, SMBPacketPool packetPool)
