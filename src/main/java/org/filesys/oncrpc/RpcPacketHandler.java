@@ -31,11 +31,20 @@ import java.io.IOException;
 public interface RpcPacketHandler {
 
     /**
+     * Read an RPC request/response
+     *
+     * @return RpcPacket
+     * @exception IOException Socket error
+     */
+    public RpcPacket receiveRpc()
+        throws IOException;
+
+    /**
      * Send an RPC response
      *
      * @param rpc RpcPacket
      * @exception IOException Socket error
      */
     public void sendRpcResponse(RpcPacket rpc)
-            throws IOException;
+        throws IOException;
 }

@@ -88,7 +88,7 @@ public class UdpRpcDatagramHandler extends DatagramSessionHandler {
         RpcPacket rpcPkt = new RpcPacket(pkt.getData(), 0, pkt.getLength());
 
         //	Set the client details
-        rpcPkt.setClientDetails(pkt.getAddress(), pkt.getPort(), Rpc.UDP);
+        rpcPkt.setClientDetails(pkt.getAddress(), pkt.getPort(), Rpc.ProtocolId.UDP);
 
         //	Validate the RPC header
         if (rpcPkt.getRpcVersion() != Rpc.RpcVersion) {

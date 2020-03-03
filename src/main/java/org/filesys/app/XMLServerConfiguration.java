@@ -63,7 +63,7 @@ public class XMLServerConfiguration extends SMBOnlyXMLServerConfiguration {
 
 	// NFS server debug type strings
 	private static final String m_nfsDebugStr[] = { "RXDATA", "TXDATA", "DUMPDATA", "SEARCH", "INFO", "FILE", "FILEIO", "ERROR",
-			"TIMING", "DIRECTORY", "SESSION" };
+			"TIMING", "DIRECTORY", "SESSION", "SOCKET", "THREADPOOL" };
 
 	// Global server enable flags
 	private boolean m_smbEnabled;
@@ -627,58 +627,9 @@ public class XMLServerConfiguration extends SMBOnlyXMLServerConfiguration {
 		if ( findChildNode("enablePortMapper", nfs.getChildNodes()) != null)
 			nfsConfig.setNFSPortMapper(true);
 
-		// Check for the thread pool size
-		Element elem = findChildNode("ThreadPool", nfs.getChildNodes());
-
-		// Check for the old TCPThreadPool value if the new value is not available
-		if ( elem == null)
-			elem = findChildNode("TCPThreadPool", nfs.getChildNodes());
-
-		if ( elem != null) {
-
-			try {
-
-				// Convert the pool size value
-				int poolSize = Integer.parseInt(getText(elem));
-
-				// Range check the pool size value
-				if ( poolSize < 4)
-					throw new InvalidConfigurationException("NFS thread pool size is below minimum of 4");
-
-				// Set the thread pool size
-				nfsConfig.setNFSThreadPoolSize(poolSize);
-			}
-			catch (NumberFormatException ex) {
-				throw new InvalidConfigurationException("Invalid NFS thread pool size setting, " + getText(elem));
-			}
-		}
-
-		// NFS packet pool size
-		elem = findChildNode("PacketPool", nfs.getChildNodes());
-
-		if ( elem != null) {
-
-			try {
-
-				// Convert the packet pool size value
-				int pktPoolSize = Integer.parseInt(getText(elem));
-
-				// Range check the pool size value
-				if ( pktPoolSize < 10)
-					throw new InvalidConfigurationException("NFS packet pool size is below minimum of 10");
-
-				if ( pktPoolSize < nfsConfig.getNFSThreadPoolSize() + 1)
-					throw new InvalidConfigurationException("NFS packet pool must be at least thread pool size plus one");
-
-				// Set the packet pool size
-				nfsConfig.setNFSPacketPoolSize(pktPoolSize);
-			}
-			catch (NumberFormatException ex) {
-				throw new InvalidConfigurationException("Invalid NFS packet pool size setting, " + getText(elem));
-			}
-		}
-
 		// Check for a port mapper server port
+		Element elem = null;
+
 		if ( findChildNode("disablePortMapperRegistration", nfs.getChildNodes()) != null) {
 			
 			// Disable port mapper registration for the mount/NFS servers
@@ -753,7 +704,7 @@ public class XMLServerConfiguration extends SMBOnlyXMLServerConfiguration {
 		else {
 			
 			// Use the null RPC authenticator as the default
-			nfsConfig.setRpcAuthenticator( "DefaultRpcAuthenticator", new ConfigElementAdapter( "", ""));
+			nfsConfig.setRpcAuthenticator( "org.filesys.oncrpc.DefaultRpcAuthenticator", new ConfigElementAdapter( "", ""));
 		}
 
 		// Check if NFS debug is enabled
@@ -859,6 +810,10 @@ public class XMLServerConfiguration extends SMBOnlyXMLServerConfiguration {
 		// Check if NFS file cache debug output is enabled
 		if ( findChildNode("fileCacheDebug", nfs.getChildNodes()) != null)
 			nfsConfig.setNFSFileCacheDebug(true);
+
+		// Check if NIO based code should be disabled
+		if ( findChildNode( "disableNIO", nfs.getChildNodes()) != null)
+			nfsConfig.setDisableNIOCode( true);
 	}
 	
 	/**

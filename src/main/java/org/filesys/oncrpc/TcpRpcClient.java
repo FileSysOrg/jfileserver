@@ -44,7 +44,7 @@ public class TcpRpcClient extends RpcClient {
      */
     public TcpRpcClient(InetAddress addr, int port, int maxRpcSize)
             throws IOException {
-        super(addr, port, Rpc.TCP, maxRpcSize);
+        super(addr, port, Rpc.ProtocolId.TCP, maxRpcSize);
 
         //	Connect a socket to the remote server
         Socket sock = new Socket();
@@ -69,7 +69,7 @@ public class TcpRpcClient extends RpcClient {
      */
     public TcpRpcClient(InetAddress addr, int port, InetAddress fromAddr, int fromPort, int maxRpcSize)
             throws IOException {
-        super(addr, port, Rpc.TCP, maxRpcSize);
+        super(addr, port, Rpc.ProtocolId.TCP, maxRpcSize);
 
         //	Connect a socket to the remote server
         Socket sock = new Socket();

@@ -113,7 +113,7 @@ public abstract class RpcNetworkServer extends NetworkServer implements RpcProce
                 for (int i = 0; i < mappings.length; i++) {
 
                     //	Build the RPC request header
-                    setPortRpc.buildRequestHeader(PortMapper.ProgramId, PortMapper.VersionId, PortMapper.ProcSet, 0, null, 0, null);
+                    setPortRpc.buildRequestHeader(PortMapper.ProgramId, PortMapper.VersionId, PortMapper.ProcedureId.Set.intValue(), 0, null, 0, null);
 
                     //	Pack the request parameters and set the request length
                     setPortRpc.packPortMapping(mappings[i]);
@@ -127,7 +127,7 @@ public abstract class RpcNetworkServer extends NetworkServer implements RpcProce
                     rxRpc = rpcClient.sendRPC(setPortRpc, rxRpc);
 
                     // Check if the server has been registered successfully with the portmapper/rpcbind service
-                    if (rxRpc != null && rxRpc.getAcceptStatus() == Rpc.StsSuccess) {
+                    if (rxRpc != null && rxRpc.getAcceptStatus() == Rpc.AcceptSts.Success) {
 
                         // Server registered successfully
                         if (Debug.EnableInfo && hasDebug())
@@ -211,7 +211,7 @@ public abstract class RpcNetworkServer extends NetworkServer implements RpcProce
                 for (int i = 0; i < mappings.length; i++) {
 
                     //  Build the RPC request header
-                    setPortRpc.buildRequestHeader(PortMapper.ProgramId, PortMapper.VersionId, PortMapper.ProcUnSet, 0, null, 0, null);
+                    setPortRpc.buildRequestHeader(PortMapper.ProgramId, PortMapper.VersionId, PortMapper.ProcedureId.UnSet.intValue(), 0, null, 0, null);
 
                     //  Pack the request parameters and set the request length
                     setPortRpc.packPortMapping(mappings[i]);
@@ -225,7 +225,7 @@ public abstract class RpcNetworkServer extends NetworkServer implements RpcProce
                     rxRpc = rpcClient.sendRPC(setPortRpc, rxRpc);
 
                     // Check if the server has been unregistered successfully with the portmapper/rpcbind service
-                    if (rxRpc != null && rxRpc.getAcceptStatus() == Rpc.StsSuccess) {
+                    if (rxRpc != null && rxRpc.getAcceptStatus() == Rpc.AcceptSts.Success) {
 
                         // Server registered successfully
                         if (Debug.EnableInfo && hasDebug())

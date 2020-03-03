@@ -58,13 +58,19 @@ public class RpcPacket {
     //	Callers address, port and protocol
     private InetAddress m_clientAddr;
     private int m_clientPort;
-    private int m_protocol;
+    private Rpc.ProtocolId m_protocol;
 
     //	RPC packet handler interface used to send an RPC response
     private RpcPacketHandler m_pktHandler;
 
     //	Packet pool that owns this packet, if allocated from a pool
     private RpcPacketPool m_ownerPool;
+
+    // Set the lease time for packets allocated from the pool
+    private long m_leaseTime;
+
+    // Associated RPC packet
+    private RpcPacket m_assocPacket;
 
     /**
      * Default constructor
@@ -199,9 +205,9 @@ public class RpcPacket {
     /**
      * Return the client protocol
      *
-     * @return int
+     * @return Rpc.ProtocolId
      */
-    public final int getClientProtocol() {
+    public final Rpc.ProtocolId getClientProtocol() {
         return m_protocol;
     }
 
@@ -215,12 +221,73 @@ public class RpcPacket {
             return "<Unknown>";
 
         StringBuffer str = new StringBuffer(32);
-        str.append(getClientProtocol() == Rpc.TCP ? "T" : "U");
+        str.append(getClientProtocol().name());
         str.append(getClientAddress().getHostAddress());
         str.append(":");
         str.append(getClientPort());
 
         return str.toString();
+    }
+
+    /**
+     * Check if the packet has a lease
+     *
+     * @return boolean
+     */
+    public final boolean hasLeaseTime() {
+        return m_leaseTime != 0 ? true : false;
+    }
+
+    /**
+     * Return the packet lease time
+     *
+     * @return long
+     */
+    public final long getLeaseTime() {
+        return m_leaseTime;
+    }
+
+    /**
+     * Clear the lease time
+     */
+    public final void clearLeaseTime() {
+        m_leaseTime = 0L;
+    }
+
+    /**
+     * Set the packet lease time
+     *
+     * @param tmo long
+     */
+    public final void setLeaseTime( long tmo) {
+        m_leaseTime = tmo;
+    }
+
+    /**
+     * Check if there is an associated RPC packet
+     *
+     * @return boolean
+     */
+    public final boolean hasAssociatedPacket() {
+        return m_assocPacket != null ? true : false;
+    }
+
+    /**
+     * Return the associated packet
+     *
+     * @return RpcPacket
+     */
+    public final RpcPacket getAssociatedPacket() {
+        return m_assocPacket;
+    }
+
+    /**
+     * Set the associated RPC packet
+     *
+     * @param assocPkt RpcPacket
+     */
+    public final void setAssociatedPacket(RpcPacket assocPkt) {
+        m_assocPacket = assocPkt;
     }
 
     /**
@@ -239,6 +306,20 @@ public class RpcPacket {
      */
     public final byte[] getBuffer() {
         return m_buffer;
+    }
+
+    /**
+     * Return the length of the request header
+     *
+     * @return int
+     */
+    public final int getRequestHeaderLength() {
+        int hdrLen = 28 + 8 + 8;
+
+        hdrLen += getCredentialsLength();
+        hdrLen += getVerifierLength();
+
+        return hdrLen;
     }
 
     /**
@@ -283,10 +364,10 @@ public class RpcPacket {
     /**
      * Return the message type
      *
-     * @return int
+     * @return Rpc.MessageType
      */
-    public final int getMessageType() {
-        return DataPacker.getInt(m_buffer, m_offset + 4);
+    public final Rpc.MessageType getMessageType() {
+        return Rpc.MessageType.fromInt(DataPacker.getInt(m_buffer, m_offset + 4));
     }
 
     /**
@@ -328,10 +409,10 @@ public class RpcPacket {
     /**
      * Return the credentials type
      *
-     * @return int
+     * @return AuthType
      */
-    public final int getCredentialsType() {
-        return DataPacker.getInt(m_buffer, m_offset + 24);
+    public final AuthType getCredentialsType() {
+        return AuthType.fromInt(DataPacker.getInt(m_buffer, m_offset + 24));
     }
 
     /**
@@ -403,25 +484,25 @@ public class RpcPacket {
      * @return boolean
      */
     public final boolean hasSuccessStatus() {
-        return getAcceptStatus() == Rpc.StsSuccess ? true : false;
+        return getAcceptStatus() == Rpc.AcceptSts.Success ? true : false;
     }
 
     /**
      * Return the reply state
      *
-     * @return int
+     * @return Rpc.CallStatus
      */
-    public final int getReplyState() {
-        return DataPacker.getInt(m_buffer, 8);
+    public final Rpc.CallStatus getReplyState() {
+        return Rpc.CallStatus.fromInt(DataPacker.getInt(m_buffer, 8));
     }
 
     /**
      * Return the reject reply status
      *
-     * @return int
+     * @return Rpc.RejectSts
      */
-    public final int getRejectStatus() {
-        return DataPacker.getInt(m_buffer, 12);
+    public final Rpc.RejectSts getRejectStatus() {
+        return Rpc.RejectSts.fromInt(DataPacker.getInt(m_buffer, 12));
     }
 
     /**
@@ -454,11 +535,11 @@ public class RpcPacket {
     /**
      * Return the accept status for the RPC response
      *
-     * @return int
+     * @return Rpc.AcceptSts
      */
-    public final int getAcceptStatus() {
+    public final Rpc.AcceptSts getAcceptStatus() {
         int pos = DataPacker.getInt(m_buffer, 16) + 20;
-        return DataPacker.getInt(m_buffer, pos);
+        return Rpc.AcceptSts.fromInt(DataPacker.getInt(m_buffer, pos));
     }
 
     /**
@@ -593,7 +674,7 @@ public class RpcPacket {
     public final void packPortMapping(PortMapping portMap) {
         DataPacker.putInt(portMap.getProgramId(), m_buffer, m_pos);
         DataPacker.putInt(portMap.getVersionId(), m_buffer, m_pos + 4);
-        DataPacker.putInt(portMap.getProtocol(), m_buffer, m_pos + 8);
+        DataPacker.putInt(portMap.getProtocol().intValue(), m_buffer, m_pos + 8);
         DataPacker.putInt(portMap.getPort(), m_buffer, m_pos + 12);
 
         m_pos += 16;
@@ -760,9 +841,9 @@ public class RpcPacket {
      *
      * @param addr     InetAddress
      * @param port     int
-     * @param protocol int
+     * @param protocol Rpc.ProtocolId
      */
-    public final void setClientDetails(InetAddress addr, int port, int protocol) {
+    public final void setClientDetails(InetAddress addr, int port, Rpc.ProtocolId protocol) {
         m_clientAddr = addr;
         m_clientPort = port;
         m_protocol = protocol;
@@ -832,10 +913,10 @@ public class RpcPacket {
     /**
      * Set the message type
      *
-     * @param msgType int
+     * @param msgType Rpc.MessageType
      */
-    public final void setMessageType(int msgType) {
-        DataPacker.putInt(msgType, m_buffer, m_offset + 4);
+    public final void setMessageType(Rpc.MessageType msgType) {
+        DataPacker.putInt(msgType.intValue(), m_buffer, m_offset + 4);
     }
 
     /**
@@ -895,19 +976,19 @@ public class RpcPacket {
     /**
      * Set the reply state
      *
-     * @param replySts int
+     * @param replySts Rpc.CallStatus
      */
-    public final void setReplyState(int replySts) {
-        DataPacker.putInt(replySts, m_buffer, m_offset + 8);
+    public final void setReplyState(Rpc.CallStatus replySts) {
+        DataPacker.putInt(replySts.intValue(), m_buffer, m_offset + 8);
     }
 
     /**
      * Set the reject status
      *
-     * @param rejSts int
+     * @param rejSts Rpc.RejectSts
      */
-    public final void setRejectStatus(int rejSts) {
-        DataPacker.putInt(rejSts, m_buffer, m_offset + 8);
+    public final void setRejectStatus(Rpc.RejectSts rejSts) {
+        DataPacker.putInt(rejSts.intValue(), m_buffer, m_offset + 8);
     }
 
     /**
@@ -924,10 +1005,10 @@ public class RpcPacket {
     /**
      * Set the authentication failure status
      *
-     * @param authSts int
+     * @param authSts Rpc.AuthSts
      */
-    public final void setAuthFailStatus(int authSts) {
-        DataPacker.putInt(authSts, m_buffer, m_offset + 8);
+    public final void setAuthFailStatus(Rpc.AuthSts authSts) {
+        DataPacker.putInt(authSts.intValue(), m_buffer, m_offset + 8);
     }
 
     /**
@@ -994,7 +1075,7 @@ public class RpcPacket {
         setXID((int) (System.currentTimeMillis() & 0xFFFFFFFFL));
 
         //	Set the message type and RPC version (always version 2)
-        setMessageType(Rpc.Call);
+        setMessageType(Rpc.MessageType.Call);
         setRpcVersion(Rpc.RpcVersion);
 
         //	Set the request details
@@ -1025,8 +1106,8 @@ public class RpcPacket {
      * into the parameter area of the response.
      */
     public final void buildResponseHeader() {
-        setMessageType(Rpc.Reply);
-        setReplyState(Rpc.CallAccepted);
+        setMessageType(Rpc.MessageType.Reply);
+        setReplyState(Rpc.CallStatus.Accepted);
 
         //	Copy the verifier from the request
         DataPacker.putInt(getVerifierType(), m_buffer, m_offset + 12);
@@ -1038,7 +1119,7 @@ public class RpcPacket {
             System.arraycopy(m_buffer, getVerifierOffset(), m_buffer, m_offset + 20, verfLen);
 
         //	Indicate a success status
-        DataPacker.putInt(Rpc.StsSuccess, m_buffer, m_offset + 20 + verfLen);
+        DataPacker.putInt(Rpc.AcceptSts.Success.intValue(), m_buffer, m_offset + 20 + verfLen);
 
         //	Set the buffer pointer for streaming the response parameters
         m_pos = m_offset + 24 + verfLen;
@@ -1053,11 +1134,11 @@ public class RpcPacket {
     public final void buildErrorResponse(int stsCode) {
 
         // Check if the RPC is a request or reply
-        boolean isReply = getMessageType() == Rpc.Reply;
+        boolean isReply = getMessageType() == Rpc.MessageType.Reply;
 
         // Set the reply header
-        setMessageType(Rpc.Reply);
-        setReplyState(Rpc.CallAccepted);
+        setMessageType(Rpc.MessageType.Reply);
+        setReplyState(Rpc.CallStatus.Accepted);
 
         //	Copy the verifier from the request
         int verfLen = 0;
@@ -1077,7 +1158,7 @@ public class RpcPacket {
         }
 
         //	Indicate a success status
-        DataPacker.putInt(Rpc.StsSuccess, m_buffer, m_offset + 20 + verfLen);
+        DataPacker.putInt(Rpc.AcceptSts.Success.intValue(), m_buffer, m_offset + 20 + verfLen);
 
         //	Set the buffer pointer for streaming the response parameters
         m_pos = m_offset + 24 + verfLen;
@@ -1092,9 +1173,9 @@ public class RpcPacket {
      * Build an RPC version mismatch response
      */
     public final void buildRpcMismatchResponse() {
-        setMessageType(Rpc.Reply);
-        setReplyState(Rpc.CallDenied);
-        setRejectStatus(Rpc.StsRpcMismatch);
+        setMessageType(Rpc.MessageType.Reply);
+        setReplyState(Rpc.CallStatus.Denied);
+        setRejectStatus(Rpc.RejectSts.RpcMismatch);
         setRpcMismatch(Rpc.RpcVersion, Rpc.RpcVersion);
 
         setLength(ResponseMismatchLen);
@@ -1103,12 +1184,12 @@ public class RpcPacket {
     /**
      * Build an RPC authentication failure response
      *
-     * @param stsCode int
+     * @param stsCode Rpc.AuthSts
      */
-    public final void buildAuthFailResponse(int stsCode) {
-        setMessageType(Rpc.Reply);
-        setReplyState(Rpc.CallDenied);
-        setRejectStatus(Rpc.StsAuthError);
+    public final void buildAuthFailResponse(Rpc.AuthSts stsCode) {
+        setMessageType(Rpc.MessageType.Reply);
+        setReplyState(Rpc.CallStatus.Denied);
+        setRejectStatus(Rpc.RejectSts.AuthError);
         setAuthFailStatus(stsCode);
 
         setLength(ResponseAuthFailLen);
@@ -1117,11 +1198,11 @@ public class RpcPacket {
     /**
      * Build an RPC accept error response
      *
-     * @param stsCode int
+     * @param stsCode Rpc.AcceptSts
      */
-    public final void buildAcceptErrorResponse(int stsCode) {
-        setMessageType(Rpc.Reply);
-        setReplyState(Rpc.CallAccepted);
+    public final void buildAcceptErrorResponse(Rpc.AcceptSts stsCode) {
+        setMessageType(Rpc.MessageType.Reply);
+        setReplyState(Rpc.CallStatus.Accepted);
 
         //	Copy the verifier from the request
         DataPacker.putInt(getVerifierType(), m_buffer, m_offset + 12);
@@ -1133,7 +1214,7 @@ public class RpcPacket {
             System.arraycopy(m_buffer, getVerifierOffset(), m_buffer, m_offset + 20, verfLen);
 
         //	Pack the status code
-        DataPacker.putInt(stsCode, m_buffer, m_offset + 20 + verfLen);
+        DataPacker.putInt(stsCode.intValue(), m_buffer, m_offset + 20 + verfLen);
 
         //	Set the response length
         setLength(m_offset + 24 + verfLen);
@@ -1146,8 +1227,8 @@ public class RpcPacket {
      * @param verHigh int
      */
     public final void buildProgramMismatchResponse(int verLow, int verHigh) {
-        setMessageType(Rpc.Reply);
-        setReplyState(Rpc.CallAccepted);
+        setMessageType(Rpc.MessageType.Reply);
+        setReplyState(Rpc.CallStatus.Accepted);
 
         //	Copy the verifier from the request
         DataPacker.putInt(getVerifierType(), m_buffer, m_offset + 12);
@@ -1160,7 +1241,7 @@ public class RpcPacket {
 
         //	Pack the status code, and low/high version numbers
         int pos = m_offset + 20 + verfLen;
-        DataPacker.putInt(Rpc.StsProgMismatch, m_buffer, pos);
+        DataPacker.putInt(Rpc.AcceptSts.ProgMismatch.intValue(), m_buffer, pos);
         DataPacker.putInt(verLow, m_buffer, pos + 4);
         DataPacker.putInt(verHigh, m_buffer, pos + 8);
 
@@ -1179,7 +1260,7 @@ public class RpcPacket {
         //	Dump the client details
         str.append("[");
         if (hasClientAddress()) {
-            str.append(getClientProtocol() == Rpc.TCP ? "T" : "U");
+            str.append(getClientProtocol().name());
             str.append(getClientAddress().getHostAddress());
             str.append(":");
             str.append(getClientPort());
@@ -1187,7 +1268,7 @@ public class RpcPacket {
             str.append("<Unknown>");
 
         //	Dump the call/response header
-        if (getMessageType() == Rpc.Call) {
+        if (getMessageType() == Rpc.MessageType.Call) {
 
             //	Request packet
             str.append("-Call,XID=0x");
@@ -1222,7 +1303,7 @@ public class RpcPacket {
             str.append("-Reply,XID=0x");
             str.append(Integer.toHexString(getXID()));
 
-            if (getReplyState() == Rpc.CallAccepted) {
+            if (getReplyState() == Rpc.CallStatus.Accepted) {
 
                 //	Request accepted response
                 str.append(",Accepted");
@@ -1231,7 +1312,7 @@ public class RpcPacket {
                 //	Request denied response
                 str.append(",Denied");
 
-                if (getRejectStatus() == Rpc.StsRpcMismatch) {
+                if (getRejectStatus() == Rpc.RejectSts.RpcMismatch) {
                     str.append(",RpcMismatch, Low=");
                     str.append(getMismatchVersionLow());
                     str.append("/High=");
@@ -1247,6 +1328,11 @@ public class RpcPacket {
         //	Check if the packet is allocated from a pool
         if (isAllocatedFromPool())
             str.append(",Pool");
+
+        // Check if there is an associated packet
+        if ( hasAssociatedPacket())
+            str.append(",Assoc");
+
         str.append("]");
 
         //	Return the string

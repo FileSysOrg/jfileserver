@@ -25,6 +25,7 @@ import java.net.SocketException;
 
 import org.filesys.debug.Debug;
 import org.filesys.server.SocketPacketHandler;
+import org.filesys.server.core.NoPooledMemoryException;
 import org.filesys.util.DataPacker;
 
 /**
@@ -145,6 +146,13 @@ public class TcpRpcPacketHandler extends SocketPacketHandler implements Runnable
     }
 
     /**
+     * Return the associated RPC processor
+     *
+     * @return RpcProcessor
+     */
+    protected final RpcProcessor getRpcProcessor() { return m_rpcProcessor; }
+
+    /**
      * Thread to read and process the RPC requests for this session
      */
     public void run() {
@@ -260,7 +268,7 @@ public class TcpRpcPacketHandler extends SocketPacketHandler implements Runnable
             rpc.setBuffer(RpcPacket.FragHeaderLen, rxLen + RpcPacket.FragHeaderLen);
 
             //	Set the client details
-            rpc.setClientDetails(getSocket().getInetAddress(), getSocket().getPort(), Rpc.TCP);
+            rpc.setClientDetails(getSocket().getInetAddress(), getSocket().getPort(), Rpc.ProtocolId.TCP);
         }
 
         //	Return the received data length
@@ -338,8 +346,10 @@ public class TcpRpcPacketHandler extends SocketPacketHandler implements Runnable
      *
      * @param maxSize int
      * @return RpcPacket
+     * @exception NoPooledMemoryException No pooled memory available
      */
-    protected RpcPacket allocateRpcPacket(int maxSize) {
+    protected RpcPacket allocateRpcPacket(int maxSize)
+        throws NoPooledMemoryException {
 
         //	Check if the receive packet has been allocated
         if (m_rxPkt == null)

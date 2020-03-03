@@ -19,6 +19,9 @@
 
 package org.filesys.oncrpc;
 
+import org.filesys.server.core.NoPooledMemoryException;
+import org.filesys.server.thread.ThreadRequestPool;
+
 import java.io.IOException;
 import java.net.Socket;
 
@@ -31,6 +34,12 @@ import java.net.Socket;
  */
 public class MultiThreadedTcpRpcPacketHandler extends TcpRpcPacketHandler implements RpcPacketHandler {
 
+    //	RPC packet pool
+    private RpcPacketPool m_packetPool;
+
+    //	Request handler thread pool
+    private ThreadRequestPool m_threadPool;
+
     /**
      * Class constructor to create a TCP RPC handler for a server.
      *
@@ -39,12 +48,18 @@ public class MultiThreadedTcpRpcPacketHandler extends TcpRpcPacketHandler implem
      * @param server     RpcProcessor
      * @param socket     Socket
      * @param maxRpcSize int
+     * @param pktPool    RpcPacketPool
+     * @param threadPool ThreadRequestPool
      * @exception IOException Socket error
      */
     public MultiThreadedTcpRpcPacketHandler(TcpRpcSessionHandler handler, int sessId, RpcProcessor server, Socket socket,
-                                            int maxRpcSize)
+                                            int maxRpcSize, RpcPacketPool pktPool, ThreadRequestPool threadPool)
             throws IOException {
         super(handler, sessId, server, socket, maxRpcSize);
+
+        // Save the packet pool and thread pool
+        m_packetPool = pktPool;
+        m_threadPool = threadPool;
     }
 
     /**
@@ -61,11 +76,13 @@ public class MultiThreadedTcpRpcPacketHandler extends TcpRpcPacketHandler implem
      *
      * @param maxSize int
      * @return RpcPacket
+     * @exception NoPooledMemoryException No pooled memory available
      */
-    protected RpcPacket allocateRpcPacket(int maxSize) {
+    protected RpcPacket allocateRpcPacket(int maxSize)
+        throws NoPooledMemoryException {
 
-        //	Use the session handler to allocate the RPC packet
-        return getSessionHandler().allocateRpcPacket(maxSize);
+        //	Allocate the RPC packet
+        return m_packetPool.allocatePacket(maxSize);
     }
 
     /**
@@ -93,7 +110,7 @@ public class MultiThreadedTcpRpcPacketHandler extends TcpRpcPacketHandler implem
         rpc.setPacketHandler(this);
 
         //	Queue the RPC request to the session handlers thread pool for processing
-        getSessionHandler().queueRpcRequest(rpc);
+        m_threadPool.queueRequest( new RpcThreadRequest( rpc, getRpcProcessor(), this));
     }
 
     /**
@@ -107,5 +124,12 @@ public class MultiThreadedTcpRpcPacketHandler extends TcpRpcPacketHandler implem
 
         //	Send the RPC response
         sendRpc(rpc);
+    }
+
+    @Override
+    public RpcPacket receiveRpc() throws IOException {
+
+        // Not currently used
+        return null;
     }
 }
