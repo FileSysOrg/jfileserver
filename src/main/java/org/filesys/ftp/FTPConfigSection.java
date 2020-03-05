@@ -20,6 +20,7 @@
 package org.filesys.ftp;
 
 import java.net.InetAddress;
+import java.util.EnumSet;
 
 import org.springframework.extensions.config.ConfigElement;
 import org.springframework.extensions.config.element.GenericConfigElement;
@@ -66,7 +67,7 @@ public class FTPConfigSection extends ConfigSection {
     private boolean m_localFtpAuthenticator;
 
     //  FTP server debug flags
-    private int m_ftpDebug;
+    private EnumSet<FTPSrvSession.Dbg> m_ftpDebug;
 
     // FTP SITE interface
     private FTPSiteInterface m_ftpSiteInterface;
@@ -159,9 +160,9 @@ public class FTPConfigSection extends ConfigSection {
     /**
      * Return the FTP debug flags
      *
-     * @return int
+     * @return EnumSet&lt;FTPSrvSession.Dbg&gt;
      */
-    public final int getFTPDebug() {
+    public final EnumSet<FTPSrvSession.Dbg> getFTPDebug() {
         return m_ftpDebug;
     }
 
@@ -476,15 +477,15 @@ public class FTPConfigSection extends ConfigSection {
     /**
      * Set the FTP debug flags
      *
-     * @param dbg int
+     * @param dbg EnumSet&lt;FTPSrvSession.Dbg&gt;
      * @return int
      * @exception InvalidConfigurationException Error setting the debug flags
      */
-    public final int setFTPDebug(int dbg)
+    public final int setFTPDebug(EnumSet<FTPSrvSession.Dbg> dbg)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.FTPDebugFlags, new Integer(dbg));
+        int sts = fireConfigurationChange(ConfigId.FTPDebugFlags, dbg);
         m_ftpDebug = dbg;
 
         //  Return the change status

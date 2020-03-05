@@ -218,7 +218,7 @@ public class NFSConnectionsHandler implements Runnable, NFSRequestHandlerListene
         m_server = srv;
 
         // Check if socket debug output is enabled
-        if ((config.getNFSDebug() & NFSSrvSession.DBG_SESSION) != 0)
+        if (config.getNFSDebug().contains( NFSSrvSession.Dbg.SESSION))
             m_debug = true;
 
         // Save the port the connection handler is listening on

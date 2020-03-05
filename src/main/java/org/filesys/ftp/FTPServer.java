@@ -118,7 +118,7 @@ public class FTPServer extends NetworkFileServer implements Runnable, Configurat
             m_dataPortId = getFTPConfiguration().getFTPDataPortLow();
 
             //	Enable debug
-            if (getFTPConfiguration().getFTPDebug() != 0)
+            if (getFTPConfiguration().getFTPDebug().isEmpty() == false)
                 setDebug(true);
 
             //	Create the root path, if configured
@@ -223,7 +223,7 @@ public class FTPServer extends NetworkFileServer implements Runnable, Configurat
         m_dataSessions.addSession(dataPort, dataSess);
 
         //	DEBUG
-        if (Debug.EnableInfo && sess.hasDebug(FTPSrvSession.DBG_DATAPORT))
+        if (Debug.EnableInfo && sess.hasDebug(FTPSrvSession.Dbg.DATAPORT))
             Debug.println("[FTP] Allocated data port " + dataPort + " to session " + sess.getSessionId());
 
         //	Return the data session
@@ -272,7 +272,7 @@ public class FTPServer extends NetworkFileServer implements Runnable, Configurat
         m_dataSessions.addSession(dataPort, dataSess);
 
         //	DEBUG
-        if (Debug.EnableInfo && sess.hasDebug(FTPSrvSession.DBG_DATAPORT))
+        if (Debug.EnableInfo && sess.hasDebug(FTPSrvSession.Dbg.DATAPORT))
             Debug.println("[FTP] Allocated passive data port " + dataPort + " to session " + sess.getSessionId());
 
         //	Return the data session
@@ -297,7 +297,7 @@ public class FTPServer extends NetworkFileServer implements Runnable, Configurat
         m_dataSessions.removeSession(dataSess);
 
         //	DEBUG
-        if (Debug.EnableInfo && dataSess.getCommandSession().hasDebug(FTPSrvSession.DBG_DATAPORT))
+        if (Debug.EnableInfo && dataSess.getCommandSession().hasDebug(FTPSrvSession.Dbg.DATAPORT))
             Debug.println("[FTP] Released data port " + dataSess.getAllocatedPort() + " for session " + dataSess.getCommandSession().getSessionId());
     }
 

@@ -94,7 +94,7 @@ public class NIOSMBThreadRequest implements ThreadRequest {
                         if (pktCount == 0) {
 
                             // DEBUG
-                            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_SOCKET))
+                            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.SOCKET))
                                 Debug.println("Received null packet, closing session sess=" + m_sess.getUniqueId() + ", addr=" + m_sess.getRemoteAddress().getHostAddress());
 
                             // Close the session
@@ -141,7 +141,7 @@ public class NIOSMBThreadRequest implements ThreadRequest {
                 catch (Throwable ex) {
 
                     // DEBUG
-                    if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_SOCKET)) {
+                    if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.SOCKET)) {
                         Debug.println("Error during packet receive, closing session sess=" + m_sess.getUniqueId() + ", addr=" + m_sess.getRemoteAddressString() + " ex=" + ex.getMessage());
                         Debug.println(ex);
                     }
@@ -172,7 +172,7 @@ public class NIOSMBThreadRequest implements ThreadRequest {
                 int asyncCnt = m_sess.sendQueuedAsyncResponses();
 
                 // DEBUG
-                if (asyncCnt > 0 && Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_SOCKET))
+                if (asyncCnt > 0 && Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.SOCKET))
                     Debug.println("Sent queued async packets (NIO) count=" + asyncCnt + ", sess=" + m_sess.getUniqueId() + ", addr=" + m_sess.getRemoteAddress().getHostAddress());
             }
 
@@ -185,7 +185,7 @@ public class NIOSMBThreadRequest implements ThreadRequest {
             }
 
             // DEBUG
-            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_THREADPOOL) && pktCount > 1)
+            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.THREADPOOL) && pktCount > 1)
                 Debug.println("Processed " + pktCount + " packets for addr=" + m_sess.getRemoteAddress().getHostAddress() + " in one thread run (max=" + MaxPacketsPerRun + ")");
         }
     }

@@ -93,7 +93,7 @@ public class NIORpcThreadRequest implements ThreadRequest {
                         if (pktCount == 0) {
 
                             // DEBUG
-                            if (Debug.EnableInfo && m_sess.hasDebug(NFSSrvSession.DBG_SOCKET))
+                            if (Debug.EnableInfo && m_sess.hasDebug(NFSSrvSession.Dbg.SOCKET))
                                 Debug.println("Received null packet, closing session sess=" + m_sess.getUniqueId() + ", addr=" + m_sess.getRemoteAddress().getHostAddress());
 
                             // Close the session
@@ -145,7 +145,7 @@ public class NIORpcThreadRequest implements ThreadRequest {
                 catch (Throwable ex) {
 
                     // DEBUG
-                    if (Debug.EnableInfo && m_sess.hasDebug(NFSSrvSession.DBG_SOCKET)) {
+                    if (Debug.EnableInfo && m_sess.hasDebug(NFSSrvSession.Dbg.SOCKET)) {
                         Debug.println("Error during packet receive, closing session sess=" + m_sess.getUniqueId() + ", addr=" + m_sess.getRemoteAddress() + "/" +
                                 m_sess.getRemotePort() + " ex=" + ex.getMessage());
                         Debug.println(ex);
@@ -182,7 +182,7 @@ public class NIORpcThreadRequest implements ThreadRequest {
             }
 
             // DEBUG
-            if (Debug.EnableInfo && m_sess.hasDebug(NFSSrvSession.DBG_THREADPOOL) && pktCount > 1)
+            if (Debug.EnableInfo && m_sess.hasDebug(NFSSrvSession.Dbg.THREADPOOL) && pktCount > 1)
                 Debug.println("Processed " + pktCount + " packets for addr=" + m_sess.getRemoteAddress().getHostAddress() + " in one thread run (max=" + MaxPacketsPerRun + ")");
         }
     }

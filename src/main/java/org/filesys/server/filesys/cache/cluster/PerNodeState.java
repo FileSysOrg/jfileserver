@@ -265,7 +265,7 @@ public class PerNodeState {
                 SMBSrvPacket pkt = deferReq.getDeferredPacket();
 
                 // DEBUG
-                if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.DBG_OPLOCK))
+                if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.Dbg.OPLOCK))
                     Debug.println("Release oplock, queued deferred request to thread pool sess=" + sess.getUniqueId() + ", pkt=" + pkt);
 
                 try {
@@ -319,9 +319,9 @@ public class PerNodeState {
                         failCnt++;
 
                         // DEBUG
-                        if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.DBG_OPLOCK))
+                        if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.Dbg.OPLOCK))
                             Debug.println("Oplock break timeout, oplock=" + this);
-                    } else if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.DBG_OPLOCK))
+                    } else if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.Dbg.OPLOCK))
                         Debug.println("Failed to send open reject, oplock break timed out, oplock=" + this);
                 }
                 catch (IOException ex) {
@@ -377,7 +377,7 @@ public class PerNodeState {
                     m_oplockBreakTime = System.currentTimeMillis();
 
                 // DEBUG
-                if (Debug.EnableDbg && deferredSess.hasDebug(SMBSrvSession.DBG_OPLOCK))
+                if (Debug.EnableDbg && deferredSess.hasDebug(SMBSrvSession.Dbg.OPLOCK))
                     Debug.println("Added deferred request, list=" + m_deferredRequests.size() + ", oplock=" + this);
             } else
                 throw new DeferFailedException("No more deferred slots available on oplock");

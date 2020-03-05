@@ -628,7 +628,7 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
             throw new SMBSrvException( SMBStatus.NTLogonFailure, SMBStatus.ErrDos, SMBStatus.DOSAccessDenied);
 
         // Debug
-        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_NEGOTIATE)) {
+        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.NEGOTIATE)) {
             if (secBlob.hasResponseBlob() == false)
                 debugOutput("[SMB] User " + client.getUserName() + " logged on "
                         + (client != null ? " (type " + client.getLogonTypeString() + ")" : ""));
@@ -734,7 +734,7 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
                 int discCnt = sess.disconnectClientSessions();
 
                 // DEBUG
-                if (discCnt > 0 && Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_NEGOTIATE))
+                if (discCnt > 0 && Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.NEGOTIATE))
                     debugOutput("[SMB] Disconnected " + discCnt + " existing sessions from client, sess=" + sess);
             }
 
@@ -748,13 +748,13 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
             if (uid == VirtualCircuit.InvalidID) {
 
                 // DEBUG
-                if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_NEGOTIATE))
+                if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.NEGOTIATE))
                     debugOutput("[SMB] Failed to allocate UID for virtual circuit, " + vc);
 
                 // Failed to allocate a UID
                 throw new SMBSrvException(SMBStatus.NTTooManySessions, SMBStatus.SRVTooManyUIDs, SMBStatus.ErrSrv);
             }
-            else if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_NEGOTIATE)) {
+            else if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.NEGOTIATE)) {
 
                 // DEBUG
                 debugOutput("[SMB] Allocated UID=" + uid + " for VC=" + vc);
@@ -842,7 +842,7 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
         Object setupObj = sess.getSetupObject(client.getProcessId(), SetupObjectType.Type2Message);
 
         // Debug
-        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_NEGOTIATE))
+        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.NEGOTIATE))
             debugOutput("[SMB] Process security blob=" + secBlob);
 
         // Process the security blob
@@ -871,7 +871,7 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
         }
 
         // Debug
-        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_NEGOTIATE)) {
+        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.NEGOTIATE)) {
             if (authSts == AuthStatus.AUTHENTICATED)
                 debugOutput("[SMB] User " + client.getUserName() + " logged on "
                         + (client != null ? " (type " + client.getLogonTypeString() + ")" : ""));
@@ -1938,7 +1938,7 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
         }
 
         // DEBUG
-        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_NEGOTIATE)) {
+        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.NEGOTIATE)) {
             debugOutput("[SMB] NT Session setup from user=" + user + ", password="
                     + (uniPwd != null ? HexDump.hexString(uniPwd) : "none") + ", ANSIpwd="
                     + (ascPwd != null ? HexDump.hexString(ascPwd) : "none") + ", domain=" + domain + ", os=" + clientOS + ", VC="
@@ -1999,7 +1999,7 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
             isGuest = true;
 
             // DEBUG
-            if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_NEGOTIATE))
+            if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.NEGOTIATE))
                 debugOutput("[SMB] User " + user + ", logged on as guest");
         }
 
@@ -2010,12 +2010,12 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
         if (uid == VirtualCircuit.InvalidID) {
 
             // DEBUG
-            if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_NEGOTIATE))
+            if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.NEGOTIATE))
                 debugOutput("[SMB] Failed to allocate UID for virtual circuit, " + vc);
 
             // Failed to allocate a UID
             throw new SMBSrvException(SMBStatus.NTLogonFailure, SMBStatus.ErrDos, SMBStatus.DOSAccessDenied);
-        } else if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_NEGOTIATE)) {
+        } else if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.NEGOTIATE)) {
 
             // DEBUG
             debugOutput("[SMB] Allocated UID=" + uid + " for VC=" + vc);
@@ -2094,7 +2094,7 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
         sess.addSessionKey(KeyType.SessionKey, randSessKey);
 
         // DEBUG
-        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_SIGNING))
+        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.SIGNING))
             sess.debugPrintln("Set session key=" + HexDump.hexString(randSessKey));
 
         // Check if extended security has been negotiated

@@ -41,22 +41,24 @@ import org.filesys.server.filesys.TreeConnectionHash;
  *
  * @author gkspencer
  */
-public class NFSSrvSession extends SrvSession {
+public class NFSSrvSession extends SrvSession<NFSSrvSession.Dbg> {
 
     //	Debug flags
-    public static final int DBG_RXDATA      = 0x00000001; //	Received data
-    public static final int DBG_TXDATA      = 0x00000002; //	Transmit data
-    public static final int DBG_DUMPDATA    = 0x00000004; //	Dump data packets
-    public static final int DBG_SEARCH      = 0x00000008; //	File/directory search
-    public static final int DBG_INFO        = 0x00000010; //	Information requests
-    public static final int DBG_FILE        = 0x00000020; //	File open/close/info
-    public static final int DBG_FILEIO      = 0x00000040; // 	File read/write
-    public static final int DBG_ERROR       = 0x00000080; //	Errors
-    public static final int DBG_TIMING      = 0x00000100; //	Time packet processing
-    public static final int DBG_DIRECTORY   = 0x00000200; //	Directory commands
-    public static final int DBG_SESSION     = 0x00000400; //	Session creation/deletion
-    public static final int DBG_SOCKET      = 0x00000800; //    Socket handling
-    public static final int DBG_THREADPOOL  = 0x00001000; //    Thread pool
+    public enum Dbg {
+        RXDATA,     // Received data
+        TXDATA,     // Transmit data
+        DUMPDATA,   // Dump data packets
+        SEARCH,     // File/directory search
+        INFO,       // Information requests
+        FILE,       // File open/close/info
+        FILEIO,     // File read/write
+        ERROR,      // Errors
+        TIMING,     // Time packet processing
+        DIRECTORY,  // Directory commands
+        SESSION,    // Session creation/deletion
+        SOCKET,     // Socket handling
+        THREADPOOL  // Thread pool
+    }
 
     //	Default and maximum number of search slots
     private static final int DefaultSearches    = 32;
@@ -127,7 +129,7 @@ public class NFSSrvSession extends SrvSession {
      * @param type Rpc.ProtocolId
      */
     public NFSSrvSession(int sessId, NFSServer srv, RpcPacketHandler pktHandler, InetSocketAddress addr, Rpc.ProtocolId type) {
-        super(sessId, srv, "NFS", null);
+        super(sessId, srv, "NFS", null, NFSSrvSession.Dbg.class);
 
         //	Save the remote address/port and type
         if ( addr != null) {
@@ -167,7 +169,7 @@ public class NFSSrvSession extends SrvSession {
      * @param type Rpc.ProtocolId
      */
     public NFSSrvSession(NetworkServer srv, InetAddress addr, int port, Rpc.ProtocolId type) {
-        super(-1, srv, "NFS", null);
+        super(-1, srv, "NFS", null, NFSSrvSession.Dbg.class);
 
         //	Save the remote address/port and type
         m_remAddr = addr;
@@ -215,7 +217,7 @@ public class NFSSrvSession extends SrvSession {
             // Copy settings to the file cache
             NFSConfigSection config = getNFSServer().getNFSConfiguration();
 
-            m_fileCache.setDebug(hasDebug(NFSSrvSession.DBG_FILE));
+            m_fileCache.setDebug(hasDebug(NFSSrvSession.Dbg.FILE));
 
             if (config.getNFSFileCacheIOTimer() > 0)
                 m_fileCache.setIOTimer(config.getNFSFileCacheIOTimer());
@@ -527,7 +529,7 @@ public class NFSSrvSession extends SrvSession {
     protected final void cleanupSession() {
 
         //  Debug
-        if (Debug.EnableInfo && hasDebug(DBG_SESSION))
+        if (Debug.EnableInfo && hasDebug(Dbg.SESSION))
             debugPrintln("NFS Cleanup session, searches=" + getSearchCount() +
                     ", files=" + (m_fileCache != null ? m_fileCache.numberOfEntries() : 0) +
                     ", treeConns=" + (m_connections != null ? m_connections.numberOfEntries() : 0));

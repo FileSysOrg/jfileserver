@@ -20,6 +20,7 @@
 package org.filesys.oncrpc.nfs;
 
 import java.io.IOException;
+import java.util.EnumSet;
 import java.util.Enumeration;
 
 import org.filesys.debug.Debug;
@@ -28,7 +29,6 @@ import org.filesys.oncrpc.nfs.nio.NFSConnectionsHandler;
 import org.filesys.oncrpc.nfs.v3.NFS3;
 import org.filesys.oncrpc.nfs.v3.NFS3RpcProcessor;
 import org.filesys.server.ServerListener;
-import org.filesys.server.SessionHandlerBase;
 import org.filesys.server.SrvSession;
 import org.filesys.server.Version;
 import org.filesys.server.config.CoreServerConfigSection;
@@ -104,6 +104,9 @@ public class NFSServer extends RpcNetworkServer implements RpcProcessor {
 
     //	Write verifier, generated from the server start time
     private long m_writeVerifier;
+
+    // Debug flags
+    private EnumSet<NFSSrvSession.Dbg> m_debug;
 
     /**
      * Class constructor
@@ -185,6 +188,25 @@ public class NFSServer extends RpcNetworkServer implements RpcProcessor {
     }
 
     /**
+     * Check if the specified debug flag is enabled
+     *
+     * @param flg Enum&lt;NFSSrvSession.Dbg&gt;
+     * @return boolean
+     */
+    public final boolean hasDebug( Enum<NFSSrvSession.Dbg> flg) {
+        return m_debug.contains( flg);
+    }
+
+    /**
+     * Set the debug flags
+     *
+     * @param dbg EnumSet&lt;NFSSrvSession.Dbg&gt;
+     */
+    public final void setDebugFlags(EnumSet<NFSSrvSession.Dbg> dbg) {
+        m_debug = dbg;
+    }
+
+    /**
      * Start the NFS server
      */
     public void startServer() {
@@ -230,7 +252,7 @@ public class NFSServer extends RpcNetworkServer implements RpcProcessor {
             else {
 
                 // DEBUG
-                if ( hasDebugFlag( NFSSrvSession.DBG_SOCKET))
+                if ( hasDebug( NFSSrvSession.Dbg.SOCKET))
                     Debug.println("[NFS] Disabled NIO");
 
                 // Use the older thread per socket TCP connections handler
@@ -282,7 +304,7 @@ public class NFSServer extends RpcNetworkServer implements RpcProcessor {
         catch (IOException ex) {
 
             //  DEBUG
-            if (hasDebugFlag(NFSSrvSession.DBG_ERROR))
+            if (hasDebug(NFSSrvSession.Dbg.ERROR))
                 Debug.println(ex);
         }
 
@@ -329,7 +351,7 @@ public class NFSServer extends RpcNetworkServer implements RpcProcessor {
     public RpcPacket processRpc(RpcPacket rpc) throws IOException {
 
         //	Dump the request data
-        if (Debug.EnableInfo && hasDebugFlag(NFSSrvSession.DBG_DUMPDATA))
+        if (Debug.EnableInfo && hasDebug(NFSSrvSession.Dbg.DUMPDATA))
             Debug.println("NFS Req=" + rpc.toString());
 
         //	Validate the request
@@ -398,7 +420,7 @@ public class NFSServer extends RpcNetworkServer implements RpcProcessor {
             nfsSess.endTransaction();
 
         //	Dump the response
-        if (Debug.EnableInfo && hasDebugFlag(NFSSrvSession.DBG_DUMPDATA)) {
+        if (Debug.EnableInfo && hasDebug(NFSSrvSession.Dbg.DUMPDATA)) {
             Debug.println("NFS Resp=" + (rpc != null ? rpc.toString() : "<Null>"));
             HexDump.Dump(rpc.getBuffer(), rpc.getLength(), 0);
         }
@@ -448,13 +470,13 @@ public class NFSServer extends RpcNetworkServer implements RpcProcessor {
                 authFailed = false;
 
                 // DEBUG
-                if (Debug.EnableDbg && hasDebugFlag(NFSSrvSession.DBG_SESSION))
+                if (Debug.EnableDbg && hasDebug(NFSSrvSession.Dbg.SESSION))
                     Debug.println("[NFS] Found session " + sess + ", client=" + sess.getClientInformation());
             }
         }
         catch (Throwable ex) {
             // DEBUG
-            if (Debug.EnableError && hasDebugFlag(NFSSrvSession.DBG_ERROR))
+            if (Debug.EnableError && hasDebug(NFSSrvSession.Dbg.ERROR))
                 Debug.println("[NFS] RPC Authencation Exception: " + ex.toString());
         }
 
@@ -512,7 +534,7 @@ public class NFSServer extends RpcNetworkServer implements RpcProcessor {
             sess.setDebug(getNFSConfiguration().getNFSDebug());
 
             //	DEBUG
-            if (Debug.EnableInfo && hasDebugFlag(NFSSrvSession.DBG_SESSION))
+            if (Debug.EnableInfo && hasDebug(NFSSrvSession.Dbg.SESSION))
                 Debug.println("[NFS] Added Null session " + sess.getUniqueId());
         }
 
@@ -562,7 +584,7 @@ public class NFSServer extends RpcNetworkServer implements RpcProcessor {
             m_sessAuthUnix.addSession(sess);
 
             //	DEBUG
-            if (Debug.EnableInfo && hasDebugFlag(NFSSrvSession.DBG_SESSION))
+            if (Debug.EnableInfo && hasDebug(NFSSrvSession.Dbg.SESSION))
                 Debug.println("[NFS] Added Unix session " + sess.getUniqueId());
         } else {
 

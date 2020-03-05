@@ -74,25 +74,27 @@ import org.filesys.util.WildCard;
  *
  * @author gkspencer
  */
-public class FTPSrvSession extends SrvSession implements Runnable {
+public class FTPSrvSession extends SrvSession<FTPSrvSession.Dbg> implements Runnable {
 
     // Constants
     //
-    // Debug flag values
-    public static final int DBG_STATE       = 0x00000001; // Session state changes
-    public static final int DBG_RXDATA      = 0x00000002; // Received data
-    public static final int DBG_TXDATA      = 0x00000004; // Transmit data
-    public static final int DBG_DUMPDATA    = 0x00000008; // Dump data packets
-    public static final int DBG_SEARCH      = 0x00000010; // File/directory search
-    public static final int DBG_INFO        = 0x00000020; // Information requests
-    public static final int DBG_FILE        = 0x00000040; // File open/close/info
-    public static final int DBG_FILEIO      = 0x00000080; // File read/write
-    public static final int DBG_ERROR       = 0x00000100; // Errors
-    public static final int DBG_PKTTYPE     = 0x00000200; // Received packet type
-    public static final int DBG_TIMING      = 0x00000400; // Time packet processing
-    public static final int DBG_DATAPORT    = 0x00000800; // Data port
-    public static final int DBG_DIRECTORY   = 0x00001000; // Directory commands
-    public static final int DBG_SSL         = 0x00002000; // Secure sessions
+    // Debug flags
+    public enum Dbg {
+        STATE,      // Session state changes
+        RXDATA,     // Received data
+        TXDATA,     // Transmit data
+        DUMPDATA,   // Dump data packets
+        SEARCH,     // File/directory search
+        INFO,       // Information requests
+        FILE,       // File open/close/info
+        FILEIO,     // File read/write
+        ERROR,      // Errors
+        PKTTYPE,    // Received packet type
+        TIMING,     // Time packet processing
+        DATAPORT,   // Data port
+        DIRECTORY,  // Directory commands
+        SSL         // Secure sessions
+    }
 
     // Enabled features
     public static final boolean FeatureUTF8 = true;
@@ -214,7 +216,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
      * @param srv  FTPServer
      */
     public FTPSrvSession(Socket sock, FTPServer srv) {
-        super(-1, srv, "FTP", null);
+        super(-1, srv, "FTP", null, FTPSrvSession.Dbg.class);
 
         // Save the local socket
         m_sock = sock;
@@ -301,7 +303,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
         getFTPServer().removeSession(this);
 
         // DEBUG
-        if (Debug.EnableInfo && hasDebug(DBG_STATE))
+        if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.STATE))
             debugPrintln("Session closed, " + getSessionId());
     }
 
@@ -587,10 +589,10 @@ public class FTPSrvSession extends SrvSession implements Runnable {
             outbuf.append(msg);
 
         // DEBUG
-        if (Debug.EnableInfo && hasDebug(DBG_TXDATA))
+        if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.TXDATA))
             debugPrintln("Tx msg=" + outbuf.toString());
 
-        if (Debug.EnableError && hasDebug(DBG_ERROR) && stsCode >= 500)
+        if (Debug.EnableError && hasDebug(FTPSrvSession.Dbg.ERROR) && stsCode >= 500)
             debugPrintln("Error status=" + stsCode + ", msg=" + msg);
 
         // Add the CR/LF
@@ -632,10 +634,10 @@ public class FTPSrvSession extends SrvSession implements Runnable {
             outbuf.append(msg);
 
         // DEBUG
-        if (Debug.EnableInfo && hasDebug(DBG_TXDATA))
+        if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.TXDATA))
             debugPrintln("Tx msg=" + outbuf.toString());
 
-        if (Debug.EnableError && hasDebug(DBG_ERROR) && stsCode >= 500)
+        if (Debug.EnableError && hasDebug(FTPSrvSession.Dbg.ERROR) && stsCode >= 500)
             debugPrintln("Error status=" + stsCode + ", msg=" + msg);
 
         // Add the CR/LF
@@ -670,7 +672,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
             throws IOException {
 
         // DEBUG
-        if (Debug.EnableInfo && hasDebug(DBG_TXDATA))
+        if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.TXDATA))
             debugPrintln("Tx msg=" + msg);
 
         // Output the FTP response
@@ -705,7 +707,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
             throws IOException {
 
         // DEBUG
-        if (Debug.EnableInfo && hasDebug(DBG_TXDATA))
+        if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.TXDATA))
             debugPrintln("Tx msg=" + msg);
 
         // Output the FTP response
@@ -812,7 +814,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
             sendFTPResponse(230, "User logged in, proceed");
 
             // DEBUG
-            if (Debug.EnableInfo && hasDebug(DBG_STATE))
+            if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.STATE))
                 debugPrintln("Anonymous login, info=" + req.getArgument());
         }
 
@@ -832,7 +834,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
                 setLoggedOn(true);
 
                 // DEBUG
-                if (Debug.EnableInfo && hasDebug(DBG_STATE))
+                if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.STATE))
                     debugPrintln("User " + getClientInformation().getUserName() + ", logon successful");
             } else {
 
@@ -840,7 +842,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
                 sendFTPResponse(530, "Access denied");
 
                 // DEBUG
-                if (Debug.EnableInfo && hasDebug(DBG_STATE))
+                if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.STATE))
                     debugPrintln("User " + getClientInformation().getUserName() + ", logon failed");
             }
         }
@@ -906,7 +908,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
         if (m_dataSess != null) {
 
             // DEBUG
-            if (Debug.EnableInfo && hasDebug(DBG_DATAPORT))
+            if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.DATAPORT))
                 debugPrintln("Releasing existing data session, sess=" + m_dataSess);
 
             // Release the current data session
@@ -921,7 +923,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
         sendFTPResponse(200, "Port OK");
 
         // DEBUG
-        if (Debug.EnableInfo && hasDebug(DBG_DATAPORT))
+        if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.DATAPORT))
             debugPrintln("Port open addr=" + addr + ", port=" + port);
     }
 
@@ -944,7 +946,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
         if (m_dataSess != null) {
 
             // DEBUG
-            if (Debug.EnableInfo && hasDebug(DBG_DATAPORT))
+            if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.DATAPORT))
                 debugPrintln("Releasing existing data session, sess=" + m_dataSess);
 
             // Release the current data session
@@ -982,7 +984,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
         sendFTPResponse(msg);
 
         // DEBUG
-        if (Debug.EnableInfo && hasDebug(DBG_DATAPORT))
+        if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.DATAPORT))
             debugPrintln("Passive open addr=" + m_sock.getLocalAddress() + ", port=" + pasvPort);
     }
 
@@ -1005,7 +1007,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
         sendFTPResponse(257, "\"" + m_cwd.getFTPPath() + "\"");
 
         // DEBUG
-        if (Debug.EnableInfo && hasDebug(DBG_DIRECTORY))
+        if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.DIRECTORY))
             debugPrintln("Pwd ftp=" + m_cwd.getFTPPath() + ", share=" + m_cwd.getShareName() + ", path=" + m_cwd.getSharePath());
     }
 
@@ -1044,7 +1046,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
         sendFTPResponse(250, "Requested file action OK");
 
         // DEBUG
-        if (Debug.EnableInfo && hasDebug(DBG_DIRECTORY))
+        if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.DIRECTORY))
             debugPrintln("Cwd ftp=" + m_cwd.getFTPPath() + ", share=" + m_cwd.getShareName() + ", path=" + m_cwd.getSharePath());
     }
 
@@ -1081,7 +1083,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
         sendFTPResponse(250, "Requested file action OK");
 
         // DEBUG
-        if (Debug.EnableInfo && hasDebug(DBG_DIRECTORY))
+        if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.DIRECTORY))
             debugPrintln("Cdup ftp=" + m_cwd.getFTPPath() + ", share=" + m_cwd.getShareName() + ", path=" + m_cwd.getSharePath());
     }
 
@@ -1169,7 +1171,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
             }
         }
         catch (Exception ex) {
-            if (Debug.EnableInfo && hasDebug(DBG_ERROR)) {
+            if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.ERROR)) {
                 debugPrintln(" Error reading file list, " + ex.toString());
             }
 
@@ -1228,7 +1230,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
             if (files != null) {
 
                 // DEBUG
-                if (Debug.EnableInfo && hasDebug(DBG_SEARCH))
+                if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.SEARCH))
                     debugPrintln("List found " + files.size() + " files in " + ftpPath.getFTPPath());
 
                 // Output the file information to the client
@@ -1263,7 +1265,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
             sendFTPResponse(226, "Closing data connection");
         }
         catch (Exception ex) {
-            if (Debug.EnableInfo && hasDebug(DBG_ERROR)) {
+            if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.ERROR)) {
 
                 debugPrintln(" Error reading file list, " + ex.toString());
             }
@@ -1373,7 +1375,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
             if (files != null) {
 
                 // DEBUG
-                if (Debug.EnableInfo && hasDebug(DBG_SEARCH))
+                if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.SEARCH))
                     debugPrintln("List found " + files.size() + " files in " + ftpPath.getFTPPath());
 
                 // Output the file information to the client
@@ -1392,7 +1394,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
             sendFTPResponse(226, "Closing data connection");
         }
         catch (Exception ex) {
-            if (Debug.EnableInfo && hasDebug(DBG_ERROR)) {
+            if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.ERROR)) {
                 debugPrintln(" Error reading file list, " + ex.toString());
             }
             debugPrintln(ex);
@@ -1522,7 +1524,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
                 sendFTPResponse(200, "OPTS UTF8 " + (isUTF8Enabled() ? "ON" : "OFF"));
 
                 // DEBUG
-                if (Debug.EnableInfo && hasDebug(DBG_FILE))
+                if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.FILE))
                     debugPrintln("UTF8 options utf8=" + (isUTF8Enabled() ? "ON" : "OFF"));
             }
         }
@@ -1582,7 +1584,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
             sendFTPResponse(200, "MLST OPTS " + factStr.toString());
 
             // DEBUG
-            if (Debug.EnableInfo && hasDebug(DBG_SEARCH))
+            if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.SEARCH))
                 debugPrintln("MLst options facts=" + factStr.toString());
         } else {
 
@@ -1604,7 +1606,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
         sendFTPResponse(221, "Bye");
 
         // DEBUG
-        if (Debug.EnableInfo && hasDebug(DBG_STATE))
+        if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.STATE))
             debugPrintln("Quit closing connection(s) to client");
 
         // Close the session(s) to the client
@@ -1643,7 +1645,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
         sendFTPResponse(200, "Command OK");
 
         // DEBUG
-        if (Debug.EnableInfo && hasDebug(DBG_STATE))
+        if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.STATE))
             debugPrintln("Type arg=" + req.getArgument() + ", binary=" + m_binary);
     }
 
@@ -1681,7 +1683,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
         sendFTPResponse(350, "Restart OK");
 
         // DEBUG
-        if (Debug.EnableInfo && hasDebug(DBG_FILEIO))
+        if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.FILEIO))
             debugPrintln("Restart pos=" + m_restartPos);
     }
 
@@ -1735,7 +1737,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
             dataSock = m_dataSess.getSocket();
         }
         catch (Exception ex) {
-            if (Debug.EnableInfo && hasDebug(DBG_ERROR)) {
+            if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.ERROR)) {
                 debugPrintln(" Error reading file list, " + ex.toString());
             }
             debugPrintln(ex);
@@ -1747,7 +1749,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
         }
 
         // DEBUG
-        if (Debug.EnableInfo && hasDebug(DBG_FILE))
+        if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.FILE))
             debugPrintln("Returning ftp=" + ftpPath.getFTPPath() + ", share=" + ftpPath.getShareName() + ", path="
                     + ftpPath.getSharePath());
 
@@ -1799,7 +1801,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
                 len = disk.readFile(this, tree, netFile, buf, 0, buf.length, filePos);
 
                 // DEBUG
-                if (Debug.EnableInfo && hasDebug(DBG_FILEIO))
+                if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.FILEIO))
                     debugPrintln(" Write len=" + len + " bytes");
 
                 // Write the current data block to the client, update the file position
@@ -1835,13 +1837,13 @@ public class FTPSrvSession extends SrvSession implements Runnable {
             netFile = null;
 
             // DEBUG
-            if (Debug.EnableInfo && hasDebug(DBG_FILEIO))
+            if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.FILEIO))
                 debugPrintln(" Transfer complete, file closed");
         }
         catch (SocketException ex) {
 
             // DEBUG
-            if (Debug.EnableInfo && hasDebug(DBG_ERROR)) {
+            if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.ERROR)) {
                 debugPrintln(" Error during transfer, " + ex.toString());
                 debugPrintln(ex);
             }
@@ -1858,7 +1860,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
         catch (FileOfflineException ex) {
 
             // DEBUG
-            if (Debug.EnableInfo && hasDebug(DBG_ERROR))
+            if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.ERROR))
                 debugPrintln(" Error during transfer, " + ex.toString());
 
             // Indicate that there was an error during transmission of the file data
@@ -1867,7 +1869,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
         catch (Exception ex) {
 
             // DEBUG
-            if (Debug.EnableInfo && hasDebug(DBG_ERROR))
+            if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.ERROR))
                 debugPrintln(" Error during transfer, " + ex.toString());
 
             // Indicate that there was an error during transmission of the file data
@@ -2008,7 +2010,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
                 is = dataSock.getInputStream();
 
                 // DEBUG
-                if (Debug.EnableInfo && hasDebug(DBG_FILE))
+                if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.FILE))
                     debugPrintln("Storing ftp=" + ftpPath.getFTPPath() + ", share=" + ftpPath.getShareName() + ", path="
                             + ftpPath.getSharePath() + (append ? " (Append)" : ""));
 
@@ -2027,7 +2029,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
                 while (len > 0 && abort == false) {
 
                     // DEBUG
-                    if (Debug.EnableInfo && hasDebug(DBG_FILEIO))
+                    if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.FILEIO))
                         debugPrintln(" Receive len=" + len + " bytes");
 
                     // Write the current data block to the file, update the file position
@@ -2056,7 +2058,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
                     sendFTPResponse(426, "Transfer aborted by client");
 
                 // DEBUG
-                if (Debug.EnableInfo && hasDebug(DBG_FILEIO))
+                if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.FILEIO))
                     debugPrintln(" Transfer complete, file closed");
             }
             finally {
@@ -2066,7 +2068,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
         catch (SocketException ex) {
 
             // DEBUG
-            if (Debug.EnableInfo && hasDebug(DBG_ERROR))
+            if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.ERROR))
                 debugPrintln(" Error during transfer, " + ex.toString());
 
             // Close the data socket to the client
@@ -2081,7 +2083,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
         catch (DiskFullException ex) {
 
             // DEBUG
-            if (Debug.EnableInfo && hasDebug(DBG_ERROR))
+            if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.ERROR))
                 debugPrintln(" Error during transfer, " + ex.toString());
 
             // Close the data socket to the client
@@ -2095,7 +2097,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
                 deleteOnClose = true;
 
                 // DEBUG
-                if (Debug.EnableDbg && hasDebug(DBG_ERROR))
+                if (Debug.EnableDbg && hasDebug(FTPSrvSession.Dbg.ERROR))
                     debugPrintln(" Marking file for delete on close (quota exceeded)");
             }
 
@@ -2105,7 +2107,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
         catch (AccessDeniedException ex) {
 
             // DEBUG
-            if (Debug.EnableInfo && hasDebug(DBG_ERROR))
+            if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.ERROR))
                 debugPrintln(" Error during transfer, " + ex.toString());
 
             // Close the data socket to the client
@@ -2119,7 +2121,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
                 deleteOnClose = true;
 
                 // DEBUG
-                if (Debug.EnableDbg && hasDebug(DBG_ERROR))
+                if (Debug.EnableDbg && hasDebug(FTPSrvSession.Dbg.ERROR))
                     debugPrintln(" Marking file for delete on close (access denied)");
             }
 
@@ -2128,7 +2130,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
         }
         catch (SocketTimeoutException ex) {
             // DEBUG
-            if (Debug.EnableInfo && hasDebug(DBG_ERROR)) {
+            if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.ERROR)) {
                 debugPrintln(" Error during transmission: session timeout.");
                 debugPrintln(" Marking file for delete on close.");
             }
@@ -2139,7 +2141,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
         }
         catch (Exception ex) {
             // DEBUG
-            if (Debug.EnableInfo && hasDebug(DBG_ERROR)) {
+            if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.ERROR)) {
                 debugPrintln(" Error during transfer, " + ex.toString());
             }
             debugPrintln(ex);
@@ -2229,7 +2231,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
                     diskCtx.getChangeHandler().notifyFileChanged(NotifyAction.Removed, ftpPath.getSharePath());
 
                 // DEBUG
-                if (Debug.EnableInfo && hasDebug(DBG_FILE))
+                if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.FILE))
                     debugPrintln("Deleted ftp=" + ftpPath.getFTPPath() + ", share=" + ftpPath.getShareName() + ", path="
                             + ftpPath.getSharePath());
             } else {
@@ -2241,7 +2243,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
             }
         }
         catch (Exception ex) {
-            if (Debug.EnableInfo && hasDebug(DBG_ERROR)) {
+            if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.ERROR)) {
                 debugPrintln(" Error deleting file, " + ex.toString());
             }
             debugPrintln(ex);
@@ -2311,7 +2313,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
                 m_renameFrom = ftpPath;
 
                 // DEBUG
-                if (Debug.EnableInfo && hasDebug(DBG_FILE))
+                if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.FILE))
                     debugPrintln("RenameFrom ftp=" + ftpPath.getFTPPath() + ", share=" + ftpPath.getShareName() + ", path="
                             + ftpPath.getSharePath());
             } else {
@@ -2323,7 +2325,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
             }
         }
         catch (Exception ex) {
-            if (Debug.EnableInfo && hasDebug(DBG_ERROR)) {
+            if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.ERROR)) {
                 debugPrintln(" Error renaming file from, " + ex.toString());
             }
             debugPrintln(ex);
@@ -2411,7 +2413,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
                     diskCtx.getChangeHandler().notifyRename(m_renameFrom.getSharePath(), ftpPath.getSharePath());
 
                 // DEBUG
-                if (Debug.EnableInfo && hasDebug(DBG_FILE))
+                if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.FILE))
                     debugPrintln("RenameTo ftp=" + ftpPath.getFTPPath() + ", share=" + ftpPath.getShareName() + ", path="
                             + ftpPath.getSharePath());
             } else {
@@ -2423,7 +2425,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
             }
         }
         catch (Exception ex) {
-            if (Debug.EnableInfo && hasDebug(DBG_ERROR)) {
+            if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.ERROR)) {
                 debugPrintln(" Error rename to, " + ex.toString());
             }
             debugPrintln(ex);
@@ -2504,7 +2506,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
                     diskCtx.getChangeHandler().notifyFileChanged(NotifyAction.Added, ftpPath.getSharePath());
 
                 // DEBUG
-                if (Debug.EnableInfo && hasDebug(DBG_DIRECTORY))
+                if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.DIRECTORY))
                     debugPrintln("CreateDir ftp=" + ftpPath.getFTPPath() + ", share=" + ftpPath.getShareName() + ", path="
                             + ftpPath.getSharePath());
             } else {
@@ -2515,7 +2517,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
             }
         }
         catch (Exception ex) {
-            if (Debug.EnableInfo && hasDebug(DBG_ERROR)) {
+            if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.ERROR)) {
                 debugPrintln(" Error creating directory, " + ex.toString());
             }
             debugPrintln(ex);
@@ -2594,7 +2596,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
                     diskCtx.getChangeHandler().notifyFileChanged(NotifyAction.Removed, ftpPath.getSharePath());
 
                 // DEBUG
-                if (Debug.EnableInfo && hasDebug(DBG_DIRECTORY))
+                if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.DIRECTORY))
                     debugPrintln("DeleteDir ftp=" + ftpPath.getFTPPath() + ", share=" + ftpPath.getShareName() + ", path="
                             + ftpPath.getSharePath());
             } else {
@@ -2605,7 +2607,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
             }
         }
         catch (Exception ex) {
-            if (Debug.EnableInfo && hasDebug(DBG_ERROR)) {
+            if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.ERROR)) {
                 debugPrintln(" Error deleting directory, " + ex.toString());
             }
             debugPrintln(ex);
@@ -2681,11 +2683,11 @@ public class FTPSrvSession extends SrvSession implements Runnable {
             sendFTPResponse("250 End");
 
             // DEBUG
-            if (Debug.EnableInfo && hasDebug(DBG_FILE))
+            if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.FILE))
                 debugPrintln("Mlst ftp=" + ftpPath.getFTPPath() + ", share=" + ftpPath.getShareName() + ", info=" + finfo);
         }
         catch (Exception ex) {
-            if (Debug.EnableInfo && hasDebug(DBG_ERROR)) {
+            if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.ERROR)) {
                 debugPrintln(" Error retrieving file information, " + ex.toString());
             }
             debugPrintln(ex);
@@ -2779,7 +2781,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
             if (files != null) {
 
                 // DEBUG
-                if (Debug.EnableInfo && hasDebug(DBG_SEARCH))
+                if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.SEARCH))
                     debugPrintln("MLsd found " + files.size() + " files in " + ftpPath.getFTPPath());
 
                 // Output the file information to the client
@@ -2815,7 +2817,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
         catch (Exception ex) {
 
             // Failed to send file listing
-            if (Debug.EnableInfo && hasDebug(DBG_ERROR)) {
+            if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.ERROR)) {
                 debugPrintln(" Error reading file list, " + ex.toString());
             }
             debugPrintln(ex);
@@ -2891,7 +2893,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
                 sendFTPResponse(550, "Modification date/time not available for " + finfo.getFileName());
 
             // DEBUG
-            if (Debug.EnableInfo && hasDebug(DBG_FILE))
+            if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.FILE))
                 debugPrintln("File modify date/time ftp=" + ftpPath.getFTPPath() + ", share=" + ftpPath.getShareName()
                         + ", modified=" + finfo.getModifyDateTime());
         }
@@ -2977,7 +2979,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
                     req.updateArgument(path);
 
                     // DEBUG
-                    if (Debug.EnableInfo && hasDebug(DBG_FILE))
+                    if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.FILE))
                         debugPrintln("Modify date/time arg=" + path + ", utcTime=" + modifyDateTime);
                 }
                 catch (NumberFormatException ex) {
@@ -3030,7 +3032,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
                 sendFTPResponse(550, "Modification date/time not available for " + finfo.getFileName());
 
             // DEBUG
-            if (Debug.EnableInfo && hasDebug(DBG_FILE))
+            if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.FILE))
                 debugPrintln("File modify date/time ftp=" + ftpPath.getFTPPath() + ", share=" + ftpPath.getShareName()
                         + ", modified=" + finfo.getModifyDateTime());
         }
@@ -3140,12 +3142,12 @@ public class FTPSrvSession extends SrvSession implements Runnable {
             sendFTPResponse(213, "" + finfo.getSize());
 
             // DEBUG
-            if (Debug.EnableInfo && hasDebug(DBG_FILE))
+            if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.FILE))
                 debugPrintln("File size ftp=" + ftpPath.getFTPPath() + ", share=" + ftpPath.getShareName() + ", size="
                         + finfo.getSize());
         }
         catch (Exception ex) {
-            if (Debug.EnableInfo && hasDebug(DBG_ERROR)) {
+            if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.ERROR)) {
                 debugPrintln(" Error retriving file size, " + ex.toString());
             }
             debugPrintln(ex);
@@ -3289,7 +3291,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
             }
         }
         catch (Exception ex) {
-            if (Debug.EnableInfo && hasDebug(DBG_ERROR)) {
+            if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.ERROR)) {
                 debugPrintln(" Faile to negotiate SSL/TLS, " + ex.toString());
             }
             debugPrintln(ex);
@@ -3431,7 +3433,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
         }
 
         // DEBUG
-        if (Debug.EnableInfo && hasDebug(DBG_DATAPORT))
+        if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.DATAPORT))
             debugPrintln("Opening data socket addr=" + clientAddr.getAddress() + ", port=" + clientAddr.getPort());
 
         // Create an active data session, the actual socket connection will be made later
@@ -3441,7 +3443,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
         sendFTPResponse(200, "Port OK");
 
         // DEBUG
-        if (Debug.EnableInfo && hasDebug(DBG_DATAPORT))
+        if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.DATAPORT))
             debugPrintln("Extended port open addr=" + clientAddr.getAddress() + ", port=" + clientAddr.getPort());
     }
 
@@ -3486,7 +3488,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
         sendFTPResponse(msg);
 
         // DEBUG
-        if (Debug.EnableInfo && hasDebug(DBG_DATAPORT))
+        if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.DATAPORT))
             debugPrintln("Extended passive open addr=" + m_sock.getLocalAddress() + ", port=" + pasvPort);
     }
 
@@ -3560,7 +3562,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
 
             InetAddress remoteAddr = m_sock.getInetAddress();
             if (!addr.equals(remoteAddr)) {
-                if (Debug.EnableWarn && hasDebug(DBG_DATAPORT))
+                if (Debug.EnableWarn && hasDebug(FTPSrvSession.Dbg.DATAPORT))
                     debugPrintln("EPRT address [" + addr + "] is not equal to client address [" + remoteAddr + "]. For security purposes client address is used for data transmission.");
                 addr = remoteAddr;
             }
@@ -3787,7 +3789,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
                     if (ftpReq.isCommand() == FTPCommand.ABOR) {
 
                         // DEBUG
-                        if (Debug.EnableDbg && hasDebug(DBG_FILEIO))
+                        if (Debug.EnableDbg && hasDebug(FTPSrvSession.Dbg.FILEIO))
                             debugPrintln("Transfer aborted by client");
 
                         // Indicate an abort has been received
@@ -3803,7 +3805,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
         catch (IOException ex) {
 
             // DEBUG
-            if (Debug.EnableError && hasDebug(DBG_ERROR))
+            if (Debug.EnableError && hasDebug(FTPSrvSession.Dbg.ERROR))
                 debugPrintln("Error during check for abort, " + ex.toString());
         }
 
@@ -3868,7 +3870,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
                             m_inbuf = newbuf;
 
                             // DEBUG
-                            if (Debug.EnableInfo && hasDebug(DBG_RXDATA))
+                            if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.RXDATA))
                                 debugPrintln("Extended command buffer to " + m_inbuf.length + " bytes");
 
                             // Read the remaining data
@@ -3882,7 +3884,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
                                 rdlen = rdlen + rdlen2;
 
                                 // DEBUG
-                                if (Debug.EnableInfo && hasDebug(DBG_RXDATA))
+                                if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.RXDATA))
                                     debugPrintln("Secondary read " + rdlen2 + " bytes, total bytes read " + rdlen);
                             }
                         }
@@ -3892,7 +3894,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
                         clearCommandSocket();
 
                         // DEBUG
-                        if (Debug.EnableInfo && hasDebug(DBG_RXDATA))
+                        if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.RXDATA))
                             debugPrintln("Received command too large, ignored");
 
                         return null;
@@ -3972,7 +3974,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
         }
 
         // DEBUG
-        if (Debug.EnableDbg && hasDebug(DBG_SSL))
+        if (Debug.EnableDbg && hasDebug(FTPSrvSession.Dbg.SSL))
             debugPrintln("SSL unwrap() len=" + len + ", returned " + sslRes.bytesProduced() + " bytes, res=" + sslRes);
 
         int unwrapLen = sslRes.bytesProduced();
@@ -3986,7 +3988,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
                 case NEED_TASK:
 
                     // DEBUG
-                    if (Debug.EnableDbg && hasDebug(DBG_SSL))
+                    if (Debug.EnableDbg && hasDebug(FTPSrvSession.Dbg.SSL))
                         debugPrintln("SSL engine status=NEED_TASK");
 
                     // Run the SSL engine task in the current thread
@@ -3997,7 +3999,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
                 case NEED_WRAP:
 
                     // DEBUG
-                    if (Debug.EnableDbg && hasDebug(DBG_SSL))
+                    if (Debug.EnableDbg && hasDebug(FTPSrvSession.Dbg.SSL))
                         debugPrintln("SSL engine status=NEED_WRAP");
 
                     m_sslIn.limit(m_sslIn.capacity());
@@ -4009,7 +4011,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
                         sslRes = m_sslEngine.wrap(m_sslIn, m_sslOut);
 
                         // DEBUG
-                        if (Debug.EnableDbg && hasDebug(DBG_SSL))
+                        if (Debug.EnableDbg && hasDebug(FTPSrvSession.Dbg.SSL))
                             debugPrintln("  wrap() returned " + sslRes.bytesProduced() + " bytes, res=" + sslRes);
                     }
 
@@ -4019,7 +4021,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
                     if (m_sslOut.remaining() > 0) {
 
                         // DEBUG
-                        if (Debug.EnableDbg && hasDebug(DBG_SSL))
+                        if (Debug.EnableDbg && hasDebug(FTPSrvSession.Dbg.SSL))
                             debugPrintln("  Send data to client = " + m_sslOut.remaining());
 
                         // Send the encrypted data to the client
@@ -4030,7 +4032,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
                 case NEED_UNWRAP:
 
                     // DEBUG
-                    if (Debug.EnableDbg && hasDebug(DBG_SSL))
+                    if (Debug.EnableDbg && hasDebug(FTPSrvSession.Dbg.SSL))
                         debugPrintln("SSL engine status=NEED_UNWRAP");
 
                     // Read more data from the socket
@@ -4040,7 +4042,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
                     if (rdlen == -1) {
 
                         // DEBUG
-                        if (Debug.EnableDbg && hasDebug(DBG_SSL))
+                        if (Debug.EnableDbg && hasDebug(FTPSrvSession.Dbg.SSL))
                             debugPrintln("  Socket read returned -1, closing session");
 
                         // Close the FTP session
@@ -4057,7 +4059,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
                         sslRes = m_sslEngine.unwrap(m_sslIn, m_sslOut);
 
                         // DEBUG
-                        if (Debug.EnableDbg && hasDebug(DBG_SSL))
+                        if (Debug.EnableDbg && hasDebug(FTPSrvSession.Dbg.SSL))
                             debugPrintln("  unwrap() len=" + rdlen + ",returned " + sslRes.bytesProduced() + " bytes, res=" + sslRes);
 
                         // Run the SSL engine task in the current thread
@@ -4066,7 +4068,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
                                 task.run();
 
                                 // DEBUG
-                                if (Debug.EnableDbg && hasDebug(DBG_SSL))
+                                if (Debug.EnableDbg && hasDebug(FTPSrvSession.Dbg.SSL))
                                     debugPrintln("  task during unwrap");
                             }
                         }
@@ -4080,7 +4082,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
                         } else {
 
                             // DEBUG
-                            if (Debug.EnableDbg && hasDebug(DBG_SSL))
+                            if (Debug.EnableDbg && hasDebug(FTPSrvSession.Dbg.SSL))
                                 debugPrintln("  Send data to client = " + m_sslOut.remaining());
 
                             // Send the encrypted data to the client
@@ -4092,14 +4094,14 @@ public class FTPSrvSession extends SrvSession implements Runnable {
                 case NOT_HANDSHAKING:
 
                     // DEBUG
-                    if (Debug.EnableDbg && hasDebug(DBG_SSL))
+                    if (Debug.EnableDbg && hasDebug(FTPSrvSession.Dbg.SSL))
                         debugPrintln("SSL engine status=NOT_HANDSHAKING");
                     loopDone = true;
                     break;
                 case FINISHED:
 
                     // DEBUG
-                    if (Debug.EnableDbg && hasDebug(DBG_SSL))
+                    if (Debug.EnableDbg && hasDebug(FTPSrvSession.Dbg.SSL))
                         debugPrintln("SSL engine status=FINISHED");
                     loopDone = true;
                     break;
@@ -4310,7 +4312,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
         try {
 
             // Debug
-            if (Debug.EnableInfo && hasDebug(DBG_STATE))
+            if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.STATE))
                 debugPrintln("FTP session started");
 
             // Create the input/output streams
@@ -4337,10 +4339,10 @@ public class FTPSrvSession extends SrvSession implements Runnable {
                     continue;
 
                 // Debug
-                if (Debug.EnableInfo && hasDebug(DBG_TIMING))
+                if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.TIMING))
                     startTime = System.currentTimeMillis();
 
-                if (Debug.EnableInfo && hasDebug(DBG_RXDATA))
+                if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.RXDATA))
                     debugPrintln("Rx cmd=" + ftpReq);
 
                 // Parse the received command, and validate
@@ -4574,7 +4576,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
                 }
 
                 // Debug
-                if (Debug.EnableInfo && hasDebug(DBG_TIMING)) {
+                if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.TIMING)) {
                     endTime = System.currentTimeMillis();
                     long duration = endTime - startTime;
                     if (duration > 20)
@@ -4590,7 +4592,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
         catch (SocketException ex) {
 
             // DEBUG
-            if (Debug.EnableWarn && hasDebug(DBG_STATE))
+            if (Debug.EnableWarn && hasDebug(FTPSrvSession.Dbg.STATE))
                 debugPrintln("Socket closed by remote client");
         }
         catch (Exception ex) {
@@ -4605,7 +4607,7 @@ public class FTPSrvSession extends SrvSession implements Runnable {
         closeSession();
 
         // Debug
-        if (hasDebug(DBG_STATE))
+        if (hasDebug(FTPSrvSession.Dbg.STATE))
             debugPrintln("Server session closed");
     }
 }

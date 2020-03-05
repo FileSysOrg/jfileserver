@@ -73,7 +73,7 @@ class IPCHandler {
         SMBV1Parser parser = (SMBV1Parser) smbPkt.getParser();
 
         // Debug
-        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_IPC))
+        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.IPC))
             sess.debugPrintln("IPC$ Request [" + parser.getTreeId() + "] - cmd = " + SMBV1.getPacketTypeString( parser.getCommand()));
 
         // Determine the SMB command
@@ -136,7 +136,7 @@ class IPCHandler {
             throws IOException, SMBSrvException {
 
         // Debug
-        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_IPC))
+        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.IPC))
             sess.debugPrintln("IPC$ Transaction  pipe=" + tbuf.getName() + ", subCmd="
                     + NamedPipeTransaction.getSubCommand(tbuf.getFunction()));
 
@@ -199,7 +199,7 @@ class IPCHandler {
         String fileName = DataPacker.getString(buf, dataPos, dataLen);
 
         // Debug
-        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_IPC))
+        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.IPC))
             sess.debugPrintln("IPC$ Open file = " + fileName);
 
         // Check if the requested IPC$ file is valid
@@ -281,7 +281,7 @@ class IPCHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_IPC))
+        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.IPC))
             sess.debugPrintln("IPC$ File Read");
 
         // Pass the read request the DCE/RPC handler
@@ -309,7 +309,7 @@ class IPCHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_IPC))
+        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.IPC))
             sess.debugPrintln("IPC$ File Read AndX");
 
         // Pass the read request the DCE/RPC handler
@@ -337,7 +337,7 @@ class IPCHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_IPC))
+        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.IPC))
             sess.debugPrintln("IPC$ File Write");
 
         // Pass the write request the DCE/RPC handler
@@ -365,7 +365,7 @@ class IPCHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_IPC))
+        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.IPC))
             sess.debugPrintln("IPC$ File Write AndX");
 
         // Pass the write request the DCE/RPC handler
@@ -409,7 +409,7 @@ class IPCHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_IPC))
+        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.IPC))
             sess.debugPrintln("IPC$ File close [" + parser.getTreeId() + "] fid=" + fid);
 
         // Remove the file from the connections list of open files
@@ -456,7 +456,7 @@ class IPCHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_IPC))
+        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.IPC))
             sess.debugPrintln("  SetNmPHandState pipe=" + netFile.getName() + ", fid=" + fid + ", state=0x"
                     + Integer.toHexString(state));
 
@@ -515,7 +515,7 @@ class IPCHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_IPC))
+        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.IPC))
             sess.debugPrintln("NT Create AndX [" + parser.getTreeId() + "] name=" + fileName + ", flags=0x"
                     + Integer.toHexString(flags) + ", attr=0x" + Integer.toHexString(attrib) + ", allocSize=" + allocSize);
 
@@ -652,7 +652,7 @@ class IPCHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_IPC))
+        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.IPC))
             sess.debugPrintln("IPC$ Query File - level=0x" + Integer.toHexString(infoLevl) + ", fid=" + fid + ", name="
                     + netFile.getFullName());
 

@@ -233,7 +233,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             nfsSess.endTransaction();
 
         //	Dump the response
-        if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_DUMPDATA)) {
+        if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.DUMPDATA)) {
             Debug.println("NFS Resp=" + (rpc != null ? rpc.toString() : "<Null>"));
             HexDump.Dump(rpc.getBuffer(), rpc.getLength(), 0);
         }
@@ -270,7 +270,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
         rpc.unpackByteArrayWithLength(handle);
 
         //	DEBUG
-        if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_INFO))
+        if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.INFO))
             nfsSess.debugPrintln("GetAttr request from " + rpc.getClientDetails() + ", handle=" + NFSHandle.asString(handle));
 
         //	Check if the handle is valid
@@ -324,7 +324,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
                     finfo.setFileSize(netFile.getFileSize());
 
                     //  DEBUG
-                    if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_INFO))
+                    if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.INFO))
                         nfsSess.debugPrintln("GetAttr added details from open file");
                 }
 
@@ -333,7 +333,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
                 packAttributes3(rpc, finfo, shareId);
 
                 //	DEBUG
-                if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_INFO))
+                if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.INFO))
                     nfsSess.debugPrintln("GetAttr path=" + path + ", info=" + finfo);
             }
         }
@@ -350,7 +350,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             errorSts = NFS3.StatusCode.ServerFault;
 
             //	DEBUG
-            if (Debug.EnableError && nfsSess.hasDebug(NFSSrvSession.DBG_ERROR)) {
+            if (Debug.EnableError && nfsSess.hasDebug(NFSSrvSession.Dbg.ERROR)) {
                 nfsSess.debugPrintln("GetAttr Exception: " + ex.toString());
                 nfsSess.debugPrintln(ex);
             }
@@ -363,7 +363,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             rpc.buildErrorResponse(errorSts.intValue());
 
             //	DEBUG
-            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_ERROR))
+            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.ERROR))
                 nfsSess.debugPrintln("GetAttr error=" + errorSts.getStatusString());
         }
 
@@ -386,7 +386,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
         rpc.unpackByteArrayWithLength(handle);
 
         //	DEBUG
-        if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_INFO))
+        if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.INFO))
             nfsSess.debugPrintln("SetAttr request from " + rpc.getClientDetails());
 
         //	Check if the handle is valid
@@ -532,7 +532,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
                 disk.setFileInformation(nfsSess, conn, path, finfo);
 
                 //	DEBUG
-                if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_INFO))
+                if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.INFO))
                     nfsSess.debugPrintln("SetAttr handle=" + NFSHandle.asString(handle) + ", accessTime=" + finfo.getAccessDateTime() +
                             ", modifyTime=" + finfo.getModifyDateTime() + ", mode=" + mode + ", gid/uid=" + gid + "/" + uid);
             }
@@ -556,7 +556,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
                 }
 
                 //	DEBUG
-                if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_INFO))
+                if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.INFO))
                     nfsSess.debugPrintln("SetAttr handle=" + NFSHandle.asString(handle) + ", newSize=" + fsize);
             }
 
@@ -605,7 +605,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             errorSts = NFS3.StatusCode.ServerFault;
 
             //	DEBUG
-            if (Debug.EnableError && nfsSess.hasDebug(NFSSrvSession.DBG_ERROR))
+            if (Debug.EnableError && nfsSess.hasDebug(NFSSrvSession.Dbg.ERROR))
                 nfsSess.debugPrintln("SetAttr Exception: " + ex.toString());
         }
 
@@ -617,7 +617,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             packWccData(rpc, null);
 
             //	DEBUG
-            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_ERROR))
+            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.ERROR))
                 nfsSess.debugPrintln("SetAttr error=" + errorSts.getStatusString());
         }
 
@@ -642,7 +642,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
         String fileName = rpc.unpackUTF8String();
 
         //	DEBUG
-        if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_SEARCH))
+        if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.SEARCH))
             nfsSess.debugPrintln("Lookup request from " + rpc.getClientDetails() + ", handle=" + NFSHandle.asString(handle) +
                     ", name=" + fileName);
 
@@ -723,7 +723,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
                     }
 
                     //	DEBUG
-                    if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_SEARCH))
+                    if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.SEARCH))
                         nfsSess.debugPrintln("Lookup path=" + lookupPath + ", finfo=" + finfo.toString());
                 }
             } else {
@@ -745,7 +745,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             errorSts = NFS3.StatusCode.ServerFault;
 
             //	DEBUG
-            if (Debug.EnableError && nfsSess.hasDebug(NFSSrvSession.DBG_ERROR))
+            if (Debug.EnableError && nfsSess.hasDebug(NFSSrvSession.Dbg.ERROR))
                 nfsSess.debugPrintln("Lookup Exception: " + ex.toString());
         }
 
@@ -757,7 +757,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             packPostOpAttr(nfsSess, null, shareId, rpc);
 
             //	DEBUG
-            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_ERROR))
+            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.ERROR))
                 Debug.println("Lookup error=" + errorSts.getStatusString());
         }
 
@@ -782,7 +782,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
         int accessMode = rpc.unpackInt();
 
         //	DEBUG
-        if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_INFO))
+        if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.INFO))
             nfsSess.debugPrintln("Access request from " + rpc.getClientDetails() + ", handle=" + NFSHandle.asString(handle) +
                     ", access=0x" + Integer.toHexString(accessMode));
 
@@ -813,7 +813,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
                 rpc.packInt(accessMode & NFS3.AccessAll);
 
                 // DEBUG
-                if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_INFO))
+                if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.INFO))
                     Debug.println("Access share path=" + path);
 
             } else {
@@ -856,7 +856,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
                     rpc.packInt(accessMode & mask);
 
                     // DEBUG
-                    if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_INFO))
+                    if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.INFO))
                         Debug.println("Access path=" + path + ", info=" + finfo);
 
                 } else {
@@ -877,7 +877,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             errorSts = NFS3.StatusCode.ServerFault;
 
             //	DEBUG
-            if (Debug.EnableError && nfsSess.hasDebug(NFSSrvSession.DBG_ERROR)) {
+            if (Debug.EnableError && nfsSess.hasDebug(NFSSrvSession.Dbg.ERROR)) {
                 nfsSess.debugPrintln("Access3 Exception: " + ex.toString());
                 nfsSess.debugPrintln(ex);
             }
@@ -889,7 +889,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             packPostOpAttr(nfsSess, null, shareId, rpc);
 
             //	DEBUG
-            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_ERROR))
+            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.ERROR))
                 nfsSess.debugPrintln("Access error=" + errorSts.getStatusString());
         }
 
@@ -996,7 +996,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             errorSts = NFS3.StatusCode.ServerFault;
 
             //  DEBUG
-            if (Debug.EnableError && nfsSess.hasDebug(NFSSrvSession.DBG_ERROR))
+            if (Debug.EnableError && nfsSess.hasDebug(NFSSrvSession.Dbg.ERROR))
                 nfsSess.debugPrintln("ReadLink Exception: " + ex.toString());
         }
 
@@ -1007,7 +1007,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             respRpc.buildErrorResponse(errorSts.intValue());
 
             //  DEBUG
-            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_ERROR))
+            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.ERROR))
                 nfsSess.debugPrintln("ReadLink error=" + errorSts.getStatusString());
         }
 
@@ -1033,7 +1033,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
         int count = rpc.unpackInt();
 
         //	DEBUG
-        if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_FILEIO))
+        if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.FILEIO))
             nfsSess.debugPrintln("[NFS] Read request " + rpc.getClientDetails() + ", count=" + count + ", pos=" + offset);
 
         //	Call the disk share driver to read the file
@@ -1110,7 +1110,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             respRpc.setLength((bufPos + 12 + ((rdlen + 3) & 0xFFFFFFFC)) - respRpc.getOffset());
 
             //	DEBUG
-            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_FILEIO))
+            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.FILEIO))
                 nfsSess.debugPrintln("Read fid=" + netFile.getFileId() + ", name=" + netFile.getName() + ", rdlen=" + rdlen);
         }
         catch (BadHandleException ex) {
@@ -1126,7 +1126,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             errorSts = NFS3.StatusCode.ServerFault;
 
             //	DEBUG
-            if (Debug.EnableError && nfsSess.hasDebug(NFSSrvSession.DBG_ERROR)) {
+            if (Debug.EnableError && nfsSess.hasDebug(NFSSrvSession.Dbg.ERROR)) {
                 nfsSess.debugPrintln("Read Exception: netFile=" + netFile + ", cache=" + nfsSess.getFileCache().numberOfEntries());
                 nfsSess.debugPrintln(ex);
             }
@@ -1140,7 +1140,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             packPostOpAttr(nfsSess, null, shareId, respRpc);
 
             //	DEBUG
-            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_ERROR))
+            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.ERROR))
                 nfsSess.debugPrintln("Read error=" + errorSts.getStatusString());
         }
 
@@ -1169,7 +1169,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
         rpc.skipBytes(4);
 
         //	DEBUG
-        if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_FILEIO))
+        if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.FILEIO))
             nfsSess.debugPrintln("Write request from " + rpc.getClientDetails() + " , count=" + count + ", offset=" + offset);
 
         //	Call the disk share driver to write to the file
@@ -1231,7 +1231,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             rpc.packLong( nfsSess.getNFSServer().getWriteVerifier());
 
             //	DEBUG
-            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_FILEIO))
+            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.FILEIO))
                 nfsSess.debugPrintln("Write fid=" + netFile.getFileId() + ", name=" + netFile.getName() + ", wrlen=" + count);
         }
         catch (BadHandleException ex) {
@@ -1250,7 +1250,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             errorSts = NFS3.StatusCode.ServerFault;
 
             //	DEBUG
-            if (Debug.EnableError && nfsSess.hasDebug(NFSSrvSession.DBG_ERROR)) {
+            if (Debug.EnableError && nfsSess.hasDebug(NFSSrvSession.Dbg.ERROR)) {
                 nfsSess.debugPrintln("Write Exception: netFile=" + netFile + ", cache=" + nfsSess.getFileCache().numberOfEntries());
                 nfsSess.debugPrintln(ex);
             }
@@ -1265,7 +1265,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             packWccData(rpc, null); // after attributes
 
             //	DEBUG
-            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_ERROR))
+            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.ERROR))
                 nfsSess.debugPrintln("Write error=" + errorSts.getStatusString());
         }
 
@@ -1292,7 +1292,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
         int createMode = rpc.unpackInt();
 
         //	DEBUG
-        if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_FILE))
+        if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.FILE))
             nfsSess.debugPrintln("Create request from " + rpc.getClientDetails() + ", name=" + fileName);
 
         //	Check if the handle is valid
@@ -1364,7 +1364,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
                 NetworkFile netFile = disk.createFile(nfsSess, conn, params);
 
                 //  DEBUG
-                if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_FILE))
+                if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.FILE))
                     nfsSess.debugPrintln("  Create file params=" + params);
 
                 //	Get file information for the path
@@ -1401,7 +1401,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
                     packPostOpAttr(nfsSess, postInfo, shareId, respRpc);
 
                     //	DEBUG
-                    if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_FILE))
+                    if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.FILE))
                         nfsSess.debugPrintln("Create path=" + filePath + ", finfo=" + finfo.toString());
 
                     //	Notify change listeners that a new file has been created
@@ -1425,7 +1425,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             errorSts = NFS3.StatusCode.ServerFault;
 
             //	DEBUG
-            if (Debug.EnableError && nfsSess.hasDebug(NFSSrvSession.DBG_ERROR)) {
+            if (Debug.EnableError && nfsSess.hasDebug(NFSSrvSession.Dbg.ERROR)) {
                 nfsSess.debugPrintln("Create Exception: " + ex.toString());
                 nfsSess.debugPrintln(ex);
             }
@@ -1440,7 +1440,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             packWccData(respRpc, null); // after attributes
 
             //	DEBUG
-            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_ERROR))
+            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.ERROR))
                 nfsSess.debugPrintln("Create error=" + errorSts.getStatusString());
         }
 
@@ -1465,7 +1465,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
         String dirName = rpc.unpackUTF8String();
 
         //	DEBUG
-        if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_DIRECTORY))
+        if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.DIRECTORY))
             nfsSess.debugPrintln("MkDir request from " + rpc.getClientDetails() + ", name=" + dirName);
 
         //	Check if the handle is valid
@@ -1568,7 +1568,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
                         diskCtx.getChangeHandler().notifyFileChanged(NotifyAction.Added, dirPath);
 
                     //	DEBUG
-                    if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_DIRECTORY))
+                    if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.DIRECTORY))
                         nfsSess.debugPrintln("Mkdir path=" + dirPath + ", finfo=" + finfo.toString());
                 }
             }
@@ -1587,7 +1587,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             errorSts = NFS3.StatusCode.ServerFault;
 
             //	DEBUG
-            if (Debug.EnableError && nfsSess.hasDebug(NFSSrvSession.DBG_ERROR))
+            if (Debug.EnableError && nfsSess.hasDebug(NFSSrvSession.Dbg.ERROR))
                 nfsSess.debugPrintln("Mkdir Exception: " + ex.toString());
         }
 
@@ -1600,7 +1600,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             packWccData(respRpc, null);
 
             //	DEBUG
-            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_ERROR))
+            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.ERROR))
                 nfsSess.debugPrintln("Mkdir error=" + errorSts.getStatusString());
         }
 
@@ -1734,7 +1734,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             String linkName = rpc.unpackString();
 
             //  DEBUG
-            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_FILE))
+            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.FILE))
                 nfsSess.debugPrintln("Symbolic link request from " + rpc.getClientDetails() + ", name=" + fileName + ", link=" + linkName);
 
             //  Get the disk interface from the disk driver
@@ -1769,7 +1769,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
                 NetworkFile netFile = disk.createFile(nfsSess, conn, params);
 
                 //  DEBUG
-                if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_FILE))
+                if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.FILE))
                     nfsSess.debugPrintln("  Symbolic link params=" + params);
 
                 //  Get file information for the path
@@ -1800,7 +1800,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
                     packPostOpAttr(nfsSess, postInfo, shareId, rpc);
 
                     //  DEBUG
-                    if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_FILE))
+                    if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.FILE))
                         nfsSess.debugPrintln("Symbolic link path=" + filePath + ", finfo=" + finfo.toString());
                 }
             }
@@ -1818,7 +1818,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             errorSts = NFS3.StatusCode.ServerFault;
 
             //  DEBUG
-            if (Debug.EnableError && nfsSess.hasDebug(NFSSrvSession.DBG_ERROR))
+            if (Debug.EnableError && nfsSess.hasDebug(NFSSrvSession.Dbg.ERROR))
                 nfsSess.debugPrintln("SymbolicLink Exception: " + ex.toString());
         }
 
@@ -1829,7 +1829,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             rpc.buildErrorResponse(errorSts.intValue());
 
             //  DEBUG
-            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_ERROR))
+            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.ERROR))
                 nfsSess.debugPrintln("SymLink error=" + errorSts.getStatusString());
         }
 
@@ -1848,7 +1848,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
     private final RpcPacket procMkNode(NFSSrvSession nfsSess, RpcPacket rpc) {
 
         //	DEBUG
-        if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_DIRECTORY))
+        if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.DIRECTORY))
             nfsSess.debugPrintln("MkNode request from " + rpc.getClientDetails());
 
         //	Return an error status
@@ -1876,7 +1876,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
         String fileName = rpc.unpackUTF8String();
 
         //	DEBUG
-        if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_FILE))
+        if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.FILE))
             nfsSess.debugPrintln("Remove request from " + rpc.getClientDetails() + ", name=" + fileName);
 
         //	Call the disk share driver to delete the file
@@ -1964,7 +1964,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             errorSts = NFS3.StatusCode.ServerFault;
 
             //	DEBUG
-            if (Debug.EnableError && nfsSess.hasDebug(NFSSrvSession.DBG_ERROR))
+            if (Debug.EnableError && nfsSess.hasDebug(NFSSrvSession.Dbg.ERROR))
                 nfsSess.debugPrintln("Remove Exception: " + ex.toString());
         }
 
@@ -1977,7 +1977,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             packWccData(rpc, null);
 
             //	DEBUG
-            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_ERROR))
+            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.ERROR))
                 nfsSess.debugPrintln("Remove error=" + errorSts.getStatusString());
         }
 
@@ -2002,7 +2002,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
         String dirName = rpc.unpackUTF8String();
 
         //	DEBUG
-        if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_DIRECTORY))
+        if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.DIRECTORY))
             nfsSess.debugPrintln("RmDir request from " + rpc.getClientDetails() + ", name=" + dirName);
 
         //	Check if the handle is valid
@@ -2096,7 +2096,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             errorSts = NFS3.StatusCode.ServerFault;
 
             //	DEBUG
-            if (Debug.EnableError && nfsSess.hasDebug(NFSSrvSession.DBG_ERROR))
+            if (Debug.EnableError && nfsSess.hasDebug(NFSSrvSession.Dbg.ERROR))
                 nfsSess.debugPrintln("Rmdir Exception: " + ex.toString());
         }
 
@@ -2109,7 +2109,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             packWccData(rpc, null);
 
             //	DEBUG
-            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_ERROR))
+            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.ERROR))
                 nfsSess.debugPrintln("Rmdir error=" + errorSts.getStatusString());
         }
 
@@ -2139,7 +2139,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
         String toName = rpc.unpackUTF8String();
 
         //	DEBUG
-        if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_FILE)) {
+        if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.FILE)) {
             nfsSess.debugPrintln("Rename request from " + rpc.getClientDetails() + ", fromHandle=" + NFSHandle.asString(fromHandle) + ", fromname=" + fromName);
             nfsSess.debugPrintln("               tohandle=" + NFSHandle.asString(toHandle) + ", toname=" + toName);
         }
@@ -2207,7 +2207,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             } else {
 
                 //	DEBUG
-                if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_FILE))
+                if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.FILE))
                     nfsSess.debugPrintln("Rename from=" + oldPath + ", to=" + newPath);
 
                 //	Get the file details for the file/folder being renamed
@@ -2224,7 +2224,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
                     if (netFile != null) {
 
                         // DEBUG
-                        if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_FILE))
+                        if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.FILE))
                             nfsSess.debugPrintln("  Closing file " + oldPath + " before rename");
 
                         // Close the file
@@ -2245,7 +2245,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
                 if (disk.fileExists(nfsSess, conn, newPath) == FileStatus.FileExists) {
 
                     // DEBUG
-                    if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_FILE))
+                    if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.FILE))
                         nfsSess.debugPrintln("  Delete existing file before rename, newPath=" + newPath);
 
                     // Delete the existing target file
@@ -2318,7 +2318,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             errorSts = NFS3.StatusCode.ServerFault;
 
             //	DEBUG
-            if (Debug.EnableError && nfsSess.hasDebug(NFSSrvSession.DBG_ERROR))
+            if (Debug.EnableError && nfsSess.hasDebug(NFSSrvSession.Dbg.ERROR))
                 nfsSess.debugPrintln("Rename Exception: " + ex.toString());
         }
 
@@ -2337,7 +2337,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             packWccData(rpc, null);
 
             //	DEBUG
-            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_ERROR))
+            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.ERROR))
                 nfsSess.debugPrintln("Rename error=" + errorSts.getStatusString());
         }
 
@@ -2356,7 +2356,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
     private final RpcPacket procLink(NFSSrvSession nfsSess, RpcPacket rpc) {
 
         //	DEBUG
-        if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_RXDATA))
+        if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.RXDATA))
             nfsSess.debugPrintln("Link request from " + rpc.getClientDetails());
 
         //	Return an error status
@@ -2388,7 +2388,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
         int maxCount = rpc.unpackInt();
 
         //	DEBUG
-        if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_SEARCH))
+        if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.SEARCH))
             nfsSess.debugPrintln("ReadDir request from " + rpc.getClientDetails() + " handle=" + NFSHandle.asString(handle) +
                     ", count=" + maxCount);
 
@@ -2452,7 +2452,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             String searchPath = generatePath(path, "*.*");
 
             //	DEBUG
-            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_SEARCH))
+            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.SEARCH))
                 nfsSess.debugPrintln("ReadDir searchPath=" + searchPath + ", cookie=" + cookie);
 
             //	Check if this is the start of a search
@@ -2471,7 +2471,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
                 cookieVerf = dinfo.getModifyDateTime();
 
                 //	DEBUG
-                if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_SEARCH))
+                if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.SEARCH))
                     nfsSess.debugPrintln("ReadDir allocated searchId=" + searchId);
             } else {
 
@@ -2499,7 +2499,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
                     cookieVerf = dinfo.getModifyDateTime();
 
                     //	DEBUG
-                    if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_SEARCH))
+                    if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.SEARCH))
                         nfsSess.debugPrintln("ReadDir restarted search, searchId=" + searchId);
                 }
 
@@ -2562,7 +2562,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
                     replyFull = true;
 
                     //  DEBUG
-                    if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_SEARCH))
+                    if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.SEARCH))
                         nfsSess.debugPrintln("ReadDir response full, restart at=" + finfo.getFileName() + ", resumeId=" + search.getResumeId());
 
                     search.restartAt(finfo);
@@ -2604,12 +2604,12 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
                 nfsSess.deallocateSearchSlot((int) searchId);
 
                 //	DEBUG
-                if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_SEARCH))
+                if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.SEARCH))
                     nfsSess.debugPrintln("ReadDir released searchId=" + searchId);
             }
 
             //	DEBUG
-            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_SEARCH))
+            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.SEARCH))
                 nfsSess.debugPrintln("ReadDir return entries=" + (entCnt - 1) + ", eof=" + search.hasMoreFiles());
         }
         catch (BadHandleException ex) {
@@ -2625,7 +2625,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             errorSts = NFS3.StatusCode.ServerFault;
 
             //	DEBUG
-            if (Debug.EnableError && nfsSess.hasDebug(NFSSrvSession.DBG_ERROR)) {
+            if (Debug.EnableError && nfsSess.hasDebug(NFSSrvSession.Dbg.ERROR)) {
                 nfsSess.debugPrintln("ReadDir Exception: " + ex.toString());
                 nfsSess.debugPrintln(ex);
             }
@@ -2639,7 +2639,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             packPostOpAttr(nfsSess, null, shareId, respRpc);
 
             //	DEBUG
-            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_ERROR))
+            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.ERROR))
                 nfsSess.debugPrintln("ReadDir error=" + errorSts.getStatusString());
         }
 
@@ -2668,7 +2668,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
         int maxCount = rpc.unpackInt();
 
         //	DEBUG
-        if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_SEARCH))
+        if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.SEARCH))
             nfsSess.debugPrintln("ReadDir request from " + rpc.getClientDetails() + " handle=" + NFSHandle.asString(handle) +
                     ", dir=" + maxDir + ", count=" + maxCount);
 
@@ -2732,7 +2732,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             String searchPath = generatePath(path, "*.*");
 
             //	DEBUG
-            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_SEARCH))
+            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.SEARCH))
                 nfsSess.debugPrintln("ReadDirPlus searchPath=" + searchPath + ", cookie=" + cookie);
 
             //	Check if this is the start of a search
@@ -2751,7 +2751,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
                 cookieVerf = dinfo.getModifyDateTime();
 
                 //	DEBUG
-                if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_SEARCH))
+                if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.SEARCH))
                     nfsSess.debugPrintln("ReadDirPlus allocated searchId=" + searchId);
             } else {
 
@@ -2781,7 +2781,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
                     cookieVerf = dinfo.getModifyDateTime();
 
                     //	DEBUG
-                    if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_SEARCH))
+                    if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.SEARCH))
                         nfsSess.debugPrintln("ReadDirPlus restarted search, searchId=" + searchId);
                 }
 
@@ -2858,7 +2858,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
                     replyFull = true;
 
                     //  DEBUG
-                    if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_SEARCH))
+                    if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.SEARCH))
                         nfsSess.debugPrintln("ReadDirPlus response full, restart at=" + finfo.getFileName() + ", resumeId=" + search.getResumeId());
 
                     search.restartAt(finfo);
@@ -2914,7 +2914,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             }
 
             //	DEBUG
-            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_SEARCH))
+            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.SEARCH))
                 nfsSess.debugPrintln("ReadDirPlus return entries=" + (entCnt - 1) + ", eof=" + (search.hasMoreFiles() ? false : true));
         }
         catch (BadHandleException ex) {
@@ -2930,7 +2930,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             errorSts = NFS3.StatusCode.ServerFault;
 
             //	DEBUG
-            if (Debug.EnableError && nfsSess.hasDebug(NFSSrvSession.DBG_ERROR)) {
+            if (Debug.EnableError && nfsSess.hasDebug(NFSSrvSession.Dbg.ERROR)) {
                 nfsSess.debugPrintln("ReadDirPlus Exception: " + ex.toString());
                 nfsSess.debugPrintln(ex);
             }
@@ -2944,7 +2944,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             packPostOpAttr(nfsSess, null, shareId, respRpc);
 
             //	DEBUG
-            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_ERROR))
+            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.ERROR))
                 nfsSess.debugPrintln("ReadDir error=" + errorSts.getStatusString());
         }
 
@@ -2967,7 +2967,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
         rpc.unpackByteArrayWithLength(handle);
 
         //	DEBUG
-        if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_INFO))
+        if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.INFO))
             nfsSess.debugPrintln("FsInfo request from " + rpc.getClientDetails());
 
         //	Call the disk share driver to get the disk size information
@@ -3062,7 +3062,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             packPostOpAttr(nfsSess, null, shareId, rpc);
 
             //	DEBUG
-            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_ERROR))
+            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.ERROR))
                 nfsSess.debugPrintln("FsStat error=" + errorSts.getStatusString());
         }
 
@@ -3085,7 +3085,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
         rpc.unpackByteArrayWithLength(handle);
 
         //	DEBUG
-        if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_INFO))
+        if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.INFO))
             nfsSess.debugPrintln("[NFS] FsInfo request from " + rpc.getClientDetails());
 
         //	Check if the handle is valid
@@ -3162,7 +3162,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             errorSts = NFS3.StatusCode.ServerFault;
 
             //	DEBUG
-            if (Debug.EnableError && nfsSess.hasDebug(NFSSrvSession.DBG_ERROR)) {
+            if (Debug.EnableError && nfsSess.hasDebug(NFSSrvSession.Dbg.ERROR)) {
                 nfsSess.debugPrintln("FsInfo Exception: " + ex.toString());
                 nfsSess.debugPrintln(ex);
             }
@@ -3174,7 +3174,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             packPostOpAttr(nfsSess, null, shareId, rpc);
 
             //	DEBUG
-            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_ERROR))
+            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.ERROR))
                 nfsSess.debugPrintln("FsInfo error=" + errorSts.getStatusString());
         }
 
@@ -3197,7 +3197,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
         rpc.unpackByteArrayWithLength(handle);
 
         //	DEBUG
-        if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_SEARCH))
+        if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.SEARCH))
             nfsSess.debugPrintln("PathConf request from " + rpc.getClientDetails() + " handle=" + NFSHandle.asString(handle));
 
         //	Call the disk share driver to get the file information for the path
@@ -3243,7 +3243,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
                 rpc.packInt(Rpc.True);        //	case preserving
 
                 //	DEBUG
-                if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_SEARCH))
+                if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.SEARCH))
                     nfsSess.debugPrintln("Pathconf path=" + path + ", finfo=" + (finfo != null ? finfo.toString() : "<null>"));
             } else {
 
@@ -3264,7 +3264,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             errorSts = NFS3.StatusCode.ServerFault;
 
             //	DEBUG
-            if (Debug.EnableError && nfsSess.hasDebug(NFSSrvSession.DBG_ERROR))
+            if (Debug.EnableError && nfsSess.hasDebug(NFSSrvSession.Dbg.ERROR))
                 nfsSess.debugPrintln("Pathconf Exception: " + ex.toString());
         }
 
@@ -3276,7 +3276,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             packPostOpAttr(nfsSess, null, shareId, rpc);
 
             //	DEBUG
-            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_ERROR))
+            if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.ERROR))
                 nfsSess.debugPrintln("Pathconf error=" + errorSts.getStatusString());
         }
 
@@ -3295,7 +3295,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
     private final RpcPacket procCommit(NFSSrvSession nfsSess, RpcPacket rpc) {
 
         //	DEBUG
-        if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.DBG_FILEIO))
+        if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.FILEIO))
             nfsSess.debugPrintln("Commit request from " + rpc.getClientDetails());
 
         //	Pack the response
@@ -3719,7 +3719,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
                         fileCache.addFile(file, conn, nfsSess);
                 }
                 catch (AccessDeniedException ex) {
-                    if (nfsSess.hasDebug( NFSSrvSession.DBG_FILE))
+                    if (nfsSess.hasDebug( NFSSrvSession.Dbg.FILE))
                         Debug.println(ex);
                 }
                 catch (Exception ex) {

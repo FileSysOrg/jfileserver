@@ -84,7 +84,7 @@ public class DCERPCHandler {
         DCEBuffer dceBuf = new DCEBuffer(srvTrans.getBuffer(), parser.getParameter(10) + RFCNetBIOSProtocol.HEADER_LEN);
 
         // Debug
-        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_DCERPC))
+        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.DCERPC))
             sess.debugPrintln("TransactNmPipe pipeFile=" + pipeFile.getName() + ", fid=" + fid + ", dceCmd=0x"
                     + Integer.toHexString(dceBuf.getHeaderValue(DCEBuffer.HDR_PDUTYPE)));
 
@@ -138,7 +138,7 @@ public class DCERPCHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_DCERPC))
+        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.DCERPC))
             sess.debugPrintln("Reply DCEbuf flags=0x" + Integer.toHexString(flags) + ", len=" + len + ", status=0x"
                     + Integer.toHexString(sts));
 
@@ -167,7 +167,7 @@ public class DCERPCHandler {
         if (dcePkt.hasAssociatedPacket()) {
 
             // DEBUG
-            if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.DBG_PKTPOOL))
+            if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.Dbg.PKTPOOL))
                 Debug.println("[SMB] DCERPCHandler allocated associated packet, len=" + dcePkt.getAssociatedPacket().getBufferLength());
 
             // Copy the associated packet to the outer request packet
@@ -222,7 +222,7 @@ public class DCERPCHandler {
         DCEBuffer dceBuf = new DCEBuffer(tbuf);
 
         // Debug
-        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_DCERPC))
+        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.DCERPC))
             sess.debugPrintln("TransactNmPipe pipeFile=" + pipeFile.getName() + ", fid=" + fid + ", dceCmd=0x"
                     + Integer.toHexString(dceBuf.getHeaderValue(DCEBuffer.HDR_PDUTYPE)));
 
@@ -293,7 +293,7 @@ public class DCERPCHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_DCERPC))
+        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.DCERPC))
             sess.debugPrintln("Reply DCEbuf flags=0x" + Integer.toHexString(flags) + ", len=" + len + ", status=0x"
                     + Integer.toHexString(sts));
 
@@ -322,7 +322,7 @@ public class DCERPCHandler {
         if (dcePkt.hasAssociatedPacket()) {
 
             // DEBUG
-            if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.DBG_PKTPOOL))
+            if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.Dbg.PKTPOOL))
                 Debug.println("[SMB] DCERPCHandler allocated associated packet, len=" + dcePkt.getAssociatedPacket().getBufferLength());
 
             // Copy the associated packet to the outer request packet
@@ -401,7 +401,7 @@ public class DCERPCHandler {
         dceBuf = new DCEBuffer(buf, pos);
 
         // Debug
-        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_IPC))
+        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.IPC))
             sess.debugPrintln("Write pipeFile=" + pipeFile.getName() + ", fid=" + fid + ", dceCmd=0x"
                     + Integer.toHexString(dceBuf.getHeaderValue(DCEBuffer.HDR_PDUTYPE)));
 
@@ -487,7 +487,7 @@ public class DCERPCHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_IPC))
+        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.IPC))
             sess.debugPrintln("Read pipeFile=" + pipeFile.getName() + ", fid=" + fid + ", rdLen=" + rdLen);
 
         // Check if there is a valid reply buffered
@@ -500,7 +500,7 @@ public class DCERPCHandler {
             int bufLen = bufData.getAvailableLength();
 
             // Debug
-            if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_IPC))
+            if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.IPC))
                 sess.debugPrintln("  Buffered data available=" + bufLen);
 
             // Check if there is less data than the read size
@@ -527,7 +527,7 @@ public class DCERPCHandler {
                 parser = (SMBV1Parser) respPkt.getParser();
 
                 // Debug
-                if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_IPC))
+                if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.IPC))
                     sess.debugPrintln("  Allocated larger reply packet, pktLen=" + respPkt.getBuffer().length);
             }
 
@@ -587,7 +587,7 @@ public class DCERPCHandler {
         else {
 
             // Debug
-            if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_IPC))
+            if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.IPC))
                 sess.debugPrintln("  No buffered data available");
 
             // Return a zero length read response
@@ -666,7 +666,7 @@ public class DCERPCHandler {
         try {
 
             // DEBUG
-            if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_DCERPC))
+            if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.DCERPC))
                 sess.debugPrintln("DCE Bind");
 
             // Get the call id and skip the DCE header
@@ -688,7 +688,7 @@ public class DCERPCHandler {
             UUID uuid2 = dceBuf.getUUID(true);
 
             // Debug
-            if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_DCERPC)) {
+            if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.DCERPC)) {
                 sess.debugPrintln("Bind: maxTx=" + maxTxSize + ", maxRx=" + maxRxSize + ", groupId=" + groupId + ", ctxElems="
                         + ctxElems + ", presCtxId=" + presCtxId + ", trfSyntax=" + trfSyntax);
                 sess.debugPrintln("      uuid1=" + uuid1.toString());
@@ -742,7 +742,7 @@ public class DCERPCHandler {
             throws IOException, SMBSrvException {
 
         // Debug
-        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_DCERPC))
+        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.DCERPC))
             sess.debugPrintln("DCE Request opNum=0x" + Integer.toHexString(inBuf.getHeaderValue(DCEBuffer.HDR_OPCODE)));
 
         // Pass the request to the DCE pipe request handler
