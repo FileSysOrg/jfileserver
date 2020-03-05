@@ -25,13 +25,12 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
+import java.util.EnumSet;
 import java.util.StringTokenizer;
 
-import org.filesys.ftp.FTPSiteInterface;
-import org.filesys.ftp.FTPConfigSection;
-import org.filesys.ftp.FTPPath;
-import org.filesys.ftp.InvalidPathException;
+import org.filesys.ftp.*;
 import org.filesys.oncrpc.nfs.NFSConfigSection;
+import org.filesys.oncrpc.nfs.NFSSrvSession;
 import org.filesys.server.config.InvalidConfigurationException;
 import org.filesys.server.filesys.cache.hazelcast.ClusterConfigSection;
 import org.springframework.extensions.config.ConfigElement;
@@ -56,14 +55,6 @@ public class XMLServerConfiguration extends SMBOnlyXMLServerConfiguration {
 	// Default FTP server port and anonymous account name
 	private static final int DEFAULT_FTP_PORT = 21;
 	private static final String ANONYMOUS_FTP_ACCOUNT = "anonymous";
-
-	// FTP server debug type strings
-	private static final String m_ftpDebugStr[] = { "STATE", "RXDATA", "TXDATA", "DUMPDATA", "SEARCH", "INFO", "FILE", "FILEIO",
-			"ERROR", "PKTTYPE", "TIMING", "DATAPORT", "DIRECTORY", "SSL" };
-
-	// NFS server debug type strings
-	private static final String m_nfsDebugStr[] = { "RXDATA", "TXDATA", "DUMPDATA", "SEARCH", "INFO", "FILE", "FILEIO", "ERROR",
-			"TIMING", "DIRECTORY", "SESSION", "SOCKET", "THREADPOOL" };
 
 	// Global server enable flags
 	private boolean m_smbEnabled;
@@ -407,7 +398,7 @@ public class XMLServerConfiguration extends SMBOnlyXMLServerConfiguration {
 
 			// Check for FTP debug flags
 			String flags = elem.getAttribute("flags");
-			int ftpDbg = 0;
+			EnumSet<FTPSrvSession.Dbg> ftpDbg = EnumSet.<FTPSrvSession.Dbg>noneOf( FTPSrvSession.Dbg.class);
 
 			if ( flags != null) {
 
@@ -420,17 +411,13 @@ public class XMLServerConfiguration extends SMBOnlyXMLServerConfiguration {
 					// Get the current debug flag token
 					String dbg = token.nextToken().trim();
 
-					// Find the debug flag name
-					int idx = 0;
-
-					while (idx < m_ftpDebugStr.length && m_ftpDebugStr[idx].equalsIgnoreCase(dbg) == false)
-						idx++;
-
-					if ( idx >= m_ftpDebugStr.length)
+					// Convert the debug flag name to an enum value
+					try {
+						ftpDbg.add(FTPSrvSession.Dbg.valueOf(dbg));
+					}
+					catch ( IllegalArgumentException ex) {
 						throw new InvalidConfigurationException("Invalid FTP debug flag, " + dbg);
-
-					// Set the debug flag
-					ftpDbg += 1 << idx;
+					}
 				}
 			}
 
@@ -713,7 +700,7 @@ public class XMLServerConfiguration extends SMBOnlyXMLServerConfiguration {
 
 			// Check for NFS debug flags
 			String flags = elem.getAttribute("flags");
-			int nfsDbg = 0;
+			EnumSet<NFSSrvSession.Dbg> nfsDbg = EnumSet.<NFSSrvSession.Dbg>noneOf( NFSSrvSession.Dbg.class);
 
 			if ( flags != null) {
 
@@ -726,17 +713,13 @@ public class XMLServerConfiguration extends SMBOnlyXMLServerConfiguration {
 					// Get the current debug flag token
 					String dbg = token.nextToken().trim();
 
-					// Find the debug flag name
-					int idx = 0;
-
-					while (idx < m_nfsDebugStr.length && m_nfsDebugStr[idx].equalsIgnoreCase(dbg) == false)
-						idx++;
-
-					if ( idx >= m_nfsDebugStr.length)
+					// Convert the debug flag name to an enum value
+					try {
+						nfsDbg.add(NFSSrvSession.Dbg.valueOf(dbg));
+					}
+					catch ( IllegalArgumentException ex) {
 						throw new InvalidConfigurationException("Invalid NFS debug flag, " + dbg);
-
-					// Set the debug flag
-					nfsDbg += 1 << idx;
+					}
 				}
 			}
 

@@ -28,12 +28,7 @@ import java.io.Reader;
 import java.net.*;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.Enumeration;
-import java.util.List;
-import java.util.Locale;
-import java.util.StringTokenizer;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -43,6 +38,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import org.filesys.debug.Debug;
 import org.filesys.debug.DebugConfigSection;
 import org.filesys.netbios.server.LANAMapper;
+import org.filesys.oncrpc.nfs.NFSSrvSession;
 import org.filesys.server.auth.ISMBAuthenticator;
 import org.filesys.server.auth.UserAccount;
 import org.filesys.server.auth.UserAccountList;
@@ -101,17 +97,6 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 	//
 	// Node type for an Element
 	private static final int ELEMENT_TYPE = 1;
-
-	// SMB session debug type strings
-	//
-	// Must match the bit mask order.
-	private static final String m_sessDbgStr[] = { "PKTTYPE", "STATE", "RXDATA", "TXDATA", "DUMPDATA", "NEGOTIATE", "TREE",
-			"SEARCH", "INFO", "FILE", "FILEIO", "TRANSACT", "ECHO", "ERROR", "IPC", "LOCK", "DCERPC", "STATECACHE",
-			"TIMING", "NOTIFY", "STREAMS", "SOCKET", "PKTPOOL", "PKTSTATS", "THREADPOOL", "BENCHMARK", "OPLOCK", "PKTALLOC"};
-
-	// Default session debug flags, if enabled
-	private static final int DEFAULT_SESSDEBUG = SMBSrvSession.DBG_ERROR + SMBSrvSession.DBG_INFO + SMBSrvSession.DBG_SEARCH
-			+ SMBSrvSession.DBG_TREE + SMBSrvSession.DBG_TRAN + SMBSrvSession.DBG_STATE;
 
 	// Valid drive letter names for mapped drives
 	private static final String _driveLetters = "CDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -1659,12 +1644,9 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 
             // Check for session debug flags
             String flags = getAttributeWithEnvVars(elem,"flags");
-            int sessDbg = DEFAULT_SESSDEBUG;
+            EnumSet<SMBSrvSession.Dbg> smbDbg = EnumSet.<SMBSrvSession.Dbg>noneOf( SMBSrvSession.Dbg.class);
 
             if ( flags != null) {
-
-                // Clear the default debug flags
-                sessDbg = 0;
 
                 // Parse the flags
                 flags = flags.toUpperCase();
@@ -1675,22 +1657,18 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
                     // Get the current debug flag token
                     String dbg = token.nextToken().trim();
 
-                    // Find the debug flag name
-                    int idx = 0;
-
-                    while (idx < m_sessDbgStr.length && m_sessDbgStr[idx].equalsIgnoreCase(dbg) == false)
-                        idx++;
-
-                    if ( idx >= m_sessDbgStr.length)
-                        throw new InvalidConfigurationException("Invalid session debug flag, " + dbg);
-
-                    // Set the debug flag
-                    sessDbg += 1 << idx;
+					// Convert the debug flag name to an enum value
+					try {
+						smbDbg.add(SMBSrvSession.Dbg.valueOf(dbg));
+					}
+					catch ( IllegalArgumentException ex) {
+						throw new InvalidConfigurationException("Invalid SMB debug flag, " + dbg);
+					}
                 }
             }
 
             // Set the session debug flags
-            smbConfig.setSessionDebugFlags(sessDbg);
+            smbConfig.setSessionDebugFlags(smbDbg);
         }
     }
 
