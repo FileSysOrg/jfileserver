@@ -71,7 +71,10 @@ public class SMBV1VirtualCircuitList implements VirtualCircuitList {
     public SMBV1VirtualCircuitList(int maxVC) {
 
         // Save the maxmimum virtual circuits value
-        m_maxVC = maxVC;
+        if ( maxVC > 0)
+            m_maxVC = maxVC;
+        else
+            m_maxVC = MaxCircuits;
 
         // Allocate the virtual circuit table
         m_vcircuits = new HashMap<Integer, VirtualCircuit>(getMaximumVirtualCircuits());
@@ -206,7 +209,7 @@ public class SMBV1VirtualCircuitList implements VirtualCircuitList {
                 }
 
                 // DEBUG
-                if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_STATE))
+                if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.STATE))
                     sess.debugPrintln("  Cleanup vc=" + vc);
 
                 vc.closeCircuit(sess);
