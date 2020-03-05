@@ -39,7 +39,7 @@ public interface VersionInterface {
      * @param sess Server session
      * @param tree Tree connection
      * @param file Network file
-     * @return List &lt; FileVersionInfo &gt;
+     * @return List&lt;FileVersionInfo&gt;
      * @throws IOException If an error occurs.
      */
     public List<FileVersionInfo> getPreviousVersions(SrvSession sess, TreeConnection tree, NetworkFile file)

@@ -354,7 +354,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         }
 
         // Debug
-        if (m_sess.hasDebug(SMBSrvSession.DBG_TREE))
+        if (m_sess.hasDebug(SMBSrvSession.Dbg.TREE))
             m_sess.debugPrintln("NT ANDX Tree Connect AndX - " + uncPath + ", " + service);
 
         // Parse the requested share name
@@ -467,7 +467,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                 tree.getInterface().treeOpened(m_sess, tree);
 
             // Debug
-            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_TREE))
+            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.TREE))
                 m_sess.debugPrintln("ANDX Tree Connect AndX - Allocated Tree Id = " + treeId);
         }
         catch (TooManyConnectionsException ex) {
@@ -515,7 +515,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         catch (InvalidDeviceInterfaceException ex) {
 
             // Debug
-            if (Debug.EnableError && m_sess.hasDebug(SMBSrvSession.DBG_TREE))
+            if (Debug.EnableError && m_sess.hasDebug(SMBSrvSession.Dbg.TREE))
                 Debug.println("ANDX TreeConnectAndX error " + ex.getMessage());
         }
 
@@ -565,7 +565,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_FILE))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.FILE))
             m_sess.debugPrintln("Chained File Read AndX : Size=" + maxCount + " ,Pos=" + offset);
 
         // Read data from the file
@@ -663,7 +663,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_FILE))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.FILE))
             m_sess.debugPrintln("Chained File Close [" + reqParser.getTreeId() + "] fid=" + fid);
 
         // Close the file
@@ -769,7 +769,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_TREE))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.TREE))
             m_sess.debugPrintln("NT Tree Connect AndX - " + uncPath + ", " + service + ", flags=" + TreeConnectAndX.asStringRequest(flags) + "/0x" + Integer.toHexString(flags));
 
         // Parse the requested share name
@@ -842,7 +842,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
             if (sharePerm == ISMBAuthenticator.ShareStatus.NO_ACCESS) {
 
                 // DEBUG
-                if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_TREE))
+                if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.TREE))
                     m_sess.debugPrint("Tree connect to " + shareName + ", access denied");
 
                 // Invalid share connection request
@@ -883,7 +883,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         tree.setPermission(sharePerm);
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_TREE))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.TREE))
             m_sess.debugPrintln("Tree Connect AndX - Allocated Tree Id = " + treeId + ", Permission = "
                     + sharePerm.name() + ", extendedResponse=" + TreeConnectAndX.hasExtendedResponse(flags));
 
@@ -945,7 +945,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         catch (InvalidDeviceInterfaceException ex) {
 
             // Log the error
-            if (Debug.EnableError && m_sess.hasDebug(SMBSrvSession.DBG_TREE))
+            if (Debug.EnableError && m_sess.hasDebug(SMBSrvSession.Dbg.TREE))
                 Debug.println("TreeConnectAndX error " + ex.getMessage());
         }
 
@@ -1008,7 +1008,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_FILE))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.FILE))
             m_sess.debugPrintln("File close [" + parser.getTreeId() + "] fid=" + fid + ", fileId=" + netFile.getFileId());
 
         // Close the file
@@ -1027,7 +1027,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                 // DEBUG
                 long startTime = 0L;
 
-                if (netFile.hasDeleteOnClose() && Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_BENCHMARK))
+                if (netFile.hasDeleteOnClose() && Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.BENCHMARK))
                     startTime = System.currentTimeMillis();
 
                 // Check if the file has an oplock
@@ -1045,7 +1045,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                     LockManager lockMgr = flIface.getLockManager(m_sess, conn);
 
                     //  DEBUG
-                    if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_LOCK))
+                    if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.LOCK))
                         Debug.println("Releasing locks for closed file, file=" + netFile.getFullName() + ", locks=" + netFile.numberOfLocks());
 
                     //  Release all locks on the file owned by this session
@@ -1060,12 +1060,12 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                     netFile.setDelayedClose(false);
 
                     // DEBUG
-                    if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_FILE))
+                    if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.FILE))
                         m_sess.debugPrintln("File close delayed [" + parser.getTreeId() + "] fid=" + fid + ", path=" + netFile.getFullName());
                 }
 
                 // DEBUG
-                if (startTime != 0L && Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_BENCHMARK))
+                if (startTime != 0L && Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.BENCHMARK))
                     Debug.println("Benchmark: Delete on close " + netFile.getName() + " took " + (System.currentTimeMillis() - startTime) + "ms");
             }
 
@@ -1074,7 +1074,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                 netFile.setClosed(true);
 
             // DEBUG
-            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_BENCHMARK)) {
+            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.BENCHMARK)) {
                 if (netFile.isDirectory() == false) {
                     if (netFile.wasCreated() && netFile.getWriteCount() > 0)
                         m_sess.debugPrintln("Benchmark: File=" + netFile.getFullName() + ", Size=" + MemorySize.asScaledString(netFile.getFileSize()) +
@@ -1223,7 +1223,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         }
 
         // DEBUG
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_TRAN))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.TRAN))
             m_sess.debugPrintln("Transaction [" + parser.getTreeId() + "] tbuf=" + transBuf);
 
         // Process the transaction buffer
@@ -1310,7 +1310,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_TRAN))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.TRAN))
             m_sess.debugPrintln("Transaction Secondary [" + treeId + "] paramLen=" + plen + ", dataLen=" + dlen);
 
         // Check if the transaction has been received or there are more sections to be received
@@ -1323,7 +1323,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         if ((paramDisp + plen) == totParam && (dataDisp + dlen) == totData) {
 
             // Debug
-            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_TRAN))
+            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.TRAN))
                 m_sess.debugPrintln("Transaction complete, processing ...");
 
             // Clear the in progress transaction
@@ -1336,7 +1336,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
             }
 
             // DEBUG
-            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_TRAN))
+            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.TRAN))
                 m_sess.debugPrintln("Transaction second [" + treeId + "] tbuf=" + transBuf);
 
             // Process the transaction
@@ -1467,7 +1467,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_SEARCH))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.SEARCH))
             m_sess.debugPrintln("Close trans search [" + searchId + "]");
 
         // Deallocate the search slot, close the search.
@@ -1534,7 +1534,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_LOCK))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.LOCK))
             m_sess.debugPrintln("File Lock [" + netFile.getFileId() + "] : type=0x" + Integer.toHexString(lockType) + ", tmo="
                     + lockTmo + ", locks=" + lockCnt + ", unlocks=" + unlockCnt);
 
@@ -1555,7 +1555,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         if (LockingAndX.hasOplockBreak(lockType)) {
 
             // Debug
-            if (Debug.EnableDbg && m_sess.hasDebug(SMBSrvSession.DBG_OPLOCK))
+            if (Debug.EnableDbg && m_sess.hasDebug(SMBSrvSession.Dbg.OPLOCK))
                 Debug.println("Oplock break, flags=0x" + Integer.toHexString(lockType) + " file=" + netFile);
 
             // Access the oplock manager via the filesystem
@@ -1568,7 +1568,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                 if (oplockMgr == null) {
 
                     // DEBUG
-                    if (Debug.EnableDbg && m_sess.hasDebug(SMBSrvSession.DBG_OPLOCK))
+                    if (Debug.EnableDbg && m_sess.hasDebug(SMBSrvSession.Dbg.OPLOCK))
                         Debug.print("  OpLock manager is null, tree=" + conn);
 
                     // Return a not supported error
@@ -1592,7 +1592,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                     oplockMgr.releaseOpLock(oplock.getPath());
 
                     // DEBUG
-                    if (Debug.EnableDbg && m_sess.hasDebug(SMBSrvSession.DBG_OPLOCK))
+                    if (Debug.EnableDbg && m_sess.hasDebug(SMBSrvSession.Dbg.OPLOCK))
                         Debug.println("  Oplock released, oplock=" + oplock);
                 }
                 else {
@@ -1601,7 +1601,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                     oplockMgr.changeOpLockType(oplock, OpLockType.LEVEL_II);
 
                     // DEBUG
-                    if (Debug.EnableDbg && m_sess.hasDebug(SMBSrvSession.DBG_OPLOCK))
+                    if (Debug.EnableDbg && m_sess.hasDebug(SMBSrvSession.Dbg.OPLOCK))
                         Debug.println("  Oplock converted to LevelII, oplock=" + oplock);
                 }
             }
@@ -1659,7 +1659,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                     boolean isLock = lockIdx++ < lockCnt;
 
                     // Debug
-                    if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_LOCK))
+                    if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.LOCK))
                         m_sess.debugPrintln("  " + (isLock ? "Lock" : "UnLock") + " lock=" + fLock);
 
                     // Perform the lock/unlock request
@@ -1749,7 +1749,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         }
 
         // DEBUG
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_NEGOTIATE))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.NEGOTIATE))
             Debug.println("[SMB] LogoffAndX vc=" + vc);
 
         // Mark the virtual circuit as logged off
@@ -1762,7 +1762,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
             m_sess.removeVirtualCircuit(vc.getId());
 
             // Debug
-            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_NEGOTIATE))
+            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.NEGOTIATE))
                 m_sess.debugPrintln("  Removed virtual circuit " + vc);
         }
 
@@ -1773,7 +1773,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         if (m_sess.numberOfVirtualCircuits() == 0) {
 
             // DEBUG
-            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_NEGOTIATE))
+            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.NEGOTIATE))
                 Debug.println("  Closing session, no more virtual circuits");
 
             // Close the session/socket
@@ -1863,7 +1863,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         FileOpenParams params = new FileOpenParams(fileName, openFunc, access, srchAttr, fileAttr, allocSiz, crDateTime, parser.getProcessIdFull());
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_FILE))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.FILE))
             m_sess.debugPrintln("File Open AndX [" + treeId + "] params=" + params);
 
         // Check if the file name is valid
@@ -2086,7 +2086,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_FILEIO))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.FILEIO))
             m_sess.debugPrintln("File Read AndX [" + netFile.getFileId() + "] : Size=" + maxCount + " ,Pos=" + offset);
 
         // Read data from the file
@@ -2146,7 +2146,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         catch (LockConflictException ex) {
 
             // Debug
-            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_LOCK))
+            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.LOCK))
                 m_sess.debugPrintln("Read Lock Error [" + netFile.getFileId() + "] : Size=" + maxCount + " ,Pos=" + offset);
 
             // File is locked
@@ -2162,7 +2162,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         catch (DiskOfflineException ex) {
 
             // Debug
-            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_FILEIO))
+            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.FILEIO))
                 m_sess.debugPrintln("Filesystem Offline Error [" + netFile.getFileId() + "] Read File");
 
             // Filesystem is offline
@@ -2172,7 +2172,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         catch (IOException ex) {
 
             // Debug
-            if (Debug.EnableError && m_sess.hasDebug(SMBSrvSession.DBG_FILEIO)) {
+            if (Debug.EnableError && m_sess.hasDebug(SMBSrvSession.Dbg.FILEIO)) {
                 m_sess.debugPrintln("File Read Error [" + netFile.getFileId() + "] : " + ex.toString());
                 m_sess.debugPrintln(ex);
 
@@ -2294,7 +2294,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_FILE))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.FILE))
             m_sess.debugPrintln("File Rename [" + treeId + "] old name=" + oldName + ", new name=" + newName);
 
         // Check if the from/to paths are valid
@@ -2444,7 +2444,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_FILE))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.FILE))
             m_sess.debugPrintln("File Delete [" + treeId + "] name=" + fileName);
 
         // Access the disk interface and delete the file(s)
@@ -2455,7 +2455,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         try {
 
             // DEBUG
-            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_BENCHMARK))
+            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.BENCHMARK))
                 startTime = System.currentTimeMillis();
 
             // Access the disk interface that is associated with the shared device
@@ -2465,7 +2465,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
             disk.deleteFile(m_sess, conn, fileName);
 
             // DEBUG
-            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_BENCHMARK))
+            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.BENCHMARK))
                 Debug.println("Benchmark: Delete file " + fileName + " took " + (System.currentTimeMillis() - startTime) + "ms");
         }
         catch (InvalidDeviceInterfaceException ex) {
@@ -2569,7 +2569,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_FILE))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.FILE))
             m_sess.debugPrintln("Directory Delete [" + treeId + "] name=" + dirName);
 
         // Access the disk interface and delete the directory
@@ -2681,7 +2681,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
             srchPath = WildCard.convertUnicodeWildcardToDOS(srchPath);
 
             // Debug
-            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_SEARCH))
+            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.SEARCH))
                 m_sess.debugPrintln("Converted Unicode wildcards to:" + srchPath);
         }
 
@@ -2709,7 +2709,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
             srchPath = FileName.DOS_SEPERATOR_STR + srchPath;
 
             // Debug
-            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_SEARCH))
+            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.SEARCH))
                 m_sess.debugPrintln("Search path missing leading slash, converted to relative path");
         }
 
@@ -2770,7 +2770,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
             int maxLen = replyBuf.getReturnDataLimit();
 
             // Debug
-            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_SEARCH))
+            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.SEARCH))
                 m_sess.debugPrintln("Start trans search [" + searchId + "] - " + srchPath + ", attr=0x"
                         + Integer.toHexString(srchAttr) + ", maxFiles=" + maxFiles + ", maxLen=" + maxLen + ", infoLevel="
                         + infoLevl + ", flags=0x" + Integer.toHexString(srchFlag) + ",dotFiles=" + ctx.hasDotFiles());
@@ -2885,7 +2885,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                     pktDone = true;
 
                     // Debug
-                    if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_SEARCH))
+                    if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.SEARCH))
                         m_sess.debugPrintln("Find first response full, restart at " + info.getFileName());
                 }
             }
@@ -2915,7 +2915,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
             tpkt.doTransactionResponse(m_sess, replyBuf, smbPkt);
 
             // Debug
-            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_SEARCH))
+            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.SEARCH))
                 m_sess.debugPrintln("Search [" + searchId + "] Returned " + fileCnt + " files, dataLen=" + dataBuf.getLength()
                         + ", moreFiles=" + ctx.hasMoreFiles());
 
@@ -2923,7 +2923,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
             if (searchDone == true || ctx.hasMoreFiles() == false) {
 
                 // Debug
-                if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_SEARCH))
+                if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.SEARCH))
                     m_sess.debugPrintln("End start search [" + searchId + "] (Search complete)");
 
                 // Release the search context
@@ -2932,7 +2932,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
             else if ((srchFlag & FindFirstNext.CloseSearch) != 0) {
 
                 // Debug
-                if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_SEARCH))
+                if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.SEARCH))
                     m_sess.debugPrintln("End start search [" + searchId + "] (Close)");
 
                 // Release the search context
@@ -3070,7 +3070,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
             int maxLen = replyBuf.getReturnDataLimit();
 
             // Debug
-            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_SEARCH))
+            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.SEARCH))
                 m_sess.debugPrintln("Continue search [" + searchId + "] - " + resumeName + ", maxFiles=" + maxFiles + ", maxLen="
                         + maxLen + ", infoLevel=" + infoLevl + ", flags=0x" + Integer.toHexString(srchFlag));
 
@@ -3133,7 +3133,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                     pktDone = true;
 
                     // Debug
-                    if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_SEARCH))
+                    if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.SEARCH))
                         m_sess.debugPrintln("Find next response full, restart at " + info.getFileName());
                 }
             }
@@ -3151,7 +3151,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
             tpkt.doTransactionResponse(m_sess, replyBuf, smbPkt);
 
             // Debug
-            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_SEARCH))
+            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.SEARCH))
                 m_sess.debugPrintln("Search [" + searchId + "] Returned " + fileCnt + " files, dataLen=" + dataBuf.getLength()
                         + ", moreFiles=" + ctx.hasMoreFiles());
 
@@ -3159,7 +3159,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
             if (searchDone == true || ctx.hasMoreFiles() == false) {
 
                 // Debug
-                if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_SEARCH))
+                if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.SEARCH))
                     m_sess.debugPrintln("End start search [" + searchId + "] (Search complete)");
 
                 // Release the search context
@@ -3168,7 +3168,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
             else if ((srchFlag & FindFirstNext.CloseSearch) != 0) {
 
                 // Debug
-                if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_SEARCH))
+                if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.SEARCH))
                     m_sess.debugPrintln("End start search [" + searchId + "] (Close)");
 
                 // Release the search context
@@ -3247,7 +3247,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         int infoLevl = paramBuf.getShort();
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_INFO))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.INFO))
             m_sess.debugPrintln("Query File System Info - level = 0x" + Integer.toHexString(infoLevl));
 
         // Access the shared device disk interface
@@ -3476,7 +3476,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
             path = path.substring(0, path.length() - FileName.DataStreamName.length());
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_INFO))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.INFO))
             m_sess.debugPrintln("Query Path - level = 0x" + Integer.toHexString(infoLevl) + ", path = " + path);
 
         // Access the shared device disk interface
@@ -3525,7 +3525,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
             if (streams == true && (infoLevl == FileInfoLevel.PathFileStreamInfo || infoLevl == FileInfoLevel.NTFileStreamInfo)) {
 
                 // Debug
-                if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_STREAMS))
+                if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.STREAMS))
                     m_sess.debugPrintln("Get NTFS streams list path=" + path);
 
                 // Get the list of streams from the share driver
@@ -3674,7 +3674,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_INFO))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.INFO))
             m_sess.debugPrintln("Query File - level=0x" + Integer.toHexString(infoLevl) + ", fid=" + fid + ", stream="
                     + netFile.getStreamId() + ", name=" + netFile.getFullName());
 
@@ -3713,7 +3713,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
             if (streams == true && (infoLevl == FileInfoLevel.PathFileStreamInfo || infoLevl == FileInfoLevel.NTFileStreamInfo)) {
 
                 // Debug
-                if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_STREAMS))
+                if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.STREAMS))
                     m_sess.debugPrintln("Get NTFS streams list fid=" + fid + ", name=" + netFile.getFullName());
 
                 // Get the list of streams from the share driver
@@ -3861,7 +3861,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_INFO))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.INFO))
             m_sess.debugPrintln("Set File - level=0x" + Integer.toHexString(infoLevl) + ", fid=" + fid + ", name="
                     + netFile.getFullName());
 
@@ -3957,7 +3957,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                     disk.setFileInformation(m_sess, conn, netFile.getFullName(), finfo);
 
                     // Debug
-                    if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_INFO))
+                    if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.INFO))
                         m_sess.debugPrintln("  Set Basic Info [" + treeId + "] name=" + netFile.getFullName() + ", attr=0x"
                                 + Integer.toHexString(attr) + ", setTime=" + hasSetTime + ", setFlags=0x"
                                 + Integer.toHexString(setFlags) + ", unknown=" + unknown);
@@ -3974,7 +3974,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                     disk.truncateFile(m_sess, conn, netFile, eofPos);
 
                     // Debug
-                    if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_INFO))
+                    if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.INFO))
                         m_sess.debugPrintln("  Set end of file position fid=" + fid + ", eof=" + eofPos);
                     break;
 
@@ -3989,7 +3989,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                     disk.truncateFile(m_sess, conn, netFile, allocSize);
 
                     // Debug
-                    if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_INFO))
+                    if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.INFO))
                         m_sess.debugPrintln("  Set allocation size fid=" + fid + ", allocSize=" + allocSize);
                     break;
 
@@ -4005,7 +4005,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                     String newName = dataBuf.getString(nameLen, true);
 
                     // Debug
-                    if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_INFO))
+                    if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.INFO))
                         m_sess.debugPrintln("  Set rename fid=" + fid + ", newName=" + newName + ", overwrite=" + overwrite
                                 + ", rootFID=" + rootFid);
 
@@ -4055,7 +4055,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                             else {
 
                                 // Debug
-                                if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_FILE))
+                                if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.FILE))
                                     m_sess.debugPrintln("Transact rename via standard rename from=" + netFile.getFullName() + " to=" + newPath);
 
                                 // Call the standard disk interface rename method to rename the file
@@ -4072,7 +4072,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                     else {
 
                         // Debug
-                        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_STREAMS))
+                        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.STREAMS))
                             m_sess.debugPrintln("Rename stream fid=" + fid + ", name=" + netFile.getFullNameStream() + ", newName="
                                     + newName + ", overwrite=" + overwrite);
 
@@ -4101,7 +4101,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                     netFile.setDeleteOnClose(delFlag);
 
                     // Debug
-                    if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_INFO))
+                    if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.INFO))
                         m_sess.debugPrintln("  Set file disposition fid=" + fid + ", name=" + netFile.getName() + ", delete="
                                 + delFlag);
                     break;
@@ -4244,7 +4244,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
             path = FileName.DOS_SEPERATOR_STR;
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_INFO))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.INFO))
             m_sess.debugPrintln("Set Path - path=" + path + ", level=0x" + Integer.toHexString(infoLevl));
 
         // Check if the file name is valid
@@ -4333,7 +4333,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                     disk.setFileInformation(m_sess, conn, path, finfo);
 
                     // Debug
-                    if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_INFO))
+                    if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.INFO))
                         m_sess.debugPrintln("  Set Standard Info [" + treeId + "] name=" + path + ", attr=0x"
                                 + Integer.toHexString(attr) + ", setTime=" + hasSetTime + ", setFlags=0x"
                                 + Integer.toHexString(setFlags) + ", eaListLen=" + eaListLen);
@@ -4390,7 +4390,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                     disk.setFileInformation(m_sess, conn, path, finfo);
 
                     // Debug
-                    if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_INFO))
+                    if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.INFO))
                         m_sess.debugPrintln("  Set Basic Info [" + treeId + "] name=" + path + ", attr=0x"
                                 + Integer.toHexString(attr) + ", setFlags=0x" + Integer.toHexString(setFlags));
                     break;
@@ -4551,7 +4551,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_FILEIO))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.FILEIO))
             m_sess.debugPrintln("File Write AndX [" + netFile.getFileId() + "] : Size=" + dataLen + " ,Pos=" + offset);
 
         // Write data to the file
@@ -4580,7 +4580,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         catch (AccessDeniedException ex) {
 
             // Debug
-            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_FILEIO))
+            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.FILEIO))
                 m_sess.debugPrintln("File Write Error [" + netFile.getFileId() + "] : " + ex.toString());
 
             // Not allowed to write to the file
@@ -4590,7 +4590,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         catch (LockConflictException ex) {
 
             // Debug
-            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_LOCK))
+            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.LOCK))
                 m_sess.debugPrintln("Write Lock Error [" + netFile.getFileId() + "] : Size=" + dataLen + " ,Pos=" + offset);
 
             // File is locked
@@ -4600,7 +4600,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         catch (DiskFullException ex) {
 
             // Debug
-            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_FILEIO))
+            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.FILEIO))
                 m_sess.debugPrintln("Write Quota Error [" + netFile.getFileId() + "] Disk full : Size=" + dataLen + " ,Pos="
                         + offset);
 
@@ -4611,7 +4611,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         catch (DiskOfflineException ex) {
 
             // Debug
-            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_FILEIO))
+            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.FILEIO))
                 m_sess.debugPrintln("Filesystem Offline Error [" + netFile.getFileId() + "] Write File");
 
             // Filesystem is offline
@@ -4620,7 +4620,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         catch (IOException ex) {
 
             // Debug
-            if (Debug.EnableError && m_sess.hasDebug(SMBSrvSession.DBG_FILEIO))
+            if (Debug.EnableError && m_sess.hasDebug(SMBSrvSession.Dbg.FILEIO))
                 m_sess.debugPrintln("File Write Error [" + netFile.getFileId() + "] : " + ex.toString());
 
             // Failed to read the file
@@ -4800,7 +4800,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_FILE))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.FILE))
             m_sess.debugPrintln("NT Create AndX [" + treeId + "] params=" + params);
 
         // Check if the file name is valid
@@ -4843,7 +4843,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                     }
 
                     // Debug
-                    if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_FILE))
+                    if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.FILE))
                         m_sess.debugPrintln("Converted create to open for pseudo file " + params);
                 }
             }
@@ -4870,7 +4870,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                         netFile = disk.createFile(m_sess, conn, params);
 
                         // Indicate the file was created
-                        if (netFile != null && m_sess.hasDebug(SMBSrvSession.DBG_BENCHMARK)) {
+                        if (netFile != null && m_sess.hasDebug(SMBSrvSession.Dbg.BENCHMARK)) {
                             netFile.setStatusFlag(NetworkFile.Flags.CREATED, true);
                             netFile.setCreationDate(System.currentTimeMillis());
                         }
@@ -4916,7 +4916,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                         netFile = disk.openFile(m_sess, conn, params);
 
                         // Indicate the directory was created
-                        if (netFile != null && m_sess.hasDebug(SMBSrvSession.DBG_BENCHMARK)) {
+                        if (netFile != null && m_sess.hasDebug(SMBSrvSession.Dbg.BENCHMARK)) {
                             netFile.setStatusFlag(NetworkFile.Flags.CREATED, true);
                             netFile.setCreationDate(System.currentTimeMillis());
                         }
@@ -4990,11 +4990,11 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                     disk.truncateFile(m_sess, conn, netFile, 0L);
 
                     // Debug
-                    if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_FILE))
+                    if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.FILE))
                         m_sess.debugPrintln("  [" + treeId + "] name=" + fileName + " truncated");
 
                     // Treat the file as if it is a newly created file
-                    if (netFile != null && m_sess.hasDebug(SMBSrvSession.DBG_BENCHMARK)) {
+                    if (netFile != null && m_sess.hasDebug(SMBSrvSession.Dbg.BENCHMARK)) {
                         netFile.setStatusFlag(NetworkFile.Flags.CREATED, true);
                         netFile.setCreationDate(System.currentTimeMillis());
                     }
@@ -5014,7 +5014,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
             }
 
             // DEBUG
-            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_FILE))
+            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.FILE))
                 m_sess.debugPrintln("  [" + treeId + "] name=" + fileName + " fid=" + fid + ", fileId=" + netFile.getFileId() + ", opLock=" + oplock);
         }
         catch (TooManyFilesException ex) {
@@ -5253,7 +5253,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
             m_sess.sendResponseSMB(smbPkt);
 
             // Debug
-            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_NOTIFY)) {
+            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.NOTIFY)) {
                 DiskDeviceContext diskCtx = (DiskDeviceContext) conn.getContext();
                 m_sess.debugPrintln("NT Cancel notify mid=" + req.getId() + ", dir=" + req.getWatchPath() + ", queue="
                         + diskCtx.getChangeHandler().getRequestQueueSize());
@@ -5344,7 +5344,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
             transBuf.setFunction(subCmd);
 
             // Debug
-            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_TRAN))
+            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.TRAN))
                 m_sess.debugPrintln("NT Transaction [" + treeId + "] transbuf=" + transBuf);
 
             // Append the setup, parameter and data blocks to the transaction data
@@ -5355,7 +5355,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                 transBuf.appendSetup(buf, parser.getSetupOffset(), cnt * 2);
 
             // Debug
-            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_TRAN))
+            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.TRAN))
                 m_sess.debugPrintln("NT Transaction [" + treeId + "] pcnt=" + parser.getNTParameter(4) + ", offset="
                         + parser.getNTParameter(5));
 
@@ -5370,7 +5370,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_TRAN))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.TRAN))
             m_sess.debugPrintln("NT Transaction [" + treeId + "] cmd=0x" + Integer.toHexString(subCmd) + ", multiPkt="
                     + transBuf.isMultiPacket());
 
@@ -5473,7 +5473,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_TRAN))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.TRAN))
             m_sess.debugPrintln("NT Transaction Secondary [" + treeId + "] paramLen=" + plen + ", dataLen=" + dlen);
 
         // Check if the transaction has been received or there are more sections to be received
@@ -5486,7 +5486,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         if ((paramDisp + plen) == totParam && (dataDisp + dlen) == totData) {
 
             // Debug
-            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_TRAN))
+            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.TRAN))
                 m_sess.debugPrintln("NT Transaction complete, processing ...");
 
             // Clear the in progress transaction
@@ -5543,7 +5543,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
             case PacketTypeV1.NTTransGetUserQuota:
 
                 // DEBUG
-                if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_TRAN))
+                if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.TRAN))
                     m_sess.debugPrintln("NT GetUserQuota transaction");
 
                 // Return a not implemented error status
@@ -5554,7 +5554,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
             case PacketTypeV1.NTTransSetUserQuota:
 
                 // DEBUG
-                if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_TRAN))
+                if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.TRAN))
                     m_sess.debugPrintln("NT SetUserQuota transaction");
 
                 // Return a not implemented error status
@@ -5585,7 +5585,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
             throws IOException, SMBSrvException {
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_TRAN))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.TRAN))
             m_sess.debugPrintln("NT TransactCreate");
 
         // Check that the received packet looks like a valid NT create transaction
@@ -5695,7 +5695,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                 rootFID, impersonLev, secFlags, parser.getProcessIdFull());
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_FILE)) {
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.FILE)) {
             m_sess.debugPrintln("NT TransactCreate [" + treeId + "] params=" + params);
             m_sess.debugPrintln("  secDescLen=" + sdLen + ", extAttribLen=" + eaLen);
         }
@@ -5778,7 +5778,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                     disk.truncateFile(m_sess, conn, netFile, 0L);
 
                     // Debug
-                    if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_FILE))
+                    if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.FILE))
                         m_sess.debugPrintln("  [" + treeId + "] name=" + fileName + " truncated");
                 }
 
@@ -5943,7 +5943,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         int filter = setupBuf.getByte();
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_TRAN))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.TRAN))
             m_sess.debugPrintln("NT IOCtl code=" + NTIOCtl.asString(ctrlCode) + ", fid=" + fid + ", fsctrl=" + fsctrl
                     + ", filter=" + filter);
 
@@ -6070,7 +6070,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         int flags = paramBuf.getShort();
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_TRAN))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.TRAN))
             m_sess.debugPrintln("NT QuerySecurityDesc fid=" + fid + ", flags=" + flags);
 
         // Get the file details
@@ -6259,7 +6259,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_TRAN)) {
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.TRAN)) {
             m_sess.debugPrintln("NT SetSecurityDesc fid=" + fid + ", flags=" + flags);
             m_sess.debugPrintln("   sd=" + secDesc);
         }
@@ -6378,7 +6378,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         int maxQueue = 0;
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_NOTIFY))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.NOTIFY))
             m_sess.debugPrintln("NT NotifyChange fid=" + fid + ", mid=" + mid + ", filter=" + filter + ", dir=" + dir.getFullName()
                                 + ", maxQueue=" + maxQueue);
 
@@ -6404,7 +6404,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                 diskCtx.getChangeHandler().sendBufferedNotifications(req, bufList);
 
                 // DEBUG
-                if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_NOTIFY)) {
+                if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.NOTIFY)) {
                     if (bufList == null)
                         m_sess.debugPrintln("   Sent buffered notifications, req=" + req.toString() + ", Enum");
                     else
@@ -6415,7 +6415,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
             else {
 
                 // DEBUG
-                if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_NOTIFY))
+                if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.NOTIFY))
                     m_sess.debugPrintln("   Reset notify request, " + req.toString());
             }
         }
@@ -6428,7 +6428,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
             m_sess.addNotifyRequest(req, diskCtx);
 
             // Debug
-            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_NOTIFY)) {
+            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.NOTIFY)) {
                 m_sess.debugPrintln("   Added new request, " + req.toString());
                 m_sess.debugPrintln("   Global notify mask="
                         + diskCtx.getChangeHandler().getGlobalNotifyMask() + ", reqQueue="
@@ -6479,7 +6479,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_TRAN))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.TRAN))
             m_sess.debugPrintln("NT TransactRename");
 
         // Send back an error, NT rename not supported
@@ -6531,7 +6531,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                 relName = evt.getShortFileName();
 
             //	DEBUG
-            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_NOTIFY))
+            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.NOTIFY))
                 m_sess.debugPrintln("  Notify evtPath=" + evt.getFileName() + ", MID=" + req.getId() + ", reqPath=" + req.getWatchPath() + ", relative=" + relName);
 
             //	Pack the notification structure
@@ -6660,7 +6660,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
             throw new IOException( "SMB packet does not have a parser");
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_STATE) &&
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.STATE) &&
                 parser.hasChainedCommand())
             m_sess.debugPrintln("AndX Command = 0x" + Integer.toHexString(parser.getAndXCommand()));
 

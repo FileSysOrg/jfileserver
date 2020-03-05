@@ -28,6 +28,8 @@ import org.filesys.server.config.ConfigSection;
 import org.filesys.server.config.ConfigurationListener;
 import org.filesys.server.config.ServerConfiguration;
 
+import java.util.EnumSet;
+
 
 /**
  * NFS Server Configuration Section Class
@@ -55,7 +57,7 @@ public class NFSConfigSection extends ConfigSection {
     private int m_rpcRegisterPort;
 
     //  NFS debug flags
-    private int m_nfsDebug;
+    private EnumSet<NFSSrvSession.Dbg> m_nfsDebug;
 
     //  Port mapper and mount server debug enable
     private boolean m_portMapDebug;
@@ -149,9 +151,9 @@ public class NFSConfigSection extends ConfigSection {
     /**
      * Return the NFS debug flags
      *
-     * @return int
+     * @return EnumSet&lt;NFSSrvSession.Dbg&gt;
      */
-    public final int getNFSDebug() {
+    public final EnumSet<NFSSrvSession.Dbg> getNFSDebug() {
         return m_nfsDebug;
     }
 
@@ -237,15 +239,15 @@ public class NFSConfigSection extends ConfigSection {
     /**
      * Set the NFS debug flags
      *
-     * @param dbg int
+     * @param dbg EnumSet&lt;NFSSrvSession.Dbg&gt;
      * @return int
      * @exception InvalidConfigurationException Error setting the debug flags
      */
-    public final int setNFSDebug(int dbg)
+    public final int setNFSDebug(EnumSet<NFSSrvSession.Dbg> dbg)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.NFSDebugFlags, new Integer(dbg));
+        int sts = fireConfigurationChange(ConfigId.NFSDebugFlags, dbg);
         m_nfsDebug = dbg;
 
         //  Return the change status

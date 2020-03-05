@@ -206,7 +206,7 @@ public class LocalOpLockDetails extends OpLockDetailsAdapter {
         m_failedBreak = true;
 
         // DEBUG
-        if ( m_ownerSess != null && m_ownerSess.hasDebug( SMBSrvSession.DBG_OPLOCK))
+        if ( m_ownerSess != null && m_ownerSess.hasDebug( SMBSrvSession.Dbg.OPLOCK))
             m_ownerSess.debugPrintln("*** Oplock break failed, timed out");
     }
 
@@ -256,7 +256,7 @@ public class LocalOpLockDetails extends OpLockDetailsAdapter {
                 SMBSrvPacket pkt = deferReq.getDeferredPacket();
 
                 // DEBUG
-                if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.DBG_OPLOCK))
+                if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.Dbg.OPLOCK))
                     Debug.println("Release oplock, queued deferred request to thread pool sess=" + sess.getUniqueId() + ", pkt=" + pkt);
 
                 try {
@@ -306,9 +306,9 @@ public class LocalOpLockDetails extends OpLockDetailsAdapter {
                         failCnt++;
 
                         // DEBUG
-                        if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.DBG_OPLOCK))
+                        if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.Dbg.OPLOCK))
                             Debug.println("Oplock break timeout, oplock=" + this);
-                    } else if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.DBG_OPLOCK))
+                    } else if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.Dbg.OPLOCK))
                         Debug.println("Failed to send open reject, oplock break timed out, oplock=" + this);
                 }
                 catch (IOException ex) {
@@ -355,7 +355,7 @@ public class LocalOpLockDetails extends OpLockDetailsAdapter {
                     m_opBreakTime = System.currentTimeMillis();
 
                 // DEBUG
-                if (Debug.EnableDbg && deferredSess.hasDebug(SMBSrvSession.DBG_OPLOCK))
+                if (Debug.EnableDbg && deferredSess.hasDebug(SMBSrvSession.Dbg.OPLOCK))
                     Debug.println("Added deferred request, list=" + m_deferredRequests.size() + ", oplock=" + this);
             } else
                 throw new DeferFailedException("No more deferred slots available on oplock");
@@ -394,7 +394,7 @@ public class LocalOpLockDetails extends OpLockDetailsAdapter {
         if ( opBreakPkt == null) {
 
             // DEBUG
-            if (Debug.EnableDbg && getOwnerSession().hasDebug(SMBSrvSession.DBG_OPLOCK))
+            if (Debug.EnableDbg && getOwnerSession().hasDebug(SMBSrvSession.Dbg.OPLOCK))
                 getOwnerSession().debugPrintln("buildOpLockBreakResponse() returned null");
 
             return;
@@ -407,7 +407,7 @@ public class LocalOpLockDetails extends OpLockDetailsAdapter {
         m_opBreakTime = System.currentTimeMillis();
 
         // DEBUG
-        if (Debug.EnableDbg && getOwnerSession().hasDebug(SMBSrvSession.DBG_OPLOCK))
+        if (Debug.EnableDbg && getOwnerSession().hasDebug(SMBSrvSession.Dbg.OPLOCK))
             getOwnerSession().debugPrintln("Oplock break sent to " + getOwnerSession().getUniqueId() + " async=" + (breakSent ? "Sent" : "Queued"));
     }
 

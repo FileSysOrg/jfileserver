@@ -54,7 +54,7 @@ import org.filesys.util.StringList;
  * 
  * @author gkspencer
  */
-public class SMBSrvSession extends SrvSession implements Runnable {
+public class SMBSrvSession extends SrvSession<SMBSrvSession.Dbg> implements Runnable {
 
 	// Define the default receive buffer size to allocate.
 	public static final int DefaultBufferSize = 0x010000 + RFCNetBIOSProtocol.HEADER_LEN;
@@ -71,39 +71,41 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 	private static final int MaxVirtualCircuits = 0;
 
 	// Debug flag values
-	public static final int DBG_PKTTYPE 	= 0x00000001; // Received packet type
-	public static final int DBG_STATE 		= 0x00000002; // Session state changes
-	public static final int DBG_RXDATA 		= 0x00000004; // Received data
-	public static final int DBG_TXDATA 		= 0x00000008; // Transmit data
-	public static final int DBG_DUMPDATA 	= 0x00000010; // Dump data packets
-	public static final int DBG_NEGOTIATE 	= 0x00000020; // Protocol negotiate phase
-	public static final int DBG_TREE 		= 0x00000040; // Tree connection/disconnection
-	public static final int DBG_SEARCH 		= 0x00000080; // File/directory search
-	public static final int DBG_INFO 		= 0x00000100; // Information requests
-	public static final int DBG_FILE 		= 0x00000200; // File open/close/info
-	public static final int DBG_FILEIO 		= 0x00000400; // File read/write
-	public static final int DBG_TRAN 		= 0x00000800; // Transactions
-	public static final int DBG_ECHO 		= 0x00001000; // Echo requests
-	public static final int DBG_ERROR 		= 0x00002000; // Errors
-	public static final int DBG_IPC 		= 0x00004000; // IPC$ requests
-	public static final int DBG_LOCK 		= 0x00008000; // Lock/unlock requests
-	public static final int DBG_DCERPC 		= 0x00010000; // DCE/RPC
-	public static final int DBG_STATECACHE 	= 0x00020000; // File state cache
-	public static final int DBG_TIMING 		= 0x00040000; // Time packet processing
-	public static final int DBG_NOTIFY 		= 0x00080000; // Asynchronous change notification
-	public static final int DBG_STREAMS 	= 0x00100000; // NTFS streams
-	public static final int DBG_SOCKET 		= 0x00200000; // NetBIOS/native SMB socket connections
-	public static final int DBG_PKTPOOL     = 0x00400000; // Packet pool allocate/release
-	public static final int DBG_PKTSTATS    = 0x00800000; // Packet pool statistics
-	public static final int DBG_THREADPOOL  = 0x01000000; // Thread pool
-	public static final int DBG_BENCHMARK	= 0x02000000; // Benchmarking
-	public static final int DBG_OPLOCK		= 0x04000000; // Opportunistic locks
-	public static final int DBG_PKTALLOC	= 0x08000000; // Memory pool allocate/release
-	public static final int DBG_COMPOUND	= 0x10000000; // compound request handling
-	public static final int DBG_CANCEL		= 0x20000000; // request cancel handling
-	public static final int DBG_SIGNING		= 0x40000000; // request/response signing
-	public static final int DBG_ENCRYPTION 	= 0x80000000; // Encryption/decryption
-
+	public enum Dbg {
+		PKTTYPE,	// Received packet type
+		STATE, 		// Session state changes
+		RXDATA, 	// Received data
+		TXDATA, 	// Transmit data
+		DUMPDATA,	// Dump data packets
+		NEGOTIATE, 	// Protocol negotiate phase
+		TREE,		// Tree connection/disconnection
+		SEARCH,		// File/directory search
+		INFO,		// Information requests
+		FILE,		// File open/close/info
+		FILEIO,		// File read/write
+		TRAN,		// Transactions
+		ECHO,		// Echo requests
+		ERROR,		// Errors
+		IPC,		// IPC$ requests
+		LOCK,		// Lock/unlock requests
+		DCERPC,		// DCE/RPC
+		STATECACHE,	// File state cache
+		TIMING,		// Time packet processing
+		NOTIFY,		// Asynchronous change notification
+		STREAMS,	// NTFS streams
+		SOCKET,		// NetBIOS/native SMB socket connections
+		PKTPOOL,	// Packet pool allocate/release
+		PKTSTATS,	// Packet pool statistics
+		THREADPOOL,	// Thread pool
+		BENCHMARK,	// Benchmarking
+		OPLOCK,		// Opportunistic locks
+		PKTALLOC,	// Memory pool allocate/release
+		COMPOUND,	// compound request handling
+		CANCEL,		// request cancel handling
+		SIGNING,	// request/response signing
+		ENCRYPTION	// Encryption/decryption
+	}
+	
 	// Server session object factory
 	private static SrvSessionFactory m_factory = new DefaultSrvSessionFactory();
 
@@ -157,7 +159,7 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 	 * @param maxVC   Maximum virtual circuits allowed on this session.
 	 */
 	protected SMBSrvSession(PacketHandler handler, SMBServer srv, int maxVC) {
-		super(-1, srv, handler.isProtocolName(), null);
+		super(-1, srv, handler.isProtocolName(), null, SMBSrvSession.Dbg.class);
 
 		// Set the packet handler
 		m_pktHandler = handler;
@@ -335,14 +337,14 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 			if ( m_vcircuits != null) {
 
 				// DEBUG
-				if (Debug.EnableInfo && hasDebug(DBG_STATE))
+				if (Debug.EnableInfo && hasDebug(SMBSrvSession.Dbg.STATE))
 					debugPrintln("Cleanup session, vcircuits=" + m_vcircuits.getCircuitCount() + ", changeNotify="
 							+ getNotifyChangeCount());
 
 				// Clear the virtual circuit list
 				m_vcircuits.clearCircuitList(this);
 			}
-			else if ( Debug.EnableInfo && hasDebug(DBG_STATE))
+			else if ( Debug.EnableInfo && hasDebug(SMBSrvSession.Dbg.STATE))
 				debugPrintln("Cleanup session, vcircuits=null, changeNotify=" + getNotifyChangeCount());
 
 			// Check if there are active change notification requests
@@ -379,7 +381,7 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 		// Close the packet handler
 		try {
 			m_pktHandler.closeHandler();
-			if (Debug.EnableInfo && hasDebug(DBG_STATE))
+			if (Debug.EnableInfo && hasDebug(SMBSrvSession.Dbg.STATE))
 				debugPrintln("Closed packet handler for client: " + m_pktHandler.getClientName());
 		}
 		catch (Exception ex) {
@@ -410,7 +412,7 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 			getSMBServer().addDisconnectedSession( this);
 
 			// DEBUG
-			if (Debug.EnableInfo && hasDebug(DBG_STATE))
+			if (Debug.EnableInfo && hasDebug(SMBSrvSession.Dbg.STATE))
 				debugPrintln("[SMB] Add session to disconnected session list, sessId=" + getSessionId() + "/" + getUniqueId());
 
 			// Cleanup the disconnected sessions virtual circuits, open files, searches as the client will not currently
@@ -428,7 +430,7 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 			closeSocket();
 		}
 		catch (Exception ex) {
-			if (Debug.EnableInfo && hasDebug(DBG_STATE)) {
+			if (Debug.EnableInfo && hasDebug(SMBSrvSession.Dbg.STATE)) {
 				debugPrintln("[SMB] Error during close session, " + getUniqueId()
 						+ ", addr=" + getRemoteAddress().getHostAddress());
 				debugPrintln(ex);
@@ -686,7 +688,7 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 	public void hangupSession(String reason) {
 
 		// Debug
-		if (Debug.EnableInfo && hasDebug(DBG_STATE)) {
+		if (Debug.EnableInfo && hasDebug(SMBSrvSession.Dbg.STATE)) {
 			debugPrint("## Session closing, reason=" + reason);
 			debugPrintln(reason);
 		}
@@ -872,7 +874,7 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 	public void setState(SessionState state) {
 
 		// Debug
-		if (Debug.EnableInfo && hasDebug(DBG_STATE))
+		if (Debug.EnableInfo && hasDebug(SMBSrvSession.Dbg.STATE))
 			debugPrintln("State changed to " + state.name());
 
 		// Change the session state
@@ -905,7 +907,7 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 		if (smbPkt.getReceivedLength() < RFCNetBIOSProtocol.SESSREQ_LEN || smbPkt.getHeaderType() != RFCNetBIOSProtocol.MsgType.REQUEST) {
 
 			// Debug
-			if (Debug.EnableInfo && hasDebug(DBG_STATE)) {
+			if (Debug.EnableInfo && hasDebug(SMBSrvSession.Dbg.STATE)) {
 				Debug.println("NBREQ invalid packet len=" + smbPkt.getReceivedLength() + ", header=0x" + Integer.toHexString(smbPkt.getHeaderType().intValue()));
 				HexDump.Dump(smbPkt.getBuffer(), smbPkt.getReceivedLength(), 0, Debug.getDebugInterface());
 			}
@@ -935,7 +937,7 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 		fromName = fromName.trim();
 
 		// Debug
-		if (Debug.EnableInfo && hasDebug(DBG_STATE))
+		if (Debug.EnableInfo && hasDebug(SMBSrvSession.Dbg.STATE))
 			debugPrintln("NetBIOS CALL From " + fromName + " to " + toName);
 
 		// Check that the request is for this server
@@ -977,7 +979,7 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 			throw new NetBIOSException("NBREQ Called name is not this server (" + toName + ")");
 
 		// Debug
-		if (Debug.EnableInfo && hasDebug(DBG_STATE))
+		if (Debug.EnableInfo && hasDebug(SMBSrvSession.Dbg.STATE))
 			debugPrintln("NetBIOS session request from " + fromName);
 
 		// Move the session to the SMB negotiate state
@@ -1024,7 +1026,7 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 				negCtx = smbPkt.getParser().parseNegotiateRequest(this);
 
 				// Debug
-				if (Debug.EnableInfo && hasDebug(DBG_NEGOTIATE))
+				if (Debug.EnableInfo && hasDebug(SMBSrvSession.Dbg.NEGOTIATE))
 					debugPrintln("Negotiate context: " + negCtx);
 			}
 			else {
@@ -1033,7 +1035,7 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 				setState(SessionState.NETBIOS_HANGUP);
 
 				// Debug
-				if (Debug.EnableInfo && hasDebug(DBG_NEGOTIATE))
+				if (Debug.EnableInfo && hasDebug(SMBSrvSession.Dbg.NEGOTIATE))
 					debugPrintln("Failed to get parser for received negotiate");
 
 				// Do not send a reply, just drop the connection
@@ -1053,7 +1055,7 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 		int diaIdx = diaSelector.findHighestDialect( negCtx.getDialects());
 
 		// Debug
-		if (Debug.EnableInfo && hasDebug(DBG_NEGOTIATE)) {
+		if (Debug.EnableInfo && hasDebug(SMBSrvSession.Dbg.NEGOTIATE)) {
 			if (diaIdx == -1)
 				debugPrintln("Failed to negotiate SMB dialect");
 			else
@@ -1074,7 +1076,7 @@ public class SMBSrvSession extends SrvSession implements Runnable {
                 if (m_handler != null) {
 
                     // Debug
-                    if (Debug.EnableInfo && hasDebug(DBG_NEGOTIATE))
+                    if (Debug.EnableInfo && hasDebug(SMBSrvSession.Dbg.NEGOTIATE))
                         debugPrintln("Assigned protocol handler - " + m_handler.getClass().getName());
 
                     // Initialize the protocol handler
@@ -1093,7 +1095,7 @@ public class SMBSrvSession extends SrvSession implements Runnable {
                     diaIdx = -1;
 
                     // Debug
-                    if (Debug.EnableError && hasDebug(DBG_NEGOTIATE))
+                    if (Debug.EnableError && hasDebug(SMBSrvSession.Dbg.NEGOTIATE))
                         debugPrintln("No protocol handler for dialect - " + Dialect.DialectTypeString( diaIdx));
 
                     // Return an error status
@@ -1106,7 +1108,7 @@ public class SMBSrvSession extends SrvSession implements Runnable {
             	// No common dialect available between the client and server
 
 				// Debug
-				if (Debug.EnableError && hasDebug(DBG_NEGOTIATE))
+				if (Debug.EnableError && hasDebug(SMBSrvSession.Dbg.NEGOTIATE))
 					debugPrintln("No common dialect between client and server");
 
 				// Return an error status
@@ -1137,7 +1139,7 @@ public class SMBSrvSession extends SrvSession implements Runnable {
         catch (AuthenticatorException ex) {
 
             // Log the error
-            if (Debug.EnableError && hasDebug(DBG_NEGOTIATE))
+            if (Debug.EnableError && hasDebug(SMBSrvSession.Dbg.NEGOTIATE))
                 debugPrintln("Negotiate error - " + ex.getMessage());
 
             // Close the session
@@ -1162,7 +1164,7 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 		try {
 
 			// Debug
-			if (Debug.EnableInfo && hasDebug(SMBSrvSession.DBG_NEGOTIATE))
+			if (Debug.EnableInfo && hasDebug(SMBSrvSession.Dbg.NEGOTIATE))
 				debugPrintln("Server session started");
 
 			// The server session loops until the NetBIOS hangup state is set.
@@ -1176,7 +1178,7 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 				catch (SocketTimeoutException ex) {
 
 					// Debug
-					if (Debug.EnableInfo && hasDebug(SMBSrvSession.DBG_SOCKET))
+					if (Debug.EnableInfo && hasDebug(SMBSrvSession.Dbg.SOCKET))
 						debugPrintln("Socket read timed out, closing session");
 
 					// Socket read timed out
@@ -1205,7 +1207,7 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 					if (smbPkt.isSMB() == false) {
 
 						// Debug
-						if (Debug.EnableInfo && hasDebug(DBG_ERROR))
+						if (Debug.EnableInfo && hasDebug(SMBSrvSession.Dbg.ERROR))
 							debugPrintln("Invalid SMB packet signature received, packet ignored");
 
 						continue;
@@ -1220,7 +1222,7 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 			// Cleanup the session, then close the session/socket
 			closeSession();
 
-			if (Debug.EnableInfo && hasDebug(DBG_STATE))
+			if (Debug.EnableInfo && hasDebug(SMBSrvSession.Dbg.STATE))
 				debugPrintln("[SMB] Closed session, " + getUniqueId()
 						+ ", addr=" + getRemoteAddress().getHostAddress());
 
@@ -1265,7 +1267,7 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 			throws IOException, SMBSrvException, TooManyConnectionsException {
 
 		// DEBUG
-		if (Debug.EnableInfo && hasDebug(DBG_PKTTYPE))
+		if (Debug.EnableInfo && hasDebug(SMBSrvSession.Dbg.PKTTYPE))
 			debugPrintln("Rx packet - " + smbPkt.getParser().toShortString());
 
 		// Call the protocol handler
@@ -1288,7 +1290,7 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 			sendResponseSMB(asynchPkt, asynchPkt.getLength());
 
 			// DEBUG
-			if (Debug.EnableInfo && hasDebug(DBG_NOTIFY)) {
+			if (Debug.EnableInfo && hasDebug(SMBSrvSession.Dbg.NOTIFY)) {
 				debugPrintln("Sent queued asynch response type=" + smbPkt.getParser().toShortString());
 				synchronized (this) {
 					debugPrintln("  Async queue len=" + m_asynchQueue.size());
@@ -1314,11 +1316,11 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 				long endTime = 0L;
 
 				// Debug
-				if (Debug.EnableInfo && hasDebug(DBG_TIMING))
+				if (Debug.EnableInfo && hasDebug(SMBSrvSession.Dbg.TIMING))
 					startTime = System.currentTimeMillis();
 
 				// Debug
-				if (Debug.EnableInfo && hasDebug(DBG_RXDATA)) {
+				if (Debug.EnableInfo && hasDebug(SMBSrvSession.Dbg.RXDATA)) {
 					debugPrintln("Rx Data len=" + smbPkt.getReceivedLength());
 					HexDump.Dump(smbPkt.getBuffer(), smbPkt.getReceivedLength(), 0, Debug.getDebugInterface());
 				}
@@ -1350,7 +1352,7 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 							runHandler(smbPkt);
 
 							// Debug
-							if (Debug.EnableInfo && hasDebug(DBG_TIMING)) {
+							if (Debug.EnableInfo && hasDebug(SMBSrvSession.Dbg.TIMING)) {
 								endTime = System.currentTimeMillis();
 								long duration = endTime - startTime;
 								if (duration > 20)
@@ -1376,13 +1378,13 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 					try {
 
 						// Debug
-						if (Debug.EnableInfo && hasDebug(DBG_TIMING))
+						if (Debug.EnableInfo && hasDebug(SMBSrvSession.Dbg.TIMING))
 							startTime = System.currentTimeMillis();
 
 						postProcessor.runPostProcessor();
 
 						// Debug
-						if (Debug.EnableInfo && hasDebug(DBG_TIMING)) {
+						if (Debug.EnableInfo && hasDebug(SMBSrvSession.Dbg.TIMING)) {
 							long duration = System.currentTimeMillis() - startTime;
 							debugPrintln("Post processor (" + postProcessor.getClass().getSimpleName() + ") took " + duration + "ms");
 						}
@@ -1390,13 +1392,13 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 					catch ( IOException ex) {
 
 						// DEBUG
-						if (Debug.EnableInfo && hasDebug(DBG_ERROR))
+						if (Debug.EnableInfo && hasDebug(SMBSrvSession.Dbg.ERROR))
 							Debug.println("[SMB] Error from post processor (" + postProcessor.getClass().getSimpleName() + "): " + ex);
 					}
 				}
 
 				// DEBUG
-				if (Debug.EnableInfo && hasDebug(DBG_PKTSTATS))
+				if (Debug.EnableInfo && hasDebug(SMBSrvSession.Dbg.PKTSTATS))
 					Debug.println("[SMB] Packet pool stats: " + getPacketPool());
 
 			}
@@ -1409,7 +1411,7 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 			catch (SocketException ex) {
 
 				// DEBUG
-				if (Debug.EnableInfo && hasDebug(DBG_STATE))
+				if (Debug.EnableInfo && hasDebug(SMBSrvSession.Dbg.STATE))
 					debugPrintln("Socket closed by remote client");
 			}
 			catch (Exception ex) {
@@ -1452,7 +1454,7 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 			cleanupSession();
 
 			// Debug
-			if (Debug.EnableInfo && hasDebug(DBG_STATE))
+			if (Debug.EnableInfo && hasDebug(SMBSrvSession.Dbg.STATE))
 				debugPrintln("Server session closed");
 
 			// Close the session
@@ -1494,14 +1496,14 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 			// DEBUG
 			long startTime = 0L;
 
-			if (Debug.EnableInfo && hasDebug(DBG_BENCHMARK))
+			if (Debug.EnableInfo && hasDebug(SMBSrvSession.Dbg.BENCHMARK))
 				startTime = System.currentTimeMillis();
 
 			// Commit or rollback the transaction
 			endTransaction();
 
 			// DEBUG
-			if (Debug.EnableInfo && hasDebug(DBG_BENCHMARK)) {
+			if (Debug.EnableInfo && hasDebug(SMBSrvSession.Dbg.BENCHMARK)) {
 				long elapsedTime = System.currentTimeMillis() - startTime;
 				if (elapsedTime > 5L)
 					Debug.println("Benchmark: End transaction took " + elapsedTime + "ms");
@@ -1516,7 +1518,7 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 		m_pktHandler.flushPacket();
 
 		// Debug
-		if (Debug.EnableInfo && hasDebug(DBG_TXDATA)) {
+		if (Debug.EnableInfo && hasDebug(SMBSrvSession.Dbg.TXDATA)) {
 			debugPrintln("Tx Data len=" + len);
 			HexDump.Dump(pkt.getBuffer(), len, 0, Debug.getDebugInterface());
 		}
@@ -1553,7 +1555,7 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 		sendResponseSMB(smbPkt, smbPkt.getLength());
 
 		// Debug
-		if (Debug.EnableInfo && hasDebug(DBG_TXDATA))
+		if (Debug.EnableInfo && hasDebug(SMBSrvSession.Dbg.TXDATA))
 			debugPrintln("Tx Data len=" + smbPkt.getLength() + ", success SMB");
 	}
 
@@ -1625,7 +1627,7 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 		sendResponseSMB(smbPkt, smbPkt.getLength());
 
 		// Debug
-		if (Debug.EnableInfo && hasDebug(DBG_ERROR))
+		if (Debug.EnableInfo && hasDebug(SMBSrvSession.Dbg.ERROR))
 			debugPrintln("Error : Cmd = " + smbPkt.getParser().toShortString() + " - " + SMBErrorText.ErrorString(errClass, errCode));
 	}
 
@@ -1650,7 +1652,7 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 		sendResponseSMB(smbPkt, smbPkt.getLength());
 
 		// Debug
-		if (Debug.EnableInfo && hasDebug(DBG_ERROR))
+		if (Debug.EnableInfo && hasDebug(SMBSrvSession.Dbg.ERROR))
 			debugPrintln("Error : Cmd = " + smbPkt.getParser().toShortString() + " - " + SMBErrorText.ErrorString( SMBStatus.NTErr, ntErrCode));
 	}
 
@@ -1674,7 +1676,7 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 		boolean sentOK = sendAsynchResponseSMB(smbPkt, smbPkt.getLength());
 
 		// Debug
-		if (Debug.EnableInfo && hasDebug(DBG_ERROR))
+		if (Debug.EnableInfo && hasDebug(SMBSrvSession.Dbg.ERROR))
 			debugPrintln("Async Error : Cmd = " + smbPkt.getParser().toShortString() + " - " + SMBErrorText.ErrorString(errClass, errCode) + ", sent=" + sentOK);
 
 		// Return the send status
@@ -1780,7 +1782,7 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 				sendResponseSMB(asyncPkt, asyncPkt.getLength());
 
 				// DEBUG
-				if (Debug.EnableInfo && (hasDebug(DBG_NOTIFY) || hasDebug(DBG_OPLOCK))) {
+				if (Debug.EnableInfo && (hasDebug(SMBSrvSession.Dbg.NOTIFY) || hasDebug(SMBSrvSession.Dbg.OPLOCK))) {
 					debugPrintln("Sent queued async response type=" + asyncPkt.getParser().toShortString());
 					debugPrintln("  Async queue len=" + m_asynchQueue.size());
 				}
@@ -1788,7 +1790,7 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 			catch (Exception ex) {
 
 				// DEBUG
-				if (Debug.EnableError && (hasDebug(DBG_NOTIFY) || hasDebug(DBG_OPLOCK)))
+				if (Debug.EnableError && (hasDebug(SMBSrvSession.Dbg.NOTIFY) || hasDebug(SMBSrvSession.Dbg.OPLOCK)))
 					debugPrintln("Failed to send queued asynch response type=" + asyncPkt.getParser().toShortString() + ", ex=" + ex);
 			}
 		}
@@ -2025,7 +2027,7 @@ public class SMBSrvSession extends SrvSession implements Runnable {
 				if (addrMatch == true) {
 
 					// DEBUG
-					if (Debug.EnableInfo && hasDebug(DBG_NEGOTIATE))
+					if (Debug.EnableInfo && hasDebug(SMBSrvSession.Dbg.NEGOTIATE))
 						debugPrintln("Close existing session sess=" + curSess + "addr=" + addrStr);
 
 					// Disconnect the existing session

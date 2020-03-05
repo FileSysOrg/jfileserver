@@ -579,10 +579,10 @@ public class NotifyChangeHandler implements Runnable {
                         if (req.getSession().sendAsynchResponseSMB(smbPkt, smbPkt.getLength()) == false) {
 
                             //	DEBUG
-                            if (Debug.EnableInfo && req.getSession().hasDebug(SMBSrvSession.DBG_NOTIFY))
+                            if (Debug.EnableInfo && req.getSession().hasDebug(SMBSrvSession.Dbg.NOTIFY))
                                 req.getSession().debugPrintln("  Notification request was queued, sess=" + req.getSession().getSessionId() + ", ID=" + req.getId());
                         }
-                        else if (Debug.EnableInfo && req.getSession().hasDebug(SMBSrvSession.DBG_NOTIFY))
+                        else if (Debug.EnableInfo && req.getSession().hasDebug(SMBSrvSession.Dbg.NOTIFY))
                             req.getSession().debugPrintln("  Notification request was sent, sess=" + req.getSession().getSessionId() + ", ID=" + req.getId());
                     }
                     catch (Exception ex) {
@@ -596,7 +596,7 @@ public class NotifyChangeHandler implements Runnable {
                 req.addEvent(evt);
 
                 //	DEBUG
-                if (Debug.EnableInfo && req.getSession().hasDebug(SMBSrvSession.DBG_NOTIFY))
+                if (Debug.EnableInfo && req.getSession().hasDebug(SMBSrvSession.Dbg.NOTIFY))
                     req.getSession().debugPrintln("Buffered notify req=" + req + ", event=" + evt + ", sess=" + req.getSession().getSessionId());
             }
 
@@ -604,7 +604,7 @@ public class NotifyChangeHandler implements Runnable {
             req.getSession().setNotifyPending(false);
 
             //	DEBUG
-            if (Debug.EnableInfo && req.getSession().hasDebug(SMBSrvSession.DBG_NOTIFY))
+            if (Debug.EnableInfo && req.getSession().hasDebug(SMBSrvSession.Dbg.NOTIFY))
                 req.getSession().debugPrintln("Asynch notify req=" + req + ", event=" + evt + ", sess=" + req.getSession().getUniqueId());
         }
 

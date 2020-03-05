@@ -95,7 +95,7 @@ class PipeLanmanHandler {
         String dataDesc = paramBuf.getString(false);
 
         // Debug
-        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_IPC))
+        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.IPC))
             sess.debugPrintln("\\PIPE\\LANMAN\\ transact request, cmd=" + cmd + ", prm=" + prmDesc + ", data=" + dataDesc);
 
         // Call the required transaction handler
@@ -132,7 +132,7 @@ class PipeLanmanHandler {
             default:
 
                 // Debug
-                if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_IPC))
+                if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.IPC))
                     sess.debugPrintln("No handler for \\PIPE\\LANMAN\\ request, cmd=" + cmd + ", prm=" + prmDesc + ", data="
                             + dataDesc);
                 break;
@@ -180,7 +180,7 @@ class PipeLanmanHandler {
         int bufSize = paramBuf.getShort();
 
         // Debug
-        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_IPC))
+        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.IPC))
             sess.debugPrintln("NetServerGetInfo infoLevel=" + infoLevel);
 
         // Check if the information level requested and data descriptor string match
@@ -259,7 +259,7 @@ class PipeLanmanHandler {
         int bufSize = paramBuf.getShort();
 
         // Debug
-        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_IPC))
+        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.IPC))
             sess.debugPrintln("NetShareEnum infoLevel=" + infoLevel);
 
         // Check if the information level requested and data descriptor string match
@@ -350,7 +350,7 @@ class PipeLanmanHandler {
         int bufSize = paramBuf.getShort();
 
         // Debug
-        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_IPC))
+        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.IPC))
             sess.debugPrintln("NetShareGetInfo - " + shareName + ", infoLevel=" + infoLevel);
 
         // Check if the information level requested and data descriptor string match
@@ -413,7 +413,7 @@ class PipeLanmanHandler {
         else {
 
             // Debug
-            if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_IPC))
+            if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.IPC))
                 sess.debugPrintln("NetShareGetInfo - UNSUPPORTED " + shareName + ", infoLevel=" + infoLevel + ", dataDesc="
                         + dataDesc);
 
@@ -452,7 +452,7 @@ class PipeLanmanHandler {
         int bufSize = paramBuf.getShort();
 
         // Debug
-        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_IPC))
+        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.IPC))
             sess.debugPrintln("NetWkstaGetInfo infoLevel=" + infoLevel);
 
         // Check if the information level requested and data descriptor string match
@@ -514,7 +514,7 @@ class PipeLanmanHandler {
         else {
 
             // Debug
-            if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_IPC))
+            if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.IPC))
                 sess.debugPrintln("NetWkstaGetInfo UNSUPPORTED infoLevel=" + infoLevel + ", dataDesc=" + dataDesc);
 
             // Unsupported request
@@ -553,7 +553,7 @@ class PipeLanmanHandler {
         int bufSize = paramBuf.getShort();
 
         // Debug
-        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_IPC))
+        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.IPC))
             sess.debugPrintln("NetPrintQGetInfo - " + shareName + ", infoLevel=" + infoLevel);
 
         // We did not process the request

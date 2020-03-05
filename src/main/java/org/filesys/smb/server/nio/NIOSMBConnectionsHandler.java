@@ -228,11 +228,11 @@ public class NIOSMBConnectionsHandler implements SMBConnectionsHandler, RequestH
         m_server = srv;
 
         // Check if socket debug output is enabled
-        if ((config.getSessionDebugFlags() & SMBSrvSession.DBG_SOCKET) != 0)
+        if (config.getSessionDebugFlags().contains( SMBSrvSession.Dbg.SOCKET))
             m_debug = true;
 
         // Check if thread pool debug is enabled
-        if ((config.getSessionDebugFlags() & SMBSrvSession.DBG_THREADPOOL) != 0)
+        if (config.getSessionDebugFlags().contains( SMBSrvSession.Dbg.THREADPOOL))
             m_threadDebug = true;
 
         // Create the native SMB/port 445 session handler, if enabled
