@@ -21,6 +21,7 @@ package org.filesys.server.filesys.loader;
 
 import java.util.StringTokenizer;
 
+import org.filesys.oncrpc.nfs.v3.NFS3;
 import org.filesys.util.NameValue;
 import org.filesys.util.NameValueList;
 
@@ -34,17 +35,65 @@ import org.filesys.util.NameValueList;
 public class FileRequest {
 
     //	Request types
-    public final static int LOAD        = 0;
-    public final static int SAVE        = 1;
-    public final static int TRANSSAVE   = 2;
-    public final static int DELETE  = 3;
+    public enum RequestType {
+        Load (0),
+        Save (1),
+        TransSave (2),
+        Delete (3),
+
+        Invalid(0xFFFF);
+
+        private final int reqType;
+
+        /**
+         * Enum constructor
+         *
+         * @param typ int
+         */
+        RequestType(int typ) { reqType = typ; }
+
+        /**
+         * Return the request type as an int
+         *
+         * @return int
+         */
+        public final int intValue() { return reqType; }
+
+        /**
+         * Create a request type from an int
+         *
+         * @param typ int
+         * @return RequestType
+         */
+        public static final RequestType fromInt(int typ) {
+
+            RequestType rType = Invalid;
+
+            switch ( typ) {
+                case 0:
+                    rType = Load;
+                    break;
+                case 1:
+                    rType = Save;
+                    break;
+                case 2:
+                    rType = TransSave;
+                    break;
+                case 3:
+                    rType = Delete;
+                    break;
+            }
+
+            return rType;
+        }
+    }
 
     //  Standard attribute names
     public final static String AttrUserName = "UserName";
     public final static String AttrProtocol = "Protocol";
 
     //	File request type
-    private int m_reqType;
+    private RequestType m_reqType;
 
     //	Thread id of the worker thread that is servicing the request
     private int m_threadId;
@@ -59,18 +108,18 @@ public class FileRequest {
     /**
      * Class constructor
      *
-     * @param typ int
+     * @param typ RequestType
      */
-    protected FileRequest(int typ) {
+    protected FileRequest(RequestType typ) {
         m_reqType = typ;
     }
 
     /**
      * Return the file request type
      *
-     * @return int
+     * @return RequestType
      */
-    public final int isType() {
+    public final RequestType isType() {
         return m_reqType;
     }
 
@@ -194,7 +243,7 @@ public class FileRequest {
             return "";
 
         // Build the attributes string
-        StringBuffer str = new StringBuffer(256);
+        StringBuilder str = new StringBuilder(256);
         NameValueList attrList = getAttributes();
 
         for (int i = 0; i < attrList.numberOfItems(); i++) {

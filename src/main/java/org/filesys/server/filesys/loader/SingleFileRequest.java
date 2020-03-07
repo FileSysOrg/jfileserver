@@ -49,14 +49,14 @@ public class SingleFileRequest extends FileRequest {
     /**
      * Class constructor
      *
-     * @param typ      int
+     * @param typ      RequestType
      * @param fid      int
      * @param stid     int
      * @param tempPath String
      * @param virtPath String
      * @param state    FileState
      */
-    public SingleFileRequest(int typ, int fid, int stid, String tempPath, String virtPath, FileState state) {
+    public SingleFileRequest(RequestType typ, int fid, int stid, String tempPath, String virtPath, FileState state) {
         super(typ);
         m_fid = fid;
         m_stid = stid;
@@ -68,14 +68,14 @@ public class SingleFileRequest extends FileRequest {
     /**
      * Class constructor
      *
-     * @param typ      int
+     * @param typ      RequestType
      * @param fid      int
      * @param stid     int
      * @param segInfo  FileSegmentInfo
      * @param virtPath String
      * @param state    FileState
      */
-    public SingleFileRequest(int typ, int fid, int stid, FileSegmentInfo segInfo, String virtPath, FileState state) {
+    public SingleFileRequest(RequestType typ, int fid, int stid, FileSegmentInfo segInfo, String virtPath, FileState state) {
         super(typ);
         m_fid = fid;
         m_stid = stid;
@@ -90,7 +90,7 @@ public class SingleFileRequest extends FileRequest {
     /**
      * Class constructor
      *
-     * @param typ      int
+     * @param typ      RequestType
      * @param fid      int
      * @param stid     int
      * @param tempPath String
@@ -98,7 +98,7 @@ public class SingleFileRequest extends FileRequest {
      * @param seq      int
      * @param state    FileState
      */
-    public SingleFileRequest(int typ, int fid, int stid, String tempPath, String virtPath, int seq, FileState state) {
+    public SingleFileRequest(RequestType typ, int fid, int stid, String tempPath, String virtPath, int seq, FileState state) {
         super(typ);
         m_fid = fid;
         m_stid = stid;
@@ -203,7 +203,7 @@ public class SingleFileRequest extends FileRequest {
      * @return String
      */
     public String toString() {
-        StringBuffer str = new StringBuffer();
+        StringBuilder str = new StringBuilder();
 
         str.append("[FID=");
         str.append(getFileId());
@@ -220,7 +220,7 @@ public class SingleFileRequest extends FileRequest {
                 str.append("(Last)");
         }
 
-        if (isType() == LOAD)
+        if (isType() == RequestType.Load)
             str.append(",LOAD:");
         else
             str.append(",SAVE:");

@@ -3033,7 +3033,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
 
         //  Access the associated database interface to check if it supports symbolic links
         DBDeviceContext dbCtx = (DBDeviceContext) tree.getContext();
-        if (dbCtx.getDBInterface().supportsFeature(DBInterface.FeatureSymLinks)) {
+        if (dbCtx.getDBInterface().supportsFeature(DBInterface.Feature.SymLinks)) {
 
             //  Database interface supports symbolic links
             return true;
@@ -3061,7 +3061,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
         DBInterface dbInterface = dbCtx.getDBInterface();
         String symLink = null;
 
-        if (dbInterface.supportsFeature(DBInterface.FeatureSymLinks)) {
+        if (dbInterface.supportsFeature(DBInterface.Feature.SymLinks)) {
 
             //  Get, or create, the file state for the existing file
             FileState fstate = getFileState(path, dbCtx, true);

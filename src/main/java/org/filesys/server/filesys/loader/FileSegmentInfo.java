@@ -34,24 +34,22 @@ import org.filesys.debug.Debug;
  */
 public class FileSegmentInfo {
 
-    //	Segment load/save status
-    public final static int Initial     = 0;
-    public final static int LoadWait    = 1;
-    public final static int Loading     = 2;
-    public final static int Available   = 3;
-    public final static int SaveWait    = 4;
-    public final static int Saving      = 5;
-    public final static int Saved       = 6;
-
-    public final static int Error       = 7;
+    //	Segment load/save states
+    public enum State {
+        Initial,
+        LoadWait,
+        Loading,
+        Available,
+        SaveWait,
+        Saving,
+        Saved,
+        Error
+    }
 
     //	Flags
     private static final int Updated        = 0x0001;
     private static final int RequestQueued  = 0x0002;
     private static final int DeleteOnStore  = 0x0004;
-
-    //	Segment status strings
-    private static final String[] _statusStr = {"Initial", "LoadWait", "Loading", "Available", "SaveWait", "Saving", "Saved", "Error"};
 
     //	Temporary file path
     private String m_tempFile;
@@ -60,7 +58,7 @@ public class FileSegmentInfo {
     private int m_flags;
 
     //	Segment status
-    private int m_status = Initial;
+    private State m_status = State.Initial;
 
     //  Amount of valid data in the file, used to allow reads during data loading
     private long m_readable;
@@ -69,7 +67,7 @@ public class FileSegmentInfo {
      * Default constructor
      */
     public FileSegmentInfo() {
-        m_status = Initial;
+        m_status = State.Initial;
     }
 
     /**
@@ -78,7 +76,7 @@ public class FileSegmentInfo {
      * @param tempFile String
      */
     public FileSegmentInfo(String tempFile) {
-        m_status = Initial;
+        m_status = State.Initial;
         setTemporaryFile(tempFile);
     }
 
@@ -115,8 +113,8 @@ public class FileSegmentInfo {
      * @return boolean
      */
     public final boolean isDataAvailable() {
-        if (hasStatus() >= FileSegmentInfo.Available &&
-                hasStatus() < FileSegmentInfo.Error)
+        if (hasStatus().ordinal() >= FileSegmentInfo.State.Available.ordinal() &&
+                hasStatus().ordinal() < FileSegmentInfo.State.Error.ordinal())
             return true;
         return false;
     }
@@ -155,9 +153,9 @@ public class FileSegmentInfo {
     /**
      * Return the segment status
      *
-     * @return int
+     * @return State
      */
-    public final int hasStatus() {
+    public final State hasStatus() {
         return m_status;
     }
 
@@ -197,9 +195,9 @@ public class FileSegmentInfo {
     /**
      * Set the segment load/update status
      *
-     * @param sts int
+     * @param sts State
      */
-    public synchronized final void setStatus(int sts) {
+    public synchronized final void setStatus(State sts) {
         m_status = sts;
         notifyAll();
     }
@@ -291,12 +289,12 @@ public class FileSegmentInfo {
      * @return String
      */
     public String toString() {
-        StringBuffer str = new StringBuffer();
+        StringBuilder str = new StringBuilder();
 
         str.append("[");
         str.append(getTemporaryFile());
         str.append(":");
-        str.append(_statusStr[hasStatus()]);
+        str.append(hasStatus().name());
         str.append(",");
 
         if (isUpdated())

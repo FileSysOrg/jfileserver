@@ -149,7 +149,7 @@ public class DBDataDetails {
      * @return String
      */
     public String toString() {
-        StringBuffer str = new StringBuffer(64);
+        StringBuilder str = new StringBuilder(64);
 
         str.append("[FID=");
         str.append(getFileId());

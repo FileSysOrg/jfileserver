@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.EnumSet;
 
 import org.filesys.debug.Debug;
 import org.filesys.server.SrvSession;
@@ -33,6 +34,7 @@ import org.filesys.server.filesys.FileName;
 import org.filesys.server.filesys.FileOpenParams;
 import org.filesys.server.filesys.NetworkFile;
 import org.filesys.server.filesys.db.DBDeviceContext;
+import org.filesys.server.filesys.db.DBInterface;
 import org.filesys.server.filesys.db.LocalDataNetworkFile;
 import org.springframework.extensions.config.ConfigElement;
 
@@ -62,12 +64,12 @@ public class SimpleFileLoader implements FileLoader, NamedFileLoader {
      * Return the database features required by this file loader. Return zero if no database features
      * are required by the loader.
      *
-     * @return int
+     * @return EnumSet&lt;Feature&gt;
      */
-    public int getRequiredDBFeatures() {
+    public EnumSet<DBInterface.Feature> getRequiredDBFeatures() {
 
         //	No database features required
-        return 0;
+        return EnumSet.noneOf( DBInterface.Feature.class);
     }
 
     /**

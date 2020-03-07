@@ -25,6 +25,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -75,11 +76,6 @@ import org.springframework.extensions.config.ConfigElement;
  * @author gkspencer
  */
 public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileStateListener {
-
-    // Status codes returned from the load/save worker thread processing
-    public final static int StsSuccess  = 0;
-    public final static int StsRequeue  = 1;
-    public final static int StsError    = 2;
 
     // Temporary sub-directory/file/Jar prefix
     public static final String TempDirPrefix    = "ldr";
@@ -327,12 +323,12 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
      * Return the database features required by this file loader. Return zero if no database
      * features are required by the loader.
      *
-     * @return int
+     * @return EnumSet&lt;Feature&gt;
      */
-    public int getRequiredDBFeatures() {
+    public EnumSet<DBInterface.Feature> getRequiredDBFeatures() {
 
         // Return the database features required by the loader
-        return DBInterface.FeatureData + DBInterface.FeatureJarData + DBInterface.FeatureQueue;
+        return EnumSet.<DBInterface.Feature>of( DBInterface.Feature.Data, DBInterface.Feature.JarData, DBInterface.Feature.Queue);
     }
 
     /**
@@ -573,7 +569,7 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
                 // Indicate that the file data is available, this is a new file or the existing file
                 // is being overwritten
                 // so there is no data to load.
-                fileSeg.setStatus(FileSegmentInfo.Available);
+                fileSeg.setStatus(FileSegmentInfo.State.Available);
             } else if (params.isSequentialAccessOnly() && fileSeg.isDataLoading() == false) {
 
                 synchronized (cacheFile.getFileState()) {
@@ -584,7 +580,7 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
 
                     // Queue a file data load request
                     if (fileSeg.isDataLoading() == false)
-                        queueFileRequest(new SingleFileRequest(FileRequest.LOAD, cacheFile.getFileId(), cacheFile.getStreamId(),
+                        queueFileRequest(new SingleFileRequest(FileRequest.RequestType.Load, cacheFile.getFileId(), cacheFile.getStreamId(),
                                 fileSeg.getInfo(), cacheFile.getFullNameStream(), fstate));
                 }
 
@@ -644,10 +640,10 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
                     m_stateCache.setDataUpdateInProgress(cacheFile.getFileState());
 
                     // Create a file save request for the updated file segment
-                    SingleFileRequest fileReq = new SingleFileRequest(FileRequest.SAVE, cacheFile.getFileId(), cacheFile.getStreamId(),
+                    SingleFileRequest fileReq = new SingleFileRequest(FileRequest.RequestType.Save, cacheFile.getFileId(), cacheFile.getStreamId(),
                             fileSeg.getInfo(), cacheFile.getFileState().getPath(), cacheFile.getFileState());
                     // Set the file segment status
-                    fileSeg.setStatus(FileSegmentInfo.SaveWait, true);
+                    fileSeg.setStatus(FileSegmentInfo.State.SaveWait, true);
 
                     // Check if the request should be part of a transaction
                     if (getSmallFileSize() > 0 && netFile.getFileSize() < getSmallFileSize()) {
@@ -749,10 +745,10 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
      * Load a file
      *
      * @param req FileRequest
-     * @return int
+     * @return BackgroundLoadSave.Status
      * @throws Exception Error loading the file data
      */
-    public int loadFile(FileRequest req)
+    public BackgroundLoadSave.Status loadFile(FileRequest req)
             throws Exception {
 
         // DEBUG
@@ -777,18 +773,18 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
                 Debug.println("  Temporary file deleted");
 
             // Return an error status
-            fileSeg.setStatus(FileSegmentInfo.Error, false);
-            return StsError;
+            fileSeg.setStatus(FileSegmentInfo.State.Error, false);
+            return BackgroundLoadSave.Status.Error;
         }
 
         // Load the file data
         FileOutputStream fileOut = null;
-        int loadSts = StsRequeue;
+        BackgroundLoadSave.Status loadSts = BackgroundLoadSave.Status.Requeue;
 
         try {
 
             // Update the segment status
-            fileSeg.setStatus(FileSegmentInfo.Loading);
+            fileSeg.setStatus(FileSegmentInfo.State.Loading);
 
             // Get the file data details
             DBDataDetails dataDetails = getDBDataInterface().getFileDataDetails(loadReq.getFileId(), loadReq.getStreamId());
@@ -804,7 +800,7 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
                 loadSts = loadFileFromJar(loadReq, tempFile, dataDetails);
 
                 // Update the file status, and clear the queued flag
-                fileSeg.setStatus(FileSegmentInfo.Available, false);
+                fileSeg.setStatus(FileSegmentInfo.State.Available, false);
                 fileSeg.signalDataAvailable();
             } else {
 
@@ -812,7 +808,7 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
                 getDBDataInterface().loadFileData(loadReq.getFileId(), loadReq.getStreamId(), fileSeg);
 
                 // Set the load status
-                loadSts = StsSuccess;
+                loadSts = BackgroundLoadSave.Status.Success;
 
                 // DEBUG
                 if (Debug.EnableInfo && hasDebug()) {
@@ -829,7 +825,7 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
                 Debug.println(ex);
 
             // Indicate the file load failed
-            loadSts = StsError;
+            loadSts = BackgroundLoadSave.Status.Error;
         }
         catch (IOException ex) {
 
@@ -838,17 +834,17 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
                 Debug.println(ex);
 
             // Indicate the file load failed
-            loadSts = StsError;
+            loadSts = BackgroundLoadSave.Status.Error;
         }
 
         // Check if the file was loaded successfully
-        if (loadSts == StsSuccess) {
+        if (loadSts == BackgroundLoadSave.Status.Success) {
 
             // Signal that the file data is available
             fileSeg.signalDataAvailable();
 
             // Update the file status
-            fileSeg.setStatus(FileSegmentInfo.Available, false);
+            fileSeg.setStatus(FileSegmentInfo.State.Available, false);
 
             // Run the file load processors
             runFileLoadedProcessors(getContext(), loadReq.getFileState(), fileSeg);
@@ -866,12 +862,12 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
      * @param loadReq     SingleFileRequest
      * @param tempFile    File
      * @param dataDetails DBDataDetails
-     * @return int
+     * @return BackgroundLoadSave.Status
      */
-    protected final int loadFileFromJar(SingleFileRequest loadReq, File tempFile, DBDataDetails dataDetails) {
+    protected final BackgroundLoadSave.Status loadFileFromJar(SingleFileRequest loadReq, File tempFile, DBDataDetails dataDetails) {
 
         // Check if the Jar file has already been loaded, if so there will be a file state
-        int loadSts = StsError;
+        BackgroundLoadSave.Status loadSts = BackgroundLoadSave.Status.Error;
 
         String jarStateName = JarStatePrefix + dataDetails.getJarId();
         FileState jarState = getStateCache().findFileState(jarStateName);
@@ -887,7 +883,7 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
 
             // Create a new file state for the Jar file
             jarFile = new File(getCurrentTempDirectory(), JarFilePrefix + dataDetails.getJarId() + ".jar");
-            jarState = createFileStateForRequest(-2, jarFile.getAbsolutePath(), jarStateName, FileSegmentInfo.LoadWait);
+            jarState = createFileStateForRequest(-2, jarFile.getAbsolutePath(), jarStateName, FileSegmentInfo.State.LoadWait);
 
             jarState.setExpiryTime(System.currentTimeMillis() + JarStateTimeout);
             segInfo = new FileSegmentInfo(jarFile.getAbsolutePath());
@@ -904,7 +900,7 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
 
             // Get the file segment status
             segInfo = (FileSegmentInfo) jarState.findAttribute(DBFileSegmentInfo);
-            if (segInfo != null && segInfo.hasStatus() == FileSegmentInfo.Initial) {
+            if (segInfo != null && segInfo.hasStatus() == FileSegmentInfo.State.Initial) {
 
                 // Set the Jar file
                 jarFile = new File(jarSeg.getTemporaryFile());
@@ -925,7 +921,7 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
                     segInfo.setTemporaryFile(jarFile.getAbsolutePath());
 
                     jarSeg = new FileSegment(segInfo, true);
-                    jarSeg.setStatus(FileSegmentInfo.LoadWait, true);
+                    jarSeg.setStatus(FileSegmentInfo.State.LoadWait, true);
 
                     // Add the segment to the file state cache
                     jarState.addAttribute(DBFileSegmentInfo, segInfo);
@@ -963,10 +959,10 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
                         getDBDataInterface().loadJarData(dataDetails.getJarId(), jarSeg);
 
                         // Set the Jar file segment status to indicate that the data has been loaded
-                        jarSeg.setStatus(FileSegmentInfo.Available, false);
+                        jarSeg.setStatus(FileSegmentInfo.State.Available, false);
 
                         // Indicate load successful
-                        loadSts = StsSuccess;
+                        loadSts = BackgroundLoadSave.Status.Success;
 
                         // DEBUG
                         if (Debug.EnableInfo && hasDebug())
@@ -986,20 +982,20 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
                 } else {
 
                     // Check if the file data is now available
-                    if (jarSeg.hasStatus() == FileSegmentInfo.Available) {
+                    if (jarSeg.hasStatus() == FileSegmentInfo.State.Available) {
 
                         // Indicate that the Jar load was successful
-                        loadSts = StsSuccess;
+                        loadSts = BackgroundLoadSave.Status.Success;
 
                         // DEBUG
                         if (Debug.EnableInfo && hasDebug())
                             Debug.println("Waited for load, threadId=" + loadReq.getThreadId());
                     } else
-                        loadSts = StsRequeue;
+                        loadSts = BackgroundLoadSave.Status.Requeue;
                 }
             }
             catch (InterruptedException ex) {
-                loadSts = StsRequeue;
+                loadSts = BackgroundLoadSave.Status.Requeue;
             }
         } else {
 
@@ -1012,7 +1008,7 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
             jarSeg = new FileSegment(segInfo, true);
 
             // Check if the Jar data is available
-            if (jarSeg.hasStatus() != FileSegmentInfo.Available) {
+            if (jarSeg.hasStatus() != FileSegmentInfo.State.Available) {
 
                 // DEBUG
                 if (Debug.EnableInfo && hasDebug())
@@ -1021,7 +1017,7 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
                 // Wait until the Jar has been loaded
                 int retryCnt = 0;
 
-                while (retryCnt++ < 50 && jarSeg.hasStatus() != FileSegmentInfo.Available) {
+                while (retryCnt++ < 50 && jarSeg.hasStatus() != FileSegmentInfo.State.Available) {
 
                     // Sleep for a while
                     try {
@@ -1032,10 +1028,10 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
                 }
 
                 // Check if the Jar file has been loaded
-                if (jarSeg.hasStatus() != FileSegmentInfo.Available) {
+                if (jarSeg.hasStatus() != FileSegmentInfo.State.Available) {
 
                     // Requeue the file load request
-                    loadSts = StsRequeue;
+                    loadSts = BackgroundLoadSave.Status.Requeue;
                 } else {
 
                     // DEBUG
@@ -1045,7 +1041,7 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
             } else {
 
                 // Indicate that the Jar file is loaded
-                loadSts = StsSuccess;
+                loadSts = BackgroundLoadSave.Status.Success;
 
                 // DEBUG
                 if (Debug.EnableInfo && hasDebug())
@@ -1054,7 +1050,7 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
         }
 
         // If the Jar file has been loaded, or is available, then extract the required file
-        if (loadSts == StsSuccess) {
+        if (loadSts == BackgroundLoadSave.Status.Success) {
 
             // Open the Jar file and copy the required file data to the temporary file
             JarFile jar = null;
@@ -1121,7 +1117,7 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
                                 + jarSeg.getTemporaryFile());
 
                     // Set the load status to indicate error
-                    loadSts = StsError;
+                    loadSts = BackgroundLoadSave.Status.Error;
                 }
             }
             catch (Exception ex) {
@@ -1170,14 +1166,14 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
      * Store a file
      *
      * @param req FileRequest
-     * @return int
+     * @return BackgroundLoadSave.Status
      * @throws Exception Error saving the file data
      */
-    public int storeFile(FileRequest req)
+    public BackgroundLoadSave.Status storeFile(FileRequest req)
             throws Exception {
 
         // Check for a single file request
-        int saveSts = StsError;
+        BackgroundLoadSave.Status saveSts = BackgroundLoadSave.Status.Error;
 
         if (req instanceof SingleFileRequest) {
 
@@ -1188,7 +1184,7 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
 
             // If the file data save was successful, or had an unrecoverable error, then update the file
             // data status
-            if (saveSts == StsSuccess || saveSts == StsError)
+            if (saveSts == BackgroundLoadSave.Status.Success || saveSts == BackgroundLoadSave.Status.Error)
                 m_stateCache.setDataUpdateCompleted(singleReq.getFileState());
         }
 
@@ -1202,7 +1198,7 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
 
             // If the file data save was successful, or had an unrecoverable error, then update the file
             // data status for each file in the multi file save
-            if (saveSts == StsSuccess || saveSts == StsError) {
+            if (saveSts == BackgroundLoadSave.Status.Success || saveSts == BackgroundLoadSave.Status.Error) {
 
                 // Update the data save status for each file in the multi file save
                 for (int idx = 0; idx < multiReq.getNumberOfFiles(); idx++) {
@@ -1228,10 +1224,10 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
      * Process a store single file request
      *
      * @param saveReq SingleFileRequest
-     * @return int
+     * @return BackgroundLoadSave.Status
      * @throws Exception Error saving the file data
      */
-    protected final int storeSingleFile(SingleFileRequest saveReq)
+    protected final BackgroundLoadSave.Status storeSingleFile(SingleFileRequest saveReq)
             throws Exception {
 
         // DEBUG
@@ -1255,7 +1251,7 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
                 Debug.println("  Temporary file deleted");
 
             // Return an error status
-            return StsError;
+            return BackgroundLoadSave.Status.Error;
         }
 
         // Run any file store processors
@@ -1269,7 +1265,7 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
             Debug.println("## DBFileLoader fileSize=" + fileSize);
 
         // Update the segment status, and clear the updated flag
-        fileSeg.setStatus(FileSegmentInfo.Saving);
+        fileSeg.setStatus(FileSegmentInfo.State.Saving);
         fileSeg.getInfo().setUpdated(false);
 
         try {
@@ -1291,20 +1287,20 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
         }
 
         // Update the segment status
-        fileSeg.setStatus(FileSegmentInfo.Saved, false);
+        fileSeg.setStatus(FileSegmentInfo.State.Saved, false);
 
         // Indicate that the file save request was processed
-        return StsSuccess;
+        return BackgroundLoadSave.Status.Success;
     }
 
     /**
      * Process a store multiple file request
      *
      * @param saveReq MultipleFileRequest
-     * @return int
+     * @return BackgroundLoadSave.Status
      * @throws Exception Error saving multiple file data
      */
-    protected final int storeMultipleFile(MultipleFileRequest saveReq)
+    protected final BackgroundLoadSave.Status storeMultipleFile(MultipleFileRequest saveReq)
             throws Exception {
 
         // Create the Jar file and pack all temporary files
@@ -1400,7 +1396,7 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
         }
 
         // Write the Jar file to the database
-        int saveSts = StsRequeue;
+        BackgroundLoadSave.Status saveSts = BackgroundLoadSave.Status.Requeue;
 
         try {
 
@@ -1420,7 +1416,7 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
             getDBDataInterface().saveJarData(jarFile.getAbsolutePath(), fileList);
 
             // Indicate that the database update was successful
-            saveSts = StsSuccess;
+            saveSts = BackgroundLoadSave.Status.Success;
 
             // Delete the temporary Jar file
             if (hasKeepJars() == false)
@@ -1438,7 +1434,7 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
                     if (fileSegInfo != null) {
                         fileSegInfo.setQueued(false);
                         fileSegInfo.setUpdated(false);
-                        fileSegInfo.setStatus(FileSegmentInfo.Saved);
+                        fileSegInfo.setStatus(FileSegmentInfo.State.Saved);
                     }
                 }
             }
@@ -1722,14 +1718,14 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
             m_dbCtx = (DBDeviceContext) ctx;
 
             // Check if the request queue is supported by the database interface
-            if (getContext().getDBInterface().supportsFeature(DBInterface.FeatureQueue) == false)
+            if (getContext().getDBInterface().supportsFeature(DBInterface.Feature.Queue) == false)
                 throw new FileLoaderException("DBLoader requires queue support in database interface");
 
             if (getContext().getDBInterface() instanceof DBQueueInterface == false)
                 throw new FileLoaderException("Database interface does not implement queue interface");
 
             // Check if the data store feature is supported by the database interface
-            if (getContext().getDBInterface().supportsFeature(DBInterface.FeatureData) == false)
+            if (getContext().getDBInterface().supportsFeature(DBInterface.Feature.Data) == false)
                 throw new FileLoaderException("DBLoader requires data support in database interface");
 
             if (getContext().getDBInterface() instanceof DBDataInterface)
@@ -1739,7 +1735,7 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
 
             // Check if the Jar data store feature is supported by the database interface, if Jar
             // files are enabled
-            if (getSmallFileSize() > 0 && getContext().getDBInterface().supportsFeature(DBInterface.FeatureJarData) == false)
+            if (getSmallFileSize() > 0 && getContext().getDBInterface().supportsFeature(DBInterface.Feature.JarData) == false)
                 throw new FileLoaderException("DBLoader requires Jar data support in database interface");
         } else
             throw new FileLoaderException("Requires database device context");
@@ -1795,8 +1791,8 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
         FileRequestQueue saveQueue = new FileRequestQueue();
 
         try {
-            dbQueue.loadFileRequests(1, FileRequest.SAVE, saveQueue, 1);
-            dbQueue.loadFileRequests(1, FileRequest.TRANSSAVE, saveQueue, 1);
+            dbQueue.loadFileRequests(1, FileRequest.RequestType.Save, saveQueue, 1);
+            dbQueue.loadFileRequests(1, FileRequest.RequestType.TransSave, saveQueue, 1);
         }
         catch (DBException ex) {
         }
@@ -1921,10 +1917,10 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
      * @param fid      int
      * @param tempPath String
      * @param virtPath String
-     * @param sts      int
+     * @param sts      FileSegmentInfo.State
      * @return FileState
      */
-    protected final FileState createFileStateForRequest(int fid, String tempPath, String virtPath, int sts) {
+    protected final FileState createFileStateForRequest(int fid, String tempPath, String virtPath, FileSegmentInfo.State sts) {
 
         // Find, or create, the file state for the file/directory
         FileState state = m_stateCache.findFileState(virtPath, false);
@@ -2008,7 +2004,7 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
 
         // Check if the database implementation supports the NTFS streams feature
         if (getContext() != null)
-            return getContext().getDBInterface().supportsFeature(DBInterface.FeatureNTFS);
+            return getContext().getDBInterface().supportsFeature(DBInterface.Feature.NTFS);
         return true;
     }
 
@@ -2055,7 +2051,7 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
 
                     // Delete the temporary file and reset the segment status so that the data may
                     // be loaded again if required.
-                    if (segInfo.hasStatus() != FileSegmentInfo.Initial) {
+                    if (segInfo.hasStatus() != FileSegmentInfo.State.Initial) {
 
                         // Delete the temporary file
                         try {
@@ -2076,7 +2072,7 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
 
                         // Remove the file segment, reset the file segment back to the initial state
                         state.removeAttribute(DBFileSegmentInfo);
-                        segInfo.setStatus(FileSegmentInfo.Initial);
+                        segInfo.setStatus(FileSegmentInfo.State.Initial);
 
                         // Reset the file state to indicate file data load required
                         state.setDataStatus(FileState.DataStatus.LoadWait);
@@ -2144,7 +2140,7 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
         // Check if the file state has an associated file
         FileSegmentInfo segInfo = (FileSegmentInfo) state.findAttribute(DBFileSegmentInfo);
 
-        if (segInfo != null && segInfo.isQueued() == false && segInfo.hasStatus() != FileSegmentInfo.SaveWait) {
+        if (segInfo != null && segInfo.isQueued() == false && segInfo.hasStatus() != FileSegmentInfo.State.SaveWait) {
 
             try {
 
@@ -2220,7 +2216,7 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
                 // indicate it is available
                 DBFileInfo finfo = (DBFileInfo) state.findAttribute(FileState.FileInformation);
                 if (finfo != null && finfo.getSize() == 0)
-                    fileSeg.setStatus(FileSegmentInfo.Available);
+                    fileSeg.setStatus(FileSegmentInfo.State.Available);
             } else {
 
                 // Create the file segment to map to the existing temporary file
@@ -2234,7 +2230,7 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
                     tempFile.createNewFile();
 
                     // Reset the file segment state to indicate a file load is required
-                    fileSeg.setStatus(FileSegmentInfo.Initial);
+                    fileSeg.setStatus(FileSegmentInfo.State.Initial);
                 }
             }
 

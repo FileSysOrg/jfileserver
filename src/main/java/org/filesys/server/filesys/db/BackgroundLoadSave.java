@@ -47,10 +47,16 @@ import org.filesys.server.filesys.loader.SingleFileRequest;
 public class BackgroundLoadSave {
 
     // Status codes returned from the load/save worker thread processing
+    public enum Status {
+        Success,
+        Requeue,
+        Error
+    }
+/**
     public final static int StsSuccess  = 0;
     public final static int StsRequeue  = 1;
     public final static int StsError    = 2;
-
+**/
     // Default/minimum/maximum number of worker threads to use
     public static final int DefaultWorkerThreads = 4;
     public static final int MinimumWorkerThreads = 1;
@@ -211,7 +217,7 @@ public class BackgroundLoadSave {
                     mi_loader.checkRequestQueue();
 
                     // Process the file request
-                    int reqSts = StsRequeue;
+                    Status reqSts = Status.Requeue;
 
                     try {
 
@@ -219,11 +225,12 @@ public class BackgroundLoadSave {
                         fileReq.setThreadId(mi_id);
 
                         // File data load
-                        if (fileReq.isType() == FileRequest.LOAD) {
+                        if (fileReq.isType() == FileRequest.RequestType.Load) {
 
                             // Load the file
                             reqSts = getFileLoader().loadFile(fileReq);
-                        } else if (fileReq.isType() == FileRequest.SAVE || fileReq.isType() == FileRequest.TRANSSAVE) {
+                        }
+                        else if (fileReq.isType() == FileRequest.RequestType.Save || fileReq.isType() == FileRequest.RequestType.TransSave) {
 
                             // Save the file
                             reqSts = getFileLoader().storeFile(fileReq);
@@ -239,7 +246,7 @@ public class BackgroundLoadSave {
                     }
 
                     // Check if the request was processed successfully
-                    if (reqSts == StsSuccess || reqSts == StsError) {
+                    if (reqSts == Status.Success || reqSts == Status.Error) {
 
                         try {
 
@@ -277,12 +284,12 @@ public class BackgroundLoadSave {
                         }
 
                         // DEBUG
-                        if (Debug.EnableInfo && reqSts == StsError && hasDebug())
+                        if (Debug.EnableInfo && reqSts == Status.Error && hasDebug())
                             Debug.println("BackgroundLoadSave Error request=" + fileReq);
                     }
 
                     // If the file request was not processed requeue it
-                    else if (reqSts == StsRequeue) {
+                    else if (reqSts == Status.Requeue) {
 
                         // DEBUG
                         if (Debug.EnableInfo && hasDebug())
@@ -323,7 +330,7 @@ public class BackgroundLoadSave {
         private Thread mi_thread;
 
         // Request type to load
-        private int mi_loadType;
+        private FileRequest.RequestType mi_loadType;
 
         // Shutdown flag
         private boolean mi_shutdown = false;
@@ -346,11 +353,11 @@ public class BackgroundLoadSave {
          * Class constructor
          *
          * @param name  String
-         * @param type  int
+         * @param type  FileRequest.RequestType
          * @param queue FileRequestQueue
          * @param lock  Object
          */
-        public QueueLoader(String name, int type, FileRequestQueue queue, Object lock) {
+        public QueueLoader(String name, FileRequest.RequestType type, FileRequestQueue queue, Object lock) {
             mi_loadType = type;
             mi_queue = queue;
             mi_lockObj = lock;
@@ -479,7 +486,7 @@ public class BackgroundLoadSave {
                             mi_lastSeqNo = fileReq.getSequenceNumber();
 
                             // Determine the initial status for the file state
-                            int fsts = fileReq.isType() == FileRequest.LOAD ? FileSegmentInfo.LoadWait : FileSegmentInfo.SaveWait;
+                            FileSegmentInfo.State fsts = fileReq.isType() == FileRequest.RequestType.Load ? FileSegmentInfo.State.LoadWait : FileSegmentInfo.State.SaveWait;
 
                             // Recreate the file state and associated data for the file
                             FileState fstate = null;
@@ -503,7 +510,7 @@ public class BackgroundLoadSave {
                         // DEBUG
                         if (Debug.EnableInfo && hasDebug())
                             Debug.println("BackgroundLoadSave Loaded " + loadCnt + " records from queue db, type "
-                                    + (mi_loadType == FileRequest.LOAD ? "Read" : "Write"));
+                                    + (mi_loadType == FileRequest.RequestType.Load ? "Read" : "Write"));
                     }
                 }
                 catch (DBException ex) {
@@ -669,7 +676,7 @@ public class BackgroundLoadSave {
 
                         // Create a multi-file request to hold the details of all the files in the
                         // transaction
-                        MultipleFileRequest fileReq = new MultipleFileRequest(FileRequest.TRANSSAVE, tranId);
+                        MultipleFileRequest fileReq = new MultipleFileRequest(FileRequest.RequestType.TransSave, tranId);
 
                         // Load the file list for the transaction
                         CachedFileInfo finfo = null;
@@ -687,7 +694,7 @@ public class BackgroundLoadSave {
 
                                 try {
                                     fstate = createFileStateForRequest(finfo.getFileId(), finfo.getTemporaryPath(), finfo
-                                            .getVirtualPath(), FileSegmentInfo.SaveWait);
+                                            .getVirtualPath(), FileSegmentInfo.State.SaveWait);
                                     finfo.setFileState(fstate);
                                 }
                                 catch (Exception ex) {
@@ -784,8 +791,8 @@ public class BackgroundLoadSave {
     public final void startThreads(int recCnt) {
 
         // Create the read/write queue loaders
-        m_readLoader = new QueueLoader("ReadQueueLoader", FileRequest.LOAD, m_readQueue, m_readLoaderLock);
-        m_writeLoader = new QueueLoader("WriteQueueLoader", FileRequest.SAVE, m_writeQueue, m_writeLoaderLock);
+        m_readLoader = new QueueLoader("ReadQueueLoader", FileRequest.RequestType.Load, m_readQueue, m_readLoaderLock);
+        m_writeLoader = new QueueLoader("WriteQueueLoader", FileRequest.RequestType.Save, m_writeQueue, m_writeLoaderLock);
 
         // Create the read thread pool
         m_readThreads = new ThreadWorker[m_readWorkers];
@@ -874,7 +881,7 @@ public class BackgroundLoadSave {
 
                     // Check if the in-memory queue is empty, if so then wakeup the queue loader to
                     // load the new request
-                    if (fileReq.isType() == FileRequest.LOAD)
+                    if (fileReq.isType() == FileRequest.RequestType.Load)
                         m_readLoader.notifyNewRecord(fileReq.getSequenceNumber());
                     else
                         m_writeLoader.notifyNewRecord(fileReq.getSequenceNumber());
@@ -1093,10 +1100,10 @@ public class BackgroundLoadSave {
      * @param fid      int
      * @param tempPath String
      * @param virtPath String
-     * @param sts      int
+     * @param sts      FileSegmentInfo.State
      * @return FileState
      */
-    protected final FileState createFileStateForRequest(int fid, String tempPath, String virtPath, int sts) {
+    protected final FileState createFileStateForRequest(int fid, String tempPath, String virtPath, FileSegmentInfo.State sts) {
 
         // Find, or create, the file state for the file/directory
         FileState state = m_stateCache.findFileState(virtPath, false);

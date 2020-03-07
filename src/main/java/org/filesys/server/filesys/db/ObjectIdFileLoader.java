@@ -22,6 +22,7 @@ package org.filesys.server.filesys.db;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.EnumSet;
 import java.util.List;
 
 import org.filesys.debug.Debug;
@@ -66,11 +67,6 @@ import org.springframework.extensions.config.ConfigElement;
  * @author gkspencer
  */
 public abstract class ObjectIdFileLoader implements FileLoader, BackgroundFileLoader, FileStateListener {
-
-    // Status codes returned from the load/save worker thread processing
-    public final static int StsSuccess  = 0;
-    public final static int StsRequeue  = 1;
-    public final static int StsError    = 2;
 
     // Temporary sub-directory/file/Jar prefix
     public static final String TempDirPrefix    = "ldr";
@@ -161,12 +157,12 @@ public abstract class ObjectIdFileLoader implements FileLoader, BackgroundFileLo
      * Return the database features required by this file loader. Return zero if no database features are required by
      * the loader.
      *
-     * @return int
+     * @return EnumSet&lt;Feature&gt;
      */
-    public int getRequiredDBFeatures() {
+    public EnumSet<DBInterface.Feature> getRequiredDBFeatures() {
 
         // Return the database features required by the loader
-        return DBInterface.FeatureObjectId + DBInterface.FeatureQueue;
+        return EnumSet.<DBInterface.Feature>of (DBInterface.Feature.ObjectId, DBInterface.Feature.Queue);
     }
 
     /**
@@ -381,7 +377,7 @@ public abstract class ObjectIdFileLoader implements FileLoader, BackgroundFileLo
 
                 // Indicate that the file data is available, this is a new file or the existing file is being
                 // overwritten so there is no data to load.
-                fileSeg.setStatus(FileSegmentInfo.Available);
+                fileSeg.setStatus(FileSegmentInfo.State.Available);
             } else if (params.isSequentialAccessOnly() && fileSeg.isDataLoading() == false) {
 
                 synchronized (cacheFile.getFileState()) {
@@ -392,7 +388,7 @@ public abstract class ObjectIdFileLoader implements FileLoader, BackgroundFileLo
 
                     // Queue a file data load request
                     if (fileSeg.isDataLoading() == false)
-                        queueFileRequest(new SingleFileRequest(FileRequest.LOAD, cacheFile.getFileId(), cacheFile.getStreamId(),
+                        queueFileRequest(new SingleFileRequest(FileRequest.RequestType.Load, cacheFile.getFileId(), cacheFile.getStreamId(),
                                 fileSeg.getInfo(), cacheFile.getFullName(), fstate));
                 }
 
@@ -447,7 +443,7 @@ public abstract class ObjectIdFileLoader implements FileLoader, BackgroundFileLo
                 if (fileSeg.isSaveQueued() == false) {
 
                     // Create a file save request for the updated file segment
-                    SingleFileRequest fileReq = new SingleFileRequest(FileRequest.SAVE, cacheFile.getFileId(), cacheFile.getStreamId(),
+                    SingleFileRequest fileReq = new SingleFileRequest(FileRequest.RequestType.Save, cacheFile.getFileId(), cacheFile.getStreamId(),
                             fileSeg.getInfo(), netFile.getFullName(), cacheFile.getFileState());
 
                     // Check if there are any attributes to be added to the file request
@@ -475,7 +471,7 @@ public abstract class ObjectIdFileLoader implements FileLoader, BackgroundFileLo
                     }
 
                     // Set the file segment status
-                    fileSeg.setStatus(FileSegmentInfo.SaveWait, true);
+                    fileSeg.setStatus(FileSegmentInfo.State.SaveWait, true);
 
                     // Queue the file save request
                     queueFileRequest(fileReq);
@@ -546,7 +542,7 @@ public abstract class ObjectIdFileLoader implements FileLoader, BackgroundFileLo
 
                         // Change the file segment status
                         fileSegInfo.setQueued(false);
-                        fileSegInfo.setStatus(FileSegmentInfo.Initial);
+                        fileSegInfo.setStatus(FileSegmentInfo.State.Initial);
 
                         // Delete the temporary file
                         fileSegInfo.deleteTemporaryFile();
@@ -583,10 +579,10 @@ public abstract class ObjectIdFileLoader implements FileLoader, BackgroundFileLo
      * Load a file
      *
      * @param req FileRequest
-     * @return int
+     * @return BackgroundLoadSave.Status
      * @throws Exception Failed to load the file data
      */
-    public int loadFile(FileRequest req)
+    public BackgroundLoadSave.Status loadFile(FileRequest req)
             throws Exception {
 
         // DEBUG
@@ -609,8 +605,8 @@ public abstract class ObjectIdFileLoader implements FileLoader, BackgroundFileLo
                 Debug.println("  Temporary file deleted");
 
             // Return an error status
-            fileSeg.setStatus(FileSegmentInfo.Error, false);
-            return StsError;
+            fileSeg.setStatus(FileSegmentInfo.State.Error, false);
+            return BackgroundLoadSave.Status.Error;
         }
 
         // DEBUG
@@ -618,7 +614,7 @@ public abstract class ObjectIdFileLoader implements FileLoader, BackgroundFileLo
             Debug.println("## ObjIdLoader fileSeg=" + fileSeg.getTemporaryFile() + ", virtPath=" + loadReq.getVirtualPath());
 
         // Load the file data
-        int loadSts = StsRequeue;
+        BackgroundLoadSave.Status loadSts = BackgroundLoadSave.Status.Requeue;
         String objectId = null;
 
         int fileId = loadReq.getFileId();
@@ -627,7 +623,7 @@ public abstract class ObjectIdFileLoader implements FileLoader, BackgroundFileLo
         try {
 
             // Update the segment status
-            fileSeg.setStatus(FileSegmentInfo.Loading);
+            fileSeg.setStatus(FileSegmentInfo.State.Loading);
 
             // Get the object id for the file
             objectId = getDBObjectIdInterface().loadObjectId(fileId, strmId);
@@ -638,7 +634,7 @@ public abstract class ObjectIdFileLoader implements FileLoader, BackgroundFileLo
                 loadFileData(fileId, strmId, objectId, fileSeg);
 
                 // Set the load status
-                loadSts = StsSuccess;
+                loadSts = BackgroundLoadSave.Status.Success;
 
                 // DEBUG
                 if (Debug.EnableInfo && hasDebug()) {
@@ -653,7 +649,7 @@ public abstract class ObjectIdFileLoader implements FileLoader, BackgroundFileLo
                     Debug.println("## ObjIdLoader No object id mapping for fid=" + loadReq.getFileId() + ", stream=" + loadReq.getStreamId());
 
                 // Indicate a load success
-                loadSts = StsSuccess;
+                loadSts = BackgroundLoadSave.Status.Success;
             }
         }
         catch (DBException ex) {
@@ -663,7 +659,7 @@ public abstract class ObjectIdFileLoader implements FileLoader, BackgroundFileLo
                 Debug.println(ex);
 
             // Indicate the file load failed
-            loadSts = StsError;
+            loadSts = BackgroundLoadSave.Status.Error;
         }
         catch (FileOfflineException ex) {
 
@@ -672,7 +668,7 @@ public abstract class ObjectIdFileLoader implements FileLoader, BackgroundFileLo
                 Debug.println(ex);
 
             // Indicate the file load failed
-            loadSts = StsError;
+            loadSts = BackgroundLoadSave.Status.Error;
         }
         catch (IOException ex) {
 
@@ -681,7 +677,7 @@ public abstract class ObjectIdFileLoader implements FileLoader, BackgroundFileLo
                 Debug.println(ex);
 
             // Indicate the file load failed
-            loadSts = StsRequeue;
+            loadSts = BackgroundLoadSave.Status.Requeue;
         }
         catch (Exception ex) {
 
@@ -690,27 +686,27 @@ public abstract class ObjectIdFileLoader implements FileLoader, BackgroundFileLo
                 Debug.println(ex);
 
             // Indicate the file load failed
-            loadSts = StsError;
+            loadSts = BackgroundLoadSave.Status.Error;
         }
 
         // Clear the last modified date/time of the temporary file to indicate it has not been updated
         tempFile.setLastModified(0L);
 
         // Check if the file was loaded successfully
-        if (loadSts == StsSuccess) {
+        if (loadSts == BackgroundLoadSave.Status.Success) {
 
             // Signal that the file data is available
             fileSeg.signalDataAvailable();
 
             // Update the file status
-            fileSeg.setStatus(FileSegmentInfo.Available, false);
+            fileSeg.setStatus(FileSegmentInfo.State.Available, false);
 
             // Run the file load processors
             runFileLoadedProcessors(getContext(), loadReq.getFileState(), fileSeg);
-        } else if (loadSts == StsError) {
+        } else if (loadSts == BackgroundLoadSave.Status.Error) {
 
             // Set the file status to indicate error to any client reading threads
-            fileSeg.setStatus(FileSegmentInfo.Error, false);
+            fileSeg.setStatus(FileSegmentInfo.State.Error, false);
 
             // Wakeup any threads waiting on data for this file
             fileSeg.setReadableLength(0L);
@@ -728,14 +724,14 @@ public abstract class ObjectIdFileLoader implements FileLoader, BackgroundFileLo
      * Store a file
      *
      * @param req FileRequest
-     * @return int
+     * @return BackgroundLoadSave.Status
      * @throws Exception Failed to save the file data
      */
-    public int storeFile(FileRequest req)
+    public BackgroundLoadSave.Status storeFile(FileRequest req)
             throws Exception {
 
         // Check for a single file request
-        int saveSts = StsError;
+        BackgroundLoadSave.Status saveSts = BackgroundLoadSave.Status.Error;
         SingleFileRequest saveReq = (SingleFileRequest) req;
 
         // Check if the temporary file still exists, if not then the file has been deleted from the filesystem
@@ -749,14 +745,14 @@ public abstract class ObjectIdFileLoader implements FileLoader, BackgroundFileLo
                 Debug.println("  Temporary file deleted");
 
             // Return an error status
-            return StsError;
+            return BackgroundLoadSave.Status.Error;
         }
 
         // Run any file store processors
         runFileStoreProcessors(m_dbCtx, saveReq.getFileState(), fileSeg);
 
         // Update the segment status, and clear the updated flag
-        fileSeg.setStatus(FileSegmentInfo.Saving);
+        fileSeg.setStatus(FileSegmentInfo.State.Saving);
         fileSeg.getInfo().setUpdated(false);
 
         // Save the file data
@@ -769,7 +765,7 @@ public abstract class ObjectIdFileLoader implements FileLoader, BackgroundFileLo
             getDBObjectIdInterface().saveObjectId(saveReq.getFileId(), saveReq.getStreamId(), objectId);
 
             // Indicate that the save was successful
-            saveSts = StsSuccess;
+            saveSts = BackgroundLoadSave.Status.Success;
         }
         catch (DBException ex) {
 
@@ -778,7 +774,7 @@ public abstract class ObjectIdFileLoader implements FileLoader, BackgroundFileLo
                 Debug.println(ex);
 
             // Indicate the file save failed
-            saveSts = StsError;
+            saveSts = BackgroundLoadSave.Status.Error;
         }
         catch (IOException ex) {
 
@@ -787,14 +783,14 @@ public abstract class ObjectIdFileLoader implements FileLoader, BackgroundFileLo
                 Debug.println(ex);
 
             // Indicate the file save failed
-            saveSts = StsError;
+            saveSts = BackgroundLoadSave.Status.Error;
         }
 
         // Update the segment status
-        if (saveSts == StsSuccess)
-            fileSeg.setStatus(FileSegmentInfo.Saved, false);
+        if (saveSts == BackgroundLoadSave.Status.Success)
+            fileSeg.setStatus(FileSegmentInfo.State.Saved, false);
         else
-            fileSeg.setStatus(FileSegmentInfo.Error, false);
+            fileSeg.setStatus(FileSegmentInfo.State.Error, false);
 
         // Return the data save status
         return saveSts;
@@ -981,14 +977,14 @@ public abstract class ObjectIdFileLoader implements FileLoader, BackgroundFileLo
             m_dbCtx = (DBDeviceContext) ctx;
 
             // Check if the request queue is supported by the database interface
-            if (getContext().getDBInterface().supportsFeature(DBInterface.FeatureQueue) == false)
+            if (getContext().getDBInterface().supportsFeature(DBInterface.Feature.Queue) == false)
                 throw new FileLoaderException("DBLoader requires queue support in database interface");
 
             if (getContext().getDBInterface() instanceof DBQueueInterface == false)
                 throw new FileLoaderException("Database interface does not implement queue interface");
 
             // Check if the object id feature is supported by the database interface
-            if (getContext().getDBInterface().supportsFeature(DBInterface.FeatureObjectId) == false)
+            if (getContext().getDBInterface().supportsFeature(DBInterface.Feature.ObjectId) == false)
                 throw new FileLoaderException("DBLoader requires data support in database interface");
 
             if (getContext().getDBInterface() instanceof DBObjectIdInterface)
@@ -1048,7 +1044,7 @@ public abstract class ObjectIdFileLoader implements FileLoader, BackgroundFileLo
         FileRequestQueue saveQueue = new FileRequestQueue();
 
         try {
-            dbQueue.loadFileRequests(1, FileRequest.SAVE, saveQueue, 1);
+            dbQueue.loadFileRequests(1, FileRequest.RequestType.Save, saveQueue, 1);
         }
         catch (DBException ex) {
         }
@@ -1167,10 +1163,10 @@ public abstract class ObjectIdFileLoader implements FileLoader, BackgroundFileLo
      * @param fid      int
      * @param tempPath String
      * @param virtPath String
-     * @param sts      int
+     * @param sts      FileSegmentInfo.State
      * @return FileState
      */
-    protected final FileState createFileStateForRequest(int fid, String tempPath, String virtPath, int sts) {
+    protected final FileState createFileStateForRequest(int fid, String tempPath, String virtPath, FileSegmentInfo.State sts) {
 
         // Find, or create, the file state for the file/directory
         FileState state = m_stateCache.findFileState(virtPath, true);
@@ -1248,7 +1244,7 @@ public abstract class ObjectIdFileLoader implements FileLoader, BackgroundFileLo
 
         // Check if the database implementation supports the NTFS streams feature
         if (getContext() != null)
-            return getContext().getDBInterface().supportsFeature(DBInterface.FeatureNTFS);
+            return getContext().getDBInterface().supportsFeature(DBInterface.Feature.NTFS);
         return true;
     }
 
@@ -1293,7 +1289,7 @@ public abstract class ObjectIdFileLoader implements FileLoader, BackgroundFileLo
 
                     // Delete the temporary file and reset the segment status so that the data may be loaded again
                     // if required.
-                    if (segInfo.hasStatus() != FileSegmentInfo.Initial) {
+                    if (segInfo.hasStatus() != FileSegmentInfo.State.Initial) {
 
                         // Delete the temporary file
                         try {
@@ -1314,7 +1310,7 @@ public abstract class ObjectIdFileLoader implements FileLoader, BackgroundFileLo
 
                         // Remove the file segment, reset the file segment back to the initial state
                         state.removeAttribute(DBFileSegmentInfo);
-                        segInfo.setStatus(FileSegmentInfo.Initial);
+                        segInfo.setStatus(FileSegmentInfo.State.Initial);
 
                         // Reset the file state to indicate file data load required
                         state.setDataStatus(FileState.DataStatus.LoadWait);
@@ -1400,7 +1396,7 @@ public abstract class ObjectIdFileLoader implements FileLoader, BackgroundFileLo
         // Check if the file state has an associated file
         FileSegmentInfo segInfo = (FileSegmentInfo) state.findAttribute(DBFileSegmentInfo);
 
-        if (segInfo != null && segInfo.isQueued() == false && segInfo.hasStatus() != FileSegmentInfo.SaveWait) {
+        if (segInfo != null && segInfo.isQueued() == false && segInfo.hasStatus() != FileSegmentInfo.State.SaveWait) {
 
             try {
 
@@ -1475,7 +1471,7 @@ public abstract class ObjectIdFileLoader implements FileLoader, BackgroundFileLo
                 // Check if the file is zero length, if so then set the file segment state to indicate it is available
                 DBFileInfo finfo = (DBFileInfo) state.findAttribute(FileState.FileInformation);
                 if (finfo != null && finfo.getSize() == 0)
-                    fileSeg.setStatus(FileSegmentInfo.Available);
+                    fileSeg.setStatus(FileSegmentInfo.State.Available);
             } else {
 
                 // Create the file segment to map to the existing temporary file
@@ -1489,7 +1485,7 @@ public abstract class ObjectIdFileLoader implements FileLoader, BackgroundFileLo
                     tempFile.createNewFile();
 
                     // Reset the file segment state to indicate a file load is required
-                    fileSeg.setStatus(FileSegmentInfo.Initial);
+                    fileSeg.setStatus(FileSegmentInfo.State.Initial);
                 }
             }
 
