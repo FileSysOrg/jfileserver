@@ -127,7 +127,7 @@ public class CachedFileInfo {
      * @return String
      */
     public String toString() {
-        StringBuffer str = new StringBuffer();
+        StringBuilder str = new StringBuilder();
 
         str.append("[FID=");
         str.append(getFileId());

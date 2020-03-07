@@ -71,13 +71,13 @@ public interface DBQueueInterface {
      * Load a block of file requests from the database into the specified queue.
      *
      * @param seqNo    int
-     * @param reqType  int
+     * @param reqType  FileRequest.RequestType
      * @param reqQueue FileRequestQueue
      * @param recLimit int
      * @return int
      * @exception DBException Database error
      */
-    public int loadFileRequests(int seqNo, int reqType, FileRequestQueue reqQueue, int recLimit)
+    public int loadFileRequests(int seqNo, FileRequest.RequestType reqType, FileRequestQueue reqQueue, int recLimit)
             throws DBException;
 
     /**

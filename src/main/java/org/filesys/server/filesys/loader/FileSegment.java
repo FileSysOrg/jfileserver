@@ -103,7 +103,7 @@ public class FileSegment {
      * @return boolean
      */
     public final boolean isDataLoading() {
-        if (m_info.hasStatus() == FileSegmentInfo.Initial &&
+        if (m_info.hasStatus() == FileSegmentInfo.State.Initial &&
                 m_info.isQueued() == false)
             return false;
         return true;
@@ -115,8 +115,8 @@ public class FileSegment {
      * @return boolean
      */
     public final boolean isDataAvailable() {
-        if (m_info.hasStatus() >= FileSegmentInfo.Available &&
-                m_info.hasStatus() < FileSegmentInfo.Error)
+        if (m_info.hasStatus().ordinal() >= FileSegmentInfo.State.Available.ordinal() &&
+                m_info.hasStatus().ordinal() < FileSegmentInfo.State.Error.ordinal())
             return true;
         return false;
     }
@@ -124,9 +124,9 @@ public class FileSegment {
     /**
      * Return the segment status
      *
-     * @return int
+     * @return State
      */
-    public final int hasStatus() {
+    public final FileSegmentInfo.State hasStatus() {
         return m_info.hasStatus();
     }
 
@@ -136,7 +136,7 @@ public class FileSegment {
      * @return boolean
      */
     public final boolean hasLoadError() {
-        return m_info.hasStatus() == FileSegmentInfo.Error;
+        return m_info.hasStatus() == FileSegmentInfo.State.Error;
     }
 
     /**
@@ -152,19 +152,19 @@ public class FileSegment {
     /**
      * Set the segment load/update status
      *
-     * @param sts int
+     * @param sts State
      */
-    public final void setStatus(int sts) {
+    public final void setStatus(FileSegmentInfo.State sts) {
         m_info.setStatus(sts);
     }
 
     /**
      * Set the segment load/update status and queued status
      *
-     * @param sts    int
+     * @param sts    State
      * @param queued boolean
      */
-    public final synchronized void setStatus(int sts, boolean queued) {
+    public final synchronized void setStatus(FileSegmentInfo.State sts, boolean queued) {
         m_info.setStatus(sts);
         m_info.setQueued(queued);
     }
@@ -202,7 +202,7 @@ public class FileSegment {
      * @return boolean
      */
     public final synchronized boolean isSaveQueued() {
-        if (m_info.isQueued() && m_info.hasStatus() == FileSegmentInfo.SaveWait)
+        if (m_info.isQueued() && m_info.hasStatus() == FileSegmentInfo.State.SaveWait)
             return true;
         return false;
     }
@@ -213,7 +213,7 @@ public class FileSegment {
      * @return boolean
      */
     public final synchronized boolean isSaving() {
-        if (m_info.isQueued() && m_info.hasStatus() == FileSegmentInfo.Saving)
+        if (m_info.isQueued() && m_info.hasStatus() == FileSegmentInfo.State.Saving)
             return true;
         return false;
     }
@@ -224,7 +224,7 @@ public class FileSegment {
      * @return boolean
      */
     public final synchronized boolean isLoading() {
-        if (m_info.isQueued() && m_info.hasStatus() == FileSegmentInfo.Loading)
+        if (m_info.isQueued() && m_info.hasStatus() == FileSegmentInfo.State.Loading)
             return true;
         return false;
     }
@@ -259,7 +259,7 @@ public class FileSegment {
         } else {
 
             //	Set the file status to loading
-            setStatus(FileSegmentInfo.Loading);
+            setStatus(FileSegmentInfo.State.Loading);
             sts = true;
         }
 

@@ -22,6 +22,7 @@ package org.filesys.server.filesys.db;
 import java.io.File;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.EnumSet;
 
 import org.filesys.debug.Debug;
 import org.filesys.server.config.InvalidConfigurationException;
@@ -74,8 +75,8 @@ public abstract class JdbcDBInterface implements DBInterface, DBConnectionPoolLi
     protected DBDeviceContext m_dbCtx;
 
     //	Supported/requested database features
-    private int m_features;
-    private int m_reqFeatures;
+    private EnumSet<Feature> m_features;
+    private EnumSet<Feature> m_reqFeatures;
 
     //	JDBC driver class
     protected String m_driver;
@@ -140,28 +141,29 @@ public abstract class JdbcDBInterface implements DBInterface, DBConnectionPoolLi
     /**
      * Determine if the database interface supports the specified feature
      *
-     * @param feature int
+     * @param feature Feature
      * @return boolean
      */
-    public final boolean supportsFeature(int feature) {
-        return (m_features & feature) != 0 ? true : false;
+    public final boolean supportsFeature(Feature feature) {
+        return m_features.contains( feature);
     }
 
     /**
      * Request the specified database features be enabled
      *
-     * @param featureMask int
+     * @param featureMask EnumSet&lt;Feature&gt;
      * @throws DBException Database error
      */
-    public void requestFeatures(int featureMask)
+    public void requestFeatures(EnumSet<Feature> featureMask)
             throws DBException {
 
         //	Get the database interface supported features
-        int supFeatures = getSupportedFeatures();
+        EnumSet<Feature> supFeatures = getSupportedFeatures();
 
         //	Check if there are any unsupported features requested
-        if ((featureMask | supFeatures) != supFeatures)
-            throw new DBException("Unsupported feature requested");
+        for ( Feature curFeature : supFeatures)
+            if ( featureMask.contains( curFeature) == false)
+            throw new DBException("Unsupported feature requested (" + curFeature.name() + ")");
 
         //	Set the requested features
         m_reqFeatures = featureMask;
@@ -170,9 +172,9 @@ public abstract class JdbcDBInterface implements DBInterface, DBConnectionPoolLi
     /**
      * Get the supported database features mask
      *
-     * @return int
+     * @return EnumSet&lt;Feature&gt;
      */
-    protected abstract int getSupportedFeatures();
+    protected abstract EnumSet<Feature> getSupportedFeatures();
 
     /**
      * Check if the crash recovery folder is enabled
@@ -189,7 +191,7 @@ public abstract class JdbcDBInterface implements DBInterface, DBConnectionPoolLi
      * @return boolean
      */
     public final boolean isRetentionEnabled() {
-        return (m_reqFeatures & FeatureRetention) != 0 ? true : false;
+        return m_reqFeatures.contains( Feature.Retention);
     }
 
     /**
@@ -198,7 +200,7 @@ public abstract class JdbcDBInterface implements DBInterface, DBConnectionPoolLi
      * @return boolean
      */
     public final boolean isNTFSEnabled() {
-        return (m_reqFeatures & FeatureNTFS) != 0 ? true : false;
+        return m_reqFeatures.contains( Feature.NTFS);
     }
 
     /**
@@ -207,7 +209,7 @@ public abstract class JdbcDBInterface implements DBInterface, DBConnectionPoolLi
      * @return boolean
      */
     public final boolean isQueueEnabled() {
-        return (m_reqFeatures & FeatureQueue) != 0 ? true : false;
+        return m_reqFeatures.contains( Feature.Queue);
     }
 
     /**
@@ -216,7 +218,7 @@ public abstract class JdbcDBInterface implements DBInterface, DBConnectionPoolLi
      * @return boolean
      */
     public final boolean isDataEnabled() {
-        return (m_reqFeatures & FeatureData) != 0 ? true : false;
+        return m_reqFeatures.contains( Feature.Data);
     }
 
     /**
@@ -225,7 +227,7 @@ public abstract class JdbcDBInterface implements DBInterface, DBConnectionPoolLi
      * @return boolean
      */
     public final boolean isJarDataEnabled() {
-        return (m_reqFeatures & FeatureJarData) != 0 ? true : false;
+        return m_reqFeatures.contains( Feature.JarData);
     }
 
     /**
@@ -234,7 +236,7 @@ public abstract class JdbcDBInterface implements DBInterface, DBConnectionPoolLi
      * @return boolean
      */
     public final boolean isObjectIdEnabled() {
-        return (m_reqFeatures & FeatureObjectId) != 0 ? true : false;
+        return m_reqFeatures.contains( Feature.ObjectId);
     }
 
     /**
@@ -243,7 +245,7 @@ public abstract class JdbcDBInterface implements DBInterface, DBConnectionPoolLi
      * @return boolean
      */
     public final boolean isSymbolicLinksEnabled() {
-        return (m_reqFeatures & FeatureSymLinks) != 0 ? true : false;
+        return m_reqFeatures.contains( Feature.SymLinks);
     }
 
     /**
@@ -1032,7 +1034,7 @@ public abstract class JdbcDBInterface implements DBInterface, DBConnectionPoolLi
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////
-    /////////// Database interface methods required for threaded file loading support	///////////
+    /////////// Database interface methods required for threaded file loading support ///////////
     /////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
@@ -1083,7 +1085,7 @@ public abstract class JdbcDBInterface implements DBInterface, DBConnectionPoolLi
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////
-    /////////// Database interface methods required for threaded file loading        	///////////
+    /////////// Database interface methods required for threaded file loading         ///////////
     /////////// transaction support                                                   ///////////
     /////////////////////////////////////////////////////////////////////////////////////////////
 

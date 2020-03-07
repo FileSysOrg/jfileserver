@@ -21,6 +21,7 @@ package org.filesys.server.filesys.db;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.EnumSet;
 
 import org.filesys.server.config.InvalidConfigurationException;
 import org.filesys.server.filesys.*;
@@ -42,6 +43,18 @@ public interface DBInterface {
     //	Constants
     //
     //	Database interface supported/requested features
+    public enum Feature {
+        NTFS,           // NTFS streams
+        Retention,      // data retention
+        Queue,          // background load/save queues
+        Data,           // load/save file data to database fields
+        JarData,        // load/save multiple file data to Jar files
+        ObjectId,       // keep file id to object id mapping details
+        SymLinks,       // symbolic links
+        SecDescriptor   // security descriptors
+    }
+
+/**
     public static final int FeatureNTFS             = 0x0001;    //	NTFS streams
     public static final int FeatureRetention        = 0x0002;    //	data retention
     public static final int FeatureQueue            = 0x0004;    //	background load/save queues
@@ -50,7 +63,7 @@ public interface DBInterface {
     public static final int FeatureObjectId         = 0x0020;    //	keep file id to object id mapping details
     public static final int FeatureSymLinks         = 0x0040;    //  symbolic links
     public static final int FeatureSecDescriptor    = 0x0080;    // 	security descriptors
-
+**/
     //	File information levels, for the getFileInformation() method
     public static final int FileNameOnly    = 0;    //	file name only
     public static final int FileIds         = 1;    //	name, directory id and file id
@@ -71,18 +84,18 @@ public interface DBInterface {
     /**
      * Determine if the database interface supports the specified feature
      *
-     * @param feature int
+     * @param feature Feature
      * @return boolean
      */
-    public boolean supportsFeature(int feature);
+    public boolean supportsFeature(Feature feature);
 
     /**
      * Request the specified database features be enabled
      *
-     * @param featureMask int
+     * @param featureMask EnumSet&lt;Feature&gt;
      * @exception DBException Database error
      */
-    public void requestFeatures(int featureMask)
+    public void requestFeatures(EnumSet<Feature> featureMask)
             throws DBException;
 
     /**

@@ -183,7 +183,7 @@ public class CachedNetworkFile extends DBNetworkFile {
         }
 
         // Check for a file segment error
-        if (m_cacheFile.hasStatus() == FileSegmentInfo.Error) {
+        if (m_cacheFile.hasStatus() == FileSegmentInfo.State.Error) {
 
             // DEBUG
             if (DEBUG)
@@ -198,7 +198,7 @@ public class CachedNetworkFile extends DBNetworkFile {
         m_lastReadLen = len;
 
         // Check if the file data has been loaded
-        if (m_cacheFile.hasStatus() == FileSegmentInfo.Initial && m_cacheFile.isQueued() == false) {
+        if (m_cacheFile.hasStatus() == FileSegmentInfo.State.Initial && m_cacheFile.isQueued() == false) {
 
             // Check if the temporary file exists
             if (m_cacheFile.fileExists() == false) {
@@ -211,7 +211,7 @@ public class CachedNetworkFile extends DBNetworkFile {
 
                 // Queue a file data load request
                 if (m_cacheFile.isQueued() == false)
-                    getLoader().queueFileRequest(createFileRequest(FileRequest.LOAD));
+                    getLoader().queueFileRequest(createFileRequest(FileRequest.RequestType.Load));
             }
         }
 
@@ -487,10 +487,10 @@ public class CachedNetworkFile extends DBNetworkFile {
      * Create a file load or save request. This method may be overridden to allow extending of the
      * SingleFileRequest class.
      *
-     * @param typ int
+     * @param typ FileRequest.RequestType
      * @return FileRequest
      */
-    protected FileRequest createFileRequest(int typ) {
+    protected FileRequest createFileRequest(FileRequest.RequestType typ) {
 
         // DEBUG
         if (DEBUG)
