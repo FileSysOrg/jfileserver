@@ -66,6 +66,7 @@ import org.filesys.server.core.ShareType;
 import org.filesys.server.core.SharedDevice;
 import org.filesys.server.core.SharedDeviceList;
 import org.filesys.server.filesys.*;
+import org.filesys.util.MemorySize;
 import org.filesys.util.UTF8Normalizer;
 import org.filesys.util.WildCard;
 
@@ -113,7 +114,7 @@ public class FTPSrvSession extends SrvSession<FTPSrvSession.Dbg> implements Runn
     private static final char DIR_SEPERATOR_CHAR    = '\\';
 
     // File transfer buffer size
-    private static final int DEFAULT_BUFFERSIZE = 64000;
+    private static final int DEFAULT_BUFFERSIZE = (int) (256 * MemorySize.KILOBYTE);
 
     // Carriage return/line feed combination required for response messages
     protected final static String CRLF = "\r\n";
