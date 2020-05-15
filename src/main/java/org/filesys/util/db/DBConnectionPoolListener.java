@@ -31,7 +31,7 @@ public interface DBConnectionPoolListener {
     /**
      * Database online/offline status event
      *
-     * @param dbonline boolean
+     * @param dbSts DBStatus
      */
-    public void databaseOnlineStatus(boolean dbonline);
+    public void databaseOnlineStatus(DBStatus dbSts);
 }

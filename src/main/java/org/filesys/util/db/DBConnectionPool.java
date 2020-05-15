@@ -29,7 +29,6 @@ import java.util.List;
 
 import org.filesys.debug.Debug;
 
-
 /**
  * Database Connection Pool Class
  *
@@ -82,6 +81,9 @@ public class DBConnectionPool {
     // Database connection pool event listener
     private DBConnectionPoolListener m_dbListener;
 
+    // Database callbacks, used to override various default actions
+    private DBCallbacks m_callback;
+
     /**
      * Database Connection Reaper Thread Class
      *
@@ -89,6 +91,9 @@ public class DBConnectionPool {
      * pool.
      */
     protected class DBConnectionReaper implements Runnable {
+
+        // Debug enable
+        private static final boolean DEBUG = false;
 
         //	Reaper wakeup interval
         private long m_wakeup;
@@ -173,7 +178,8 @@ public class DBConnectionPool {
                 synchronized (m_allocPool) {
 
                     //	DEBUG
-//					Debug.println("DBConnectionReaper allocPool=" + m_allocPool.size() + ", freePool=" + m_freePool.size());
+                    if ( DEBUG)
+					    Debug.println("DBConnectionReaper allocPool=" + m_allocPool.size() + ", freePool=" + m_freePool.size());
 
                     //	Get the current time
                     long timeNow = System.currentTimeMillis();
@@ -239,7 +245,8 @@ public class DBConnectionPool {
                     while (m_freePool.size() > getMaximumPoolSize()) {
 
                         //	DEBUG
-                        Debug.println("DBConnectionReaper trimming free pool, " + m_freePool.size() + "/" + getMaximumPoolSize());
+                        if ( DEBUG)
+                            Debug.println("DBConnectionReaper trimming free pool, " + m_freePool.size() + "/" + getMaximumPoolSize());
 
                         //	Remove a connection from the free pool and close the connection
                         Connection conn = m_freePool.remove(0);
@@ -260,7 +267,8 @@ public class DBConnectionPool {
                     synchronized (m_freePool) {
 
                         // DEBUG
-//            Debug.println( "DBConnectionReaper Checking free pool connection status ...");
+                        if ( DEBUG)
+                            Debug.println( "DBConnectionReaper Checking free pool connection status ...");
 
                         //  Check if the connections in the free pool are still connected/valid
                         int idx = 0;
@@ -279,7 +287,8 @@ public class DBConnectionPool {
                                     m_freePool.remove(idx);
 
                                     // DEBUG
-//                  Debug.println( "DBConnectionReaper Removed closed connection from free pool");
+                                    if ( DEBUG)
+                                        Debug.println( "DBConnectionReaper Removed closed connection from free pool");
                                 }
                                 else {
 
@@ -304,7 +313,8 @@ public class DBConnectionPool {
                                 }
 
                                 // DEBUG
-//                Debug.println( "DBConnectionReaper Removed closed connection from free pool (exception)");
+                                if ( DEBUG)
+                                    Debug.println( "DBConnectionReaper Removed closed connection from free pool (exception)");
                             }
                         }
 
@@ -328,7 +338,8 @@ public class DBConnectionPool {
                         }
 
                         // DEBUG
-//            Debug.println( "DBConnectionReaper Free pool check done.");
+                        if ( DEBUG)
+                            Debug.println( "DBConnectionReaper Free pool check done.");
                     }
                 }
             }
@@ -378,6 +389,41 @@ public class DBConnectionPool {
         m_dsn = dsn;
         m_user = user;
         m_password = pwd;
+
+        //	Set the pool size
+        if (initConns > 0)
+            m_minPoolSize = initConns;
+
+        if (maxConns > 0)
+            m_maxPoolSize = maxConns;
+
+        // Call the common constructor code
+        commonConstructor();
+    }
+
+    /**
+     * Class constructor
+     *
+     * @param driver    String
+     * @param dsn       String
+     * @param user      String
+     * @param pwd       String
+     * @param initConns int
+     * @param maxConns  int
+     * @param callback DBCallbacks
+     * @exception Exception Failed to initialize the connection pool
+     */
+    public DBConnectionPool(String driver, String dsn, String user, String pwd, int initConns, int maxConns, DBCallbacks callback)
+            throws Exception {
+
+        //	Set the JDBC connection details
+        m_dbDriver = driver;
+        m_dsn = dsn;
+        m_user = user;
+        m_password = pwd;
+
+        // Set the callbacks interface
+        m_callback = callback;
 
         //	Set the pool size
         if (initConns > 0)
@@ -779,7 +825,14 @@ public class DBConnectionPool {
     protected final Connection createConnection()
             throws SQLException {
 
-        //	Create a new database connection
+        //	Create a new database connection, use the callback interface if available
+        if ( m_callback != null) {
+
+            // Use the callback interface to delegate the connection creation
+            return m_callback.createConnectionForPool(getDSN(), getUserName(), getPassword());
+        }
+
+        // Use the default connection creation
         return DriverManager.getConnection(getDSN(), getUserName(), getPassword());
     }
 
@@ -793,7 +846,7 @@ public class DBConnectionPool {
 
         // Inform the connection pool listener
         if (hasConnectionPoolListener())
-            m_dbListener.databaseOnlineStatus(isOnline());
+            m_dbListener.databaseOnlineStatus(isOnline() ? DBStatus.Online : DBStatus.Offline);
         else
             Debug.println("DBConnectionPool: No listener");
     }
