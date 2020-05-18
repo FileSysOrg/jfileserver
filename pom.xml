@@ -5,7 +5,7 @@
     <groupId>org.filesys</groupId>
     <artifactId>jfileserver</artifactId>
     <packaging>jar</packaging>
-    <version>1.3.0</version>
+    <version>1.3.1-SNAPSHOT</version>
 
     <name>${project.groupId}:${project.artifactId}</name>
     <description>Java file server with SMB, FTP/FTPS and NFS support, virtual filesystems, database filesystems</description>
@@ -238,7 +238,7 @@
         <connection>scm:git:git@github.com:FileSysOrg/jfileserver.git</connection>
         <developerConnection>scm:git:git@github.com:FileSysOrg/jfileserver.git</developerConnection>
         <url>https://github.com/FileSysOrg/jfileserver</url>
-      <tag>jfileserver-1.3.0</tag>
+      <tag>jfileserver-1.2.0</tag>
   </scm>
 
     <distributionManagement>
