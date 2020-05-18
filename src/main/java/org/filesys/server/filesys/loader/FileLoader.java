@@ -51,6 +51,13 @@ public interface FileLoader {
     public EnumSet<DBInterface.Feature> getRequiredDBFeatures();
 
     /**
+     * Determine if the file loader is online
+     *
+     * @return boolean
+     */
+    public boolean isOnline();
+
+    /**
      * Create a network file for the specified file
      *
      * @param params FileOpenParams
