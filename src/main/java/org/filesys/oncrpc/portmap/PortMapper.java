@@ -19,6 +19,11 @@
 
 package org.filesys.oncrpc.portmap;
 
+import org.filesys.oncrpc.nfs.v3.NFS3;
+
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * PortMapper RPC Service Constants Class
  *
@@ -34,26 +39,54 @@ public class PortMapper {
     public static final int VersionId = 2;
 
     //	RPC procedure ids
-    public static final int ProcNull    = 0;
-    public static final int ProcSet     = 1;
-    public static final int ProcUnSet   = 2;
-    public static final int ProcGetPort = 3;
-    public static final int ProcDump    = 4;
+    public enum ProcedureId {
+        Null(0),
+        Set(1),
+        UnSet(2),
+        GetPort(3),
+        Dump(4),
 
-    public static final int ProcMax     = 4;
+        Invalid(0xFFFF);
 
-    //	RPC procedure names
-    private static final String[] _procNames = {"Null", "Set", "UnSet", "GetPort", "Dump"};
+        private final int procId;
 
-    /**
-     * Return a procedure id as a name
-     *
-     * @param id int
-     * @return String
-     */
-    public final static String getProcedureName(int id) {
-        if (id < 0 || id > ProcMax)
-            return null;
-        return _procNames[id];
+        // Mapping procedure name to id
+        private static Map<Integer, PortMapper.ProcedureId> _idMap = new HashMap<>();
+
+        /**
+         * Static initializer
+         */
+        static {
+            for ( PortMapper.ProcedureId id : PortMapper.ProcedureId.values())
+                _idMap.put( id.intValue(), id);
+        }
+
+        /**
+         * Enum constructor
+         *
+         * @param id int
+         */
+        ProcedureId(int id) { procId = id; }
+
+        /**
+         * Return the procedure id as an int
+         *
+         * @return int
+         */
+        public final int intValue() { return procId; }
+
+        /**
+         * Create a procedure id type from an int
+         *
+         * @param typ int
+         * @return ProcedureId
+         */
+        public static final PortMapper.ProcedureId fromInt(int typ) {
+
+            if ( _idMap.containsKey( typ))
+                return _idMap.get( typ);
+
+            return Invalid;
+        }
     }
 }

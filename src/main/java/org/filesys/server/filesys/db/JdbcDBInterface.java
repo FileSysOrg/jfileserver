@@ -22,6 +22,7 @@ package org.filesys.server.filesys.db;
 import java.io.File;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.EnumSet;
 
 import org.filesys.debug.Debug;
 import org.filesys.server.config.InvalidConfigurationException;
@@ -32,8 +33,10 @@ import org.filesys.server.filesys.loader.FileRequestQueue;
 import org.filesys.server.filesys.loader.MultipleFileRequest;
 import org.filesys.server.filesys.loader.SingleFileRequest;
 import org.filesys.util.MemorySize;
+import org.filesys.util.db.DBCallbacks;
 import org.filesys.util.db.DBConnectionPool;
 import org.filesys.util.db.DBConnectionPoolListener;
+import org.filesys.util.db.DBStatus;
 import org.springframework.extensions.config.ConfigElement;
 
 /**
@@ -74,8 +77,8 @@ public abstract class JdbcDBInterface implements DBInterface, DBConnectionPoolLi
     protected DBDeviceContext m_dbCtx;
 
     //	Supported/requested database features
-    private int m_features;
-    private int m_reqFeatures;
+    private EnumSet<Feature> m_features;
+    private EnumSet<Feature> m_reqFeatures;
 
     //	JDBC driver class
     protected String m_driver;
@@ -140,28 +143,29 @@ public abstract class JdbcDBInterface implements DBInterface, DBConnectionPoolLi
     /**
      * Determine if the database interface supports the specified feature
      *
-     * @param feature int
+     * @param feature Feature
      * @return boolean
      */
-    public final boolean supportsFeature(int feature) {
-        return (m_features & feature) != 0 ? true : false;
+    public final boolean supportsFeature(Feature feature) {
+        return m_features.contains( feature);
     }
 
     /**
      * Request the specified database features be enabled
      *
-     * @param featureMask int
+     * @param featureMask EnumSet&lt;Feature&gt;
      * @throws DBException Database error
      */
-    public void requestFeatures(int featureMask)
+    public void requestFeatures(EnumSet<Feature> featureMask)
             throws DBException {
 
         //	Get the database interface supported features
-        int supFeatures = getSupportedFeatures();
+        EnumSet<Feature> supFeatures = getSupportedFeatures();
 
         //	Check if there are any unsupported features requested
-        if ((featureMask | supFeatures) != supFeatures)
-            throw new DBException("Unsupported feature requested");
+        for ( Feature curFeature : supFeatures)
+            if ( featureMask.contains( curFeature) == false)
+            throw new DBException("Unsupported feature requested (" + curFeature.name() + ")");
 
         //	Set the requested features
         m_reqFeatures = featureMask;
@@ -170,9 +174,9 @@ public abstract class JdbcDBInterface implements DBInterface, DBConnectionPoolLi
     /**
      * Get the supported database features mask
      *
-     * @return int
+     * @return EnumSet&lt;Feature&gt;
      */
-    protected abstract int getSupportedFeatures();
+    protected abstract EnumSet<Feature> getSupportedFeatures();
 
     /**
      * Check if the crash recovery folder is enabled
@@ -189,7 +193,7 @@ public abstract class JdbcDBInterface implements DBInterface, DBConnectionPoolLi
      * @return boolean
      */
     public final boolean isRetentionEnabled() {
-        return (m_reqFeatures & FeatureRetention) != 0 ? true : false;
+        return m_reqFeatures.contains( Feature.Retention);
     }
 
     /**
@@ -198,7 +202,7 @@ public abstract class JdbcDBInterface implements DBInterface, DBConnectionPoolLi
      * @return boolean
      */
     public final boolean isNTFSEnabled() {
-        return (m_reqFeatures & FeatureNTFS) != 0 ? true : false;
+        return m_reqFeatures.contains( Feature.NTFS);
     }
 
     /**
@@ -207,7 +211,7 @@ public abstract class JdbcDBInterface implements DBInterface, DBConnectionPoolLi
      * @return boolean
      */
     public final boolean isQueueEnabled() {
-        return (m_reqFeatures & FeatureQueue) != 0 ? true : false;
+        return m_reqFeatures.contains( Feature.Queue);
     }
 
     /**
@@ -216,7 +220,7 @@ public abstract class JdbcDBInterface implements DBInterface, DBConnectionPoolLi
      * @return boolean
      */
     public final boolean isDataEnabled() {
-        return (m_reqFeatures & FeatureData) != 0 ? true : false;
+        return m_reqFeatures.contains( Feature.Data);
     }
 
     /**
@@ -225,7 +229,7 @@ public abstract class JdbcDBInterface implements DBInterface, DBConnectionPoolLi
      * @return boolean
      */
     public final boolean isJarDataEnabled() {
-        return (m_reqFeatures & FeatureJarData) != 0 ? true : false;
+        return m_reqFeatures.contains( Feature.JarData);
     }
 
     /**
@@ -234,7 +238,7 @@ public abstract class JdbcDBInterface implements DBInterface, DBConnectionPoolLi
      * @return boolean
      */
     public final boolean isObjectIdEnabled() {
-        return (m_reqFeatures & FeatureObjectId) != 0 ? true : false;
+        return m_reqFeatures.contains( Feature.ObjectId);
     }
 
     /**
@@ -243,7 +247,7 @@ public abstract class JdbcDBInterface implements DBInterface, DBConnectionPoolLi
      * @return boolean
      */
     public final boolean isSymbolicLinksEnabled() {
-        return (m_reqFeatures & FeatureSymLinks) != 0 ? true : false;
+        return m_reqFeatures.contains( Feature.SymLinks);
     }
 
     /**
@@ -488,7 +492,7 @@ public abstract class JdbcDBInterface implements DBInterface, DBConnectionPoolLi
      * @return Connection
      * @exception SQLException SQL error
      */
-    protected final Connection getConnection()
+    protected Connection getConnection()
             throws SQLException {
 
         //	Get a database connection
@@ -524,7 +528,7 @@ public abstract class JdbcDBInterface implements DBInterface, DBConnectionPoolLi
      *
      * @param conn Connection
      */
-    protected final void releaseConnection(Connection conn) {
+    protected void releaseConnection(Connection conn) {
 
         //	Release the connection to the available pool
         m_connPool.releaseConnection(conn);
@@ -860,8 +864,21 @@ public abstract class JdbcDBInterface implements DBInterface, DBConnectionPoolLi
     protected final void createConnectionPool()
             throws Exception {
 
+        // Create the connection pool without using callbacks
+        createConnectionPool( null);
+    }
+
+    /**
+     * Create the database connection pool
+     *
+     * @param callback DBCallbacks
+     * @throws Exception Error creating the connection pool
+     */
+    protected final void createConnectionPool(DBCallbacks callback)
+            throws Exception {
+
         //	Create the connection pool
-        m_connPool = new DBConnectionPool(m_driver, m_dsn, m_userName, m_password, m_dbInitConns, m_dbMaxConns);
+        m_connPool = new DBConnectionPool(m_driver, m_dsn, m_userName, m_password, m_dbInitConns, m_dbMaxConns, callback);
 
         // Set the online check interval, if specified
         if (m_onlineCheckInterval != 0)
@@ -907,19 +924,19 @@ public abstract class JdbcDBInterface implements DBInterface, DBConnectionPoolLi
     /**
      * Database online/offline status event
      *
-     * @param dbonline boolean
+     * @param dbSts DBStatus
      */
-    public void databaseOnlineStatus(boolean dbonline) {
+    public void databaseOnlineStatus(DBStatus dbSts) {
 
         // DEBUG
         if (hasDebug())
-            Debug.println("JDBCInterface: Database connection event, status=" + (dbonline ? "OnLine" : "OffLine"));
+            Debug.println("JDBCInterface: Database connection event, status=" + dbSts.name());
 
-        // Set the shared device availabel status depending on the database state
-        m_dbCtx.setAvailable(dbonline);
+        // Set the shared device available status depending on the database state
+        m_dbCtx.setAvailable(dbSts == DBStatus.Online ? true : false);
 
         // If the database is back online then check if there are queued save/delete requests
-        if (dbonline == true) {
+        if (dbSts == DBStatus.Online) {
 
             //  Check if there are any queued delete file requests
             if (m_dbCtx.hasOfflineFileDeletes()) {
@@ -1032,7 +1049,7 @@ public abstract class JdbcDBInterface implements DBInterface, DBConnectionPoolLi
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////
-    /////////// Database interface methods required for threaded file loading support	///////////
+    /////////// Database interface methods required for threaded file loading support ///////////
     /////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
@@ -1083,7 +1100,7 @@ public abstract class JdbcDBInterface implements DBInterface, DBConnectionPoolLi
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////
-    /////////// Database interface methods required for threaded file loading        	///////////
+    /////////// Database interface methods required for threaded file loading         ///////////
     /////////// transaction support                                                   ///////////
     /////////////////////////////////////////////////////////////////////////////////////////////
 

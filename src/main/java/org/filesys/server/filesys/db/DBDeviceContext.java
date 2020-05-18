@@ -20,6 +20,7 @@
 package org.filesys.server.filesys.db;
 
 import java.io.File;
+import java.util.EnumSet;
 
 import org.filesys.debug.Debug;
 import org.filesys.server.config.CoreServerConfigSection;
@@ -284,11 +285,11 @@ public class DBDeviceContext extends DiskDeviceContext implements FileStateCache
         }
 
         // Check if the database interface supports retention, if retention has been enabled
-        if (hasRetentionPeriod() && getDBInterface().supportsFeature(DBInterface.FeatureRetention) == false)
+        if (hasRetentionPeriod() && getDBInterface().supportsFeature(DBInterface.Feature.Retention) == false)
             throw new DeviceContextException("Database interface does not support retention");
 
         // Create the file loader instance and get the database features required by the loader
-        int dbFeatures = 0;
+        EnumSet<DBInterface.Feature> dbFeatures = EnumSet.<DBInterface.Feature>noneOf(DBInterface.Feature.class);
 
         if (m_loaderClass != null) {
 
@@ -333,13 +334,13 @@ public class DBDeviceContext extends DiskDeviceContext implements FileStateCache
 
         // Set the enabled database features
         if (hasNTFSStreamsEnabled() == true && m_loader.supportsStreams() == true)
-            dbFeatures |= DBInterface.FeatureNTFS;
+            dbFeatures.add( DBInterface.Feature.NTFS);
 
         if (hasRetentionPeriod() == true)
-            dbFeatures |= DBInterface.FeatureRetention;
+            dbFeatures.add( DBInterface.Feature.Retention);
 
-        if (getDBInterface().supportsFeature(DBInterface.FeatureSymLinks))
-            dbFeatures |= DBInterface.FeatureSymLinks;
+        if (getDBInterface().supportsFeature(DBInterface.Feature.SymLinks))
+            dbFeatures.add( DBInterface.Feature.SymLinks);
 
         try {
 

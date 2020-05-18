@@ -21,6 +21,7 @@ package org.filesys.server.filesys.db;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.EnumSet;
 
 import org.filesys.server.config.InvalidConfigurationException;
 import org.filesys.server.filesys.*;
@@ -42,24 +43,30 @@ public interface DBInterface {
     //	Constants
     //
     //	Database interface supported/requested features
-    public static final int FeatureNTFS             = 0x0001;    //	NTFS streams
-    public static final int FeatureRetention        = 0x0002;    //	data retention
-    public static final int FeatureQueue            = 0x0004;    //	background load/save queues
-    public static final int FeatureData             = 0x0008;    //	load/save file data to database fields
-    public static final int FeatureJarData          = 0x0010;    //  load/save multiple file data to Jar files
-    public static final int FeatureObjectId         = 0x0020;    //	keep file id to object id mapping details
-    public static final int FeatureSymLinks         = 0x0040;    //  symbolic links
-    public static final int FeatureSecDescriptor    = 0x0080;    // 	security descriptors
+    public enum Feature {
+        NTFS,           // NTFS streams
+        Retention,      // data retention
+        Queue,          // background load/save queues
+        Data,           // load/save file data to database fields
+        JarData,        // load/save multiple file data to Jar files
+        ObjectId,       // keep file id to object id mapping details
+        SymLinks,       // symbolic links
+        SecDescriptor   // security descriptors
+    }
 
     //	File information levels, for the getFileInformation() method
-    public static final int FileNameOnly    = 0;    //	file name only
-    public static final int FileIds         = 1;    //	name, directory id and file id
-    public static final int FileAll         = 2;    //	all available information
+    public enum FileInfoLevel {
+        NameOnly,
+        Ids,
+        All
+    }
 
     //	File stream information levels, for getStreamInformation() and getStreamsList() methods
-    public static final int StreamNameOnly  = 0;    //	stream name only
-    public static final int StreamIds       = 1;    //	stream name, file id and stream id
-    public static final int StreamAll       = 2;    //	all available information
+    public enum StreamInfoLevel {
+        NameOnly,
+        Ids,
+        All
+    }
 
     /**
      * Return the database interface name
@@ -71,18 +78,18 @@ public interface DBInterface {
     /**
      * Determine if the database interface supports the specified feature
      *
-     * @param feature int
+     * @param feature Feature
      * @return boolean
      */
-    public boolean supportsFeature(int feature);
+    public boolean supportsFeature(Feature feature);
 
     /**
      * Request the specified database features be enabled
      *
-     * @param featureMask int
+     * @param featureMask EnumSet&lt;Feature&gt;
      * @exception DBException Database error
      */
-    public void requestFeatures(int featureMask)
+    public void requestFeatures(EnumSet<Feature> featureMask)
             throws DBException;
 
     /**
@@ -210,11 +217,11 @@ public interface DBInterface {
      *
      * @param dirId     int
      * @param fid       int
-     * @param infoLevel int
+     * @param infoLevel DBInterface.FileInfoLevel
      * @return DBFileInfo
      * @exception DBException Database error
      */
-    public DBFileInfo getFileInformation(int dirId, int fid, int infoLevel)
+    public DBFileInfo getFileInformation(int dirId, int fid, DBInterface.FileInfoLevel infoLevel)
             throws DBException;
 
     /**
@@ -222,22 +229,22 @@ public interface DBInterface {
      *
      * @param fid       int
      * @param stid      int
-     * @param infoLevel int
+     * @param infoLevel DBInterface.StreamInfoLevel
      * @return StreamInfo
      * @exception DBException Database error
      */
-    public StreamInfo getStreamInformation(int fid, int stid, int infoLevel)
+    public StreamInfo getStreamInformation(int fid, int stid, DBInterface.StreamInfoLevel infoLevel)
             throws DBException;
 
     /**
      * Return the list of streams for the specified file
      *
      * @param fid       int
-     * @param infoLevel int
+     * @param infoLevel DBInterface.StreamInfoLevel
      * @return StreamInfoList
      * @exception DBException Database error
      */
-    public StreamInfoList getStreamsList(int fid, int infoLevel)
+    public StreamInfoList getStreamsList(int fid, DBInterface.StreamInfoLevel infoLevel)
             throws DBException;
 
     /**
@@ -283,12 +290,12 @@ public interface DBInterface {
      * @param dirid      int
      * @param searchPath String
      * @param attrib     int
-     * @param infoLevel  int
+     * @param infoLevel  DBInterfcae.FileInfoLevel
      * @param maxRecords int
      * @return DBSearchContext
      * @exception DBException Database error
      */
-    public DBSearchContext startSearch(int dirid, String searchPath, int attrib, int infoLevel, int maxRecords)
+    public DBSearchContext startSearch(int dirid, String searchPath, int attrib, DBInterface.FileInfoLevel infoLevel, int maxRecords)
             throws DBException;
 
     /**

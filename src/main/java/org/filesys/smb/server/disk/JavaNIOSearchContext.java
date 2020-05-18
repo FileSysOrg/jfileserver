@@ -86,6 +86,8 @@ public class JavaNIOSearchContext extends SearchContext {
             return false;
         else if (m_stream == null || m_pathIter == null)
             return false;
+        else if ( m_pathIter != null)
+            return m_pathIter.hasNext();
         return true;
     }
 

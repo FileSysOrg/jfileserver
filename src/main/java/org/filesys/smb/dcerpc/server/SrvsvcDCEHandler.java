@@ -72,7 +72,7 @@ public class SrvsvcDCEHandler implements DCEHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_DCERPC))
+        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.DCERPC))
             sess.debugPrintln("DCE/RPC SrvSvc request=" + Srvsvc.getOpcodeName(opNum));
 
         // Create the output DCE buffer and add the response header
@@ -148,7 +148,7 @@ public class SrvsvcDCEHandler implements DCEHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_DCERPC))
+        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.DCERPC))
             sess.debugPrintln("NetShareEnum srvName=" + srvName + ", shrInfo=" + shrInfo.toString());
 
         // Get the share list from the server
@@ -243,7 +243,7 @@ public class SrvsvcDCEHandler implements DCEHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_DCERPC))
+        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.DCERPC))
             sess.debugPrintln("netShareGetInfo srvname=" + srvName + ", share=" + shrName + ", infoLevel=" + infoLevel);
 
         // Find the required shared device
@@ -309,7 +309,7 @@ public class SrvsvcDCEHandler implements DCEHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_DCERPC))
+        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.DCERPC))
             sess.debugPrintln("netServerGetInfo srvname=" + srvName + ", infoLevel=" + infoLevel);
 
         // Create the server information and set the common values

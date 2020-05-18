@@ -53,7 +53,7 @@ public class DeleteFileRequest extends FileRequest {
      * @param state    FileState
      */
     public DeleteFileRequest(int fid, int stid, String tempPath, String virtPath, FileState state) {
-        super(FileRequest.DELETE);
+        super(RequestType.Delete);
 
         m_fid = fid;
         m_stid = stid;
@@ -140,7 +140,7 @@ public class DeleteFileRequest extends FileRequest {
      * @return String
      */
     public String toString() {
-        StringBuffer str = new StringBuffer();
+        StringBuilder str = new StringBuilder();
 
         str.append("[FID=");
         str.append(getFileId());

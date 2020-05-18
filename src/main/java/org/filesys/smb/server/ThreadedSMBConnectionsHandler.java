@@ -83,7 +83,7 @@ public class ThreadedSMBConnectionsHandler implements SMBConnectionsHandler {
 		m_server = srv;
 		
 		// Check if the socket connection debug flag is enabled
-		if ( (config.getSessionDebugFlags() & SMBSrvSession.DBG_SOCKET) != 0)
+		if ( config.getSessionDebugFlags().contains( SMBSrvSession.Dbg.SOCKET))
 			m_debug = true;
 
 		// Create the NetBIOS session socket handler, if enabled

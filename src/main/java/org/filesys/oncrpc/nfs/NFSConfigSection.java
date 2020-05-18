@@ -28,6 +28,8 @@ import org.filesys.server.config.ConfigSection;
 import org.filesys.server.config.ConfigurationListener;
 import org.filesys.server.config.ServerConfiguration;
 
+import java.util.EnumSet;
+
 
 /**
  * NFS Server Configuration Section Class
@@ -49,21 +51,17 @@ public class NFSConfigSection extends ConfigSection {
     private int m_mountServerPort;
 
     //  NFS server port
-    private int m_nfsServerPort;
+    private int m_nfsServerPort = NFS.DefaultPort;
 
     // RPC registration port, 0 = use next free non-privileged port
     private int m_rpcRegisterPort;
 
     //  NFS debug flags
-    private int m_nfsDebug;
+    private EnumSet<NFSSrvSession.Dbg> m_nfsDebug;
 
     //  Port mapper and mount server debug enable
     private boolean m_portMapDebug;
     private boolean m_mountServerDebug;
-
-    //  Thread pool size and packet pool size
-    private int m_nfsThreadPoolSize;
-    private int m_nfsPacketPoolSize;
 
     //  RPC authenticator implementation
     private RpcAuthenticator m_rpcAuthenticator;
@@ -74,6 +72,9 @@ public class NFSConfigSection extends ConfigSection {
     private long m_nfsFileCacheCloseTimer;
 
     private boolean m_nfsFileCacheDebug;
+
+    // Disable NIO based code
+    private boolean m_disableNIO;
 
     /**
      * Class constructor
@@ -150,28 +151,10 @@ public class NFSConfigSection extends ConfigSection {
     /**
      * Return the NFS debug flags
      *
-     * @return int
+     * @return EnumSet&lt;NFSSrvSession.Dbg&gt;
      */
-    public final int getNFSDebug() {
+    public final EnumSet<NFSSrvSession.Dbg> getNFSDebug() {
         return m_nfsDebug;
-    }
-
-    /**
-     * Return the NFS thread pool size
-     *
-     * @return int
-     */
-    public final int getNFSThreadPoolSize() {
-        return m_nfsThreadPoolSize;
-    }
-
-    /**
-     * Return the NFS server packet pool size, or -1 for the default size
-     *
-     * @return int
-     */
-    public final int getNFSPacketPoolSize() {
-        return m_nfsPacketPoolSize;
     }
 
     /**
@@ -221,6 +204,15 @@ public class NFSConfigSection extends ConfigSection {
     }
 
     /**
+     * Determine if NIO based code should be disabled
+     *
+     * @return boolean
+     */
+    public final boolean hasDisableNIOCode() {
+        return m_disableNIO;
+    }
+
+    /**
      * Set the NFS port mapper enable flag
      *
      * @param ena boolean
@@ -247,15 +239,15 @@ public class NFSConfigSection extends ConfigSection {
     /**
      * Set the NFS debug flags
      *
-     * @param dbg int
+     * @param dbg EnumSet&lt;NFSSrvSession.Dbg&gt;
      * @return int
      * @exception InvalidConfigurationException Error setting the debug flags
      */
-    public final int setNFSDebug(int dbg)
+    public final int setNFSDebug(EnumSet<NFSSrvSession.Dbg> dbg)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.NFSDebugFlags, new Integer(dbg));
+        int sts = fireConfigurationChange(ConfigId.NFSDebugFlags, dbg);
         m_nfsDebug = dbg;
 
         //  Return the change status
@@ -329,42 +321,6 @@ public class NFSConfigSection extends ConfigSection {
         //  Inform listeners, validate the configuration change
         int sts = fireConfigurationChange(ConfigId.NFSRPCRegistrationPort, new Integer(port));
         m_rpcRegisterPort = port;
-
-        //  Return the change status
-        return sts;
-    }
-
-    /**
-     * Set the NFS thread pool size
-     *
-     * @param poolSize int
-     * @return int
-     * @exception InvalidConfigurationException Error setting the thread pool size
-     */
-    public final int setNFSThreadPoolSize(int poolSize)
-            throws InvalidConfigurationException {
-
-        //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.NFSThreads, new Integer(poolSize));
-        m_nfsThreadPoolSize = poolSize;
-
-        //  Return the change status
-        return sts;
-    }
-
-    /**
-     * Set the NFS packet pool size
-     *
-     * @param poolSize int
-     * @return int
-     * @exception InvalidConfigurationException Error setting the packet pool size
-     */
-    public final int setNFSPacketPoolSize(int poolSize)
-            throws InvalidConfigurationException {
-
-        //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.NFSPacketPool, new Integer(poolSize));
-        m_nfsPacketPoolSize = poolSize;
 
         //  Return the change status
         return sts;
@@ -541,6 +497,24 @@ public class NFSConfigSection extends ConfigSection {
             sts = fireConfigurationChange(ConfigId.NFSFileCacheDebug, new Boolean(ena));
             m_nfsFileCacheDebug = ena;
         }
+
+        //  Return the change status
+        return sts;
+    }
+
+    /**
+     * Set the disable NIO code flag
+     *
+     * @param disableNIO boolean
+     * @return int
+     * @throws InvalidConfigurationException Failed to set the disable NIO flag
+     */
+    public final int setDisableNIOCode(boolean disableNIO)
+            throws InvalidConfigurationException {
+
+        //  Inform listeners, validate the configuration change
+        int sts = fireConfigurationChange(ConfigId.NFSDisableNIO, new Boolean(disableNIO));
+        m_disableNIO = disableNIO;
 
         //  Return the change status
         return sts;

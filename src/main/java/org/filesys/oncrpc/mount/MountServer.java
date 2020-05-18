@@ -23,15 +23,7 @@ import java.io.IOException;
 import java.util.Enumeration;
 
 import org.filesys.debug.Debug;
-import org.filesys.oncrpc.PortMapping;
-import org.filesys.oncrpc.Rpc;
-import org.filesys.oncrpc.RpcAuthenticationException;
-import org.filesys.oncrpc.RpcAuthenticator;
-import org.filesys.oncrpc.RpcNetworkServer;
-import org.filesys.oncrpc.RpcPacket;
-import org.filesys.oncrpc.RpcProcessor;
-import org.filesys.oncrpc.TcpRpcSessionHandler;
-import org.filesys.oncrpc.UdpRpcDatagramHandler;
+import org.filesys.oncrpc.*;
 import org.filesys.oncrpc.nfs.NFSConfigSection;
 import org.filesys.oncrpc.nfs.NFSHandle;
 import org.filesys.oncrpc.nfs.NFSSrvSession;
@@ -173,10 +165,10 @@ public class MountServer extends RpcNetworkServer implements RpcProcessor {
 
             //	Register the mount server with the portmapper
             PortMapping[] mappings = new PortMapping[4];
-            mappings[0] = new PortMapping(Mount.ProgramId, Mount.VersionId1, Rpc.UDP, m_udpHandler.getPort());
-            mappings[1] = new PortMapping(Mount.ProgramId, Mount.VersionId3, Rpc.UDP, m_udpHandler.getPort());
-            mappings[2] = new PortMapping(Mount.ProgramId, Mount.VersionId1, Rpc.TCP, m_tcpHandler.getPort());
-            mappings[3] = new PortMapping(Mount.ProgramId, Mount.VersionId3, Rpc.TCP, m_tcpHandler.getPort());
+            mappings[0] = new PortMapping(Mount.ProgramId, Mount.VersionId1, Rpc.ProtocolId.UDP, m_udpHandler.getPort());
+            mappings[1] = new PortMapping(Mount.ProgramId, Mount.VersionId3, Rpc.ProtocolId.UDP, m_udpHandler.getPort());
+            mappings[2] = new PortMapping(Mount.ProgramId, Mount.VersionId1, Rpc.ProtocolId.TCP, m_tcpHandler.getPort());
+            mappings[3] = new PortMapping(Mount.ProgramId, Mount.VersionId3, Rpc.ProtocolId.TCP, m_tcpHandler.getPort());
 
             registerRPCServer(mappings);
         }
@@ -214,10 +206,10 @@ public class MountServer extends RpcNetworkServer implements RpcProcessor {
         //  Unregister the mount server with the portmapper
         try {
             PortMapping[] mappings = new PortMapping[4];
-            mappings[0] = new PortMapping(Mount.ProgramId, Mount.VersionId1, Rpc.UDP, m_udpHandler.getPort());
-            mappings[1] = new PortMapping(Mount.ProgramId, Mount.VersionId3, Rpc.UDP, m_udpHandler.getPort());
-            mappings[2] = new PortMapping(Mount.ProgramId, Mount.VersionId1, Rpc.TCP, m_tcpHandler.getPort());
-            mappings[3] = new PortMapping(Mount.ProgramId, Mount.VersionId3, Rpc.TCP, m_tcpHandler.getPort());
+            mappings[0] = new PortMapping(Mount.ProgramId, Mount.VersionId1, Rpc.ProtocolId.UDP, m_udpHandler.getPort());
+            mappings[1] = new PortMapping(Mount.ProgramId, Mount.VersionId3, Rpc.ProtocolId.UDP, m_udpHandler.getPort());
+            mappings[2] = new PortMapping(Mount.ProgramId, Mount.VersionId1, Rpc.ProtocolId.TCP, m_tcpHandler.getPort());
+            mappings[3] = new PortMapping(Mount.ProgramId, Mount.VersionId3, Rpc.ProtocolId.TCP, m_tcpHandler.getPort());
 
             unregisterRPCServer(mappings);
         }
@@ -259,7 +251,7 @@ public class MountServer extends RpcNetworkServer implements RpcProcessor {
         if (rpc.getProgramId() != Mount.ProgramId) {
 
             //	Request is not for us
-            rpc.buildAcceptErrorResponse(Rpc.StsProgUnavail);
+            rpc.buildAcceptErrorResponse(Rpc.AcceptSts.ProgUnavail);
             return rpc;
         } else if (version != Mount.VersionId1 && version != Mount.VersionId3) {
 
@@ -274,8 +266,8 @@ public class MountServer extends RpcNetworkServer implements RpcProcessor {
 
         NFSSrvSession sess = null;
 
-        if ((version == Mount.VersionId1 && procId == Mount.ProcNull1) == false &&
-                (version == Mount.VersionId3 && procId == Mount.ProcNull3) == false) {
+        if ((version == Mount.VersionId1 && procId == Mount.ProcedureId1.Null.intValue()) == false &&
+                (version == Mount.VersionId3 && procId == Mount.ProcedureId3.Null.intValue()) == false) {
 
             try {
 
@@ -298,76 +290,82 @@ public class MountServer extends RpcNetworkServer implements RpcProcessor {
 
         if (version == Mount.VersionId1) {
 
+            // Get the procedure id
+            Mount.ProcedureId1 procId1 = Mount.ProcedureId1.fromInt( procId);
+
             //	Version 1 requests
-            switch (rpc.getProcedureId()) {
+            switch (procId1) {
 
                 //	Null request
-                case Mount.ProcNull1:
+                case Null:
                     response = procNull(rpc);
                     break;
 
                 //	Mount request
-                case Mount.ProcMnt1:
+                case Mnt:
                     response = procMount(sess, rpc, version);
                     break;
 
                 //	Dump request
-                case Mount.ProcDump1:
+                case Dump:
                     response = procDump(sess, rpc, version);
                     break;
 
                 //	Unmount request
-                case Mount.ProcUMnt1:
+                case UMnt:
                     response = procUnMount(sess, rpc, version);
                     break;
 
                 //	Unmount all request
-                case Mount.ProcUMntAll1:
+                case UMntAll:
                     response = procUnMountAll(sess, rpc, version);
                     break;
 
                 //	Export request
-                case Mount.ProcExport1:
+                case Export:
                     response = procExport(sess, rpc, version);
                     break;
 
                 //	Export all request
-                case Mount.ProcExportAll1:
+                case ExportAll:
                     response = procExportAll(sess, rpc);
                     break;
             }
         } else if (version == Mount.VersionId3) {
 
-            //	Version 1 requests
-            switch (rpc.getProcedureId()) {
+            // Get the procedure id
+            Mount.ProcedureId3 procId3 = Mount.ProcedureId3.fromInt( procId);
+
+            //	Version 3 requests
+            switch (procId3) {
 
                 //	Null request
-                case Mount.ProcNull3:
+                case Null:
                     response = procNull(rpc);
                     break;
 
                 //	Mount request
-                case Mount.ProcMnt3:
+                case Mnt:
                     response = procMount(sess, rpc, version);
                     break;
 
                 //	Dump request
-                case Mount.ProcDump3:
+                case Dump:
                     response = procDump(sess, rpc, version);
                     break;
 
                 //	Unmount request
-                case Mount.ProcUMnt3:
+                case UMnt:
                     response = procUnMount(sess, rpc, version);
                     break;
 
                 //	Unmount all request
-                case Mount.ProcUMntAll3:
+                case UMntAll:
                     response = procUnMountAll(sess, rpc, version);
                     break;
 
                 //	Export request
-                case Mount.ProcExport3:
+                case Export:
                     response = procExport(sess, rpc, version);
                     break;
             }
@@ -411,7 +409,7 @@ public class MountServer extends RpcNetworkServer implements RpcProcessor {
         byte[] handle = allocateFileHandle(version);
 
         //	Mount the path
-        int sts = mountPath(sess, mountPath, handle);
+        Mount.StatusCode sts = mountPath(sess, mountPath, handle);
 
         //	Pack mount the response
         rpc.buildResponseHeader();
@@ -420,18 +418,24 @@ public class MountServer extends RpcNetworkServer implements RpcProcessor {
         if (version == 1) {
 
             //	Version 1 response format
-            rpc.packInt(sts);
-            if (sts == Mount.StsSuccess)
+            rpc.packInt(sts.intValue());
+            if (sts == Mount.StatusCode.Success)
                 rpc.packByteArray(handle);
         } else if (version == 3) {
 
             //	Version 3 response format
-            rpc.packInt(sts);
-            if (sts == Mount.StsSuccess)
+            rpc.packInt(sts.intValue());
+            if (sts == Mount.StatusCode.Success)
                 rpc.packByteArrayWithLength(handle);
 
             //	Create an authentication flavours array
-            rpc.packIntArrayWithLength(getNFSConfiguration().getRpcAuthenticator().getRpcAuthenticationTypes());
+            AuthType[] authTypes = getNFSConfiguration().getRpcAuthenticator().getRpcAuthenticationTypes();
+            int[] authTypeInts = new int[authTypes.length];
+
+            for ( int idx = 0; idx < authTypes.length; idx++)
+                authTypeInts[ idx] = authTypes[idx].intValue();
+
+            rpc.packIntArrayWithLength( authTypeInts);
         }
 
         //	Return the mount response
@@ -645,9 +649,9 @@ public class MountServer extends RpcNetworkServer implements RpcProcessor {
      * @param sess   NFSSrvSession
      * @param path   String
      * @param handle byte[]
-     * @return int
+     * @return Mount.StatusCode
      */
-    protected final int mountPath(NFSSrvSession sess, String path, byte[] handle) {
+    protected final Mount.StatusCode mountPath(NFSSrvSession sess, String path, byte[] handle) {
 
         //	Debug
         if (Debug.EnableInfo && hasDebug())
@@ -694,7 +698,7 @@ public class MountServer extends RpcNetworkServer implements RpcProcessor {
                             Debug.println("Failed to mount path=" + path + ", access denied");
 
                         //	Return a does not exist type error
-                        return Mount.StsNoEnt;
+                        return Mount.StatusCode.NoEnt;
                     }
                 }
 
@@ -719,9 +723,9 @@ public class MountServer extends RpcNetworkServer implements RpcProcessor {
                         FileInfo finfo = disk.getFileInformation(sess, conn, extraPath);
 
                         if (finfo == null)
-                            return Mount.StsNoEnt;
+                            return Mount.StatusCode.NoEnt;
                         else if (finfo.isDirectory() == false)
-                            return Mount.StsNotDir;
+                            return Mount.StatusCode.NotDir;
 
                         //	Fill in the handle for the directory
                         NFSHandle.packDirectoryHandle(shareId, finfo.getFileId(), handle);
@@ -742,7 +746,7 @@ public class MountServer extends RpcNetworkServer implements RpcProcessor {
                     Debug.println("Mounted path=" + path + ", handle=" + NFSHandle.asString(handle));
 
                 //	Return a success status
-                return Mount.StsSuccess;
+                return Mount.StatusCode.Success;
             } else {
 
                 //	DEBUG
@@ -750,12 +754,12 @@ public class MountServer extends RpcNetworkServer implements RpcProcessor {
                     Debug.println("Failed to mount path=" + path);
 
                 //	Indicate that the share does not exist
-                return Mount.StsNoEnt;
+                return Mount.StatusCode.NoEnt;
             }
         }
 
         //	Return an invalid path error
-        return Mount.StsNoEnt;
+        return Mount.StatusCode.NoEnt;
     }
 
     /**

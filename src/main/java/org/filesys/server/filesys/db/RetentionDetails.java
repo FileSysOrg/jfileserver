@@ -21,7 +21,6 @@ package org.filesys.server.filesys.db;
 
 import java.util.Date;
 
-
 /**
  * File Retention Details Class
  *
@@ -121,7 +120,7 @@ public class RetentionDetails {
      * @return String
      */
     public String toString() {
-        StringBuffer str = new StringBuffer();
+        StringBuilder str = new StringBuilder();
 
         str.append("[FID=");
         str.append(getFileId());

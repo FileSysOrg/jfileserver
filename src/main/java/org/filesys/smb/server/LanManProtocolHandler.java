@@ -234,7 +234,7 @@ class LanManProtocolHandler extends CoreProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_TREE))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.TREE))
             m_sess.debugPrintln("ANDX Tree Connect AndX - " + uncPath + ", " + service);
 
         // Parse the requested share name
@@ -312,7 +312,7 @@ class LanManProtocolHandler extends CoreProtocolHandler {
                 tree.getInterface().treeOpened(m_sess, tree);
 
             // Debug
-            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_TREE))
+            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.TREE))
                 m_sess.debugPrintln("ANDX Tree Connect AndX - Allocated Tree Id = " + treeId);
         }
         catch (TooManyConnectionsException ex) {
@@ -374,7 +374,7 @@ class LanManProtocolHandler extends CoreProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableDbg && m_sess.hasDebug(SMBSrvSession.DBG_FILE))
+        if (Debug.EnableDbg && m_sess.hasDebug(SMBSrvSession.Dbg.FILE))
             Debug.println("Chained File Read AndX : Size=" + maxCount + " ,Pos=" + offset);
 
         // Read data from the file
@@ -466,7 +466,7 @@ class LanManProtocolHandler extends CoreProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableDbg && m_sess.hasDebug(SMBSrvSession.DBG_FILE))
+        if (Debug.EnableDbg && m_sess.hasDebug(SMBSrvSession.Dbg.FILE))
             Debug.println("Chained File Close [" + reqParser.getTreeId() + "] fid=" + fid);
 
         // Close the file
@@ -561,7 +561,7 @@ class LanManProtocolHandler extends CoreProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_SEARCH))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.SEARCH))
             m_sess.debugPrintln("Close trans search [" + searchId + "]");
 
         // Deallocate the search slot, close the search.
@@ -627,7 +627,7 @@ class LanManProtocolHandler extends CoreProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_LOCK))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.LOCK))
             m_sess.debugPrintln("File Lock [" + netFile.getFileId() + "] : type=0x" + Integer.toHexString(lockType) + ", tmo="
                     + lockTmo + ", locks=" + lockCnt + ", unlocks=" + unlockCnt);
 
@@ -668,7 +668,7 @@ class LanManProtocolHandler extends CoreProtocolHandler {
         }
 
         // DEBUG
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_NEGOTIATE))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.NEGOTIATE))
             Debug.println("[SMB] Logoff vc=" + vc);
 
         // Close the virtual circuit
@@ -760,7 +760,7 @@ class LanManProtocolHandler extends CoreProtocolHandler {
                 crDateTime != null ? crDateTime.getTime() : 0L, parser.getProcessIdFull());
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_FILE))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.FILE))
             m_sess.debugPrintln("File Open AndX [" + treeId + "] params=" + params);
 
         // Access the disk interface and open the requested file
@@ -989,7 +989,7 @@ class LanManProtocolHandler extends CoreProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_FILEIO))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.FILEIO))
             m_sess.debugPrintln("File Read AndX [" + netFile.getFileId() + "] : Size=" + maxCount + " ,Pos=" + offset);
 
         // Read data from the file
@@ -1040,7 +1040,7 @@ class LanManProtocolHandler extends CoreProtocolHandler {
             // No access to file, or file is a directory
             //
             // Debug
-            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_FILEIO))
+            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.FILEIO))
                 m_sess.debugPrintln("File Read Error [" + netFile.getFileId() + "] : " + ex.toString());
 
             // Failed to read the file
@@ -1050,7 +1050,7 @@ class LanManProtocolHandler extends CoreProtocolHandler {
         catch (java.io.IOException ex) {
 
             // Debug
-            if (Debug.EnableError && m_sess.hasDebug(SMBSrvSession.DBG_FILEIO))
+            if (Debug.EnableError && m_sess.hasDebug(SMBSrvSession.Dbg.FILEIO))
                 m_sess.debugPrintln("File Read Error [" + netFile.getFileId() + "] : " + ex.toString());
 
             // Failed to read the file
@@ -1133,7 +1133,7 @@ class LanManProtocolHandler extends CoreProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableDbg && m_sess.hasDebug(SMBSrvSession.DBG_FILEIO))
+        if (Debug.EnableDbg && m_sess.hasDebug(SMBSrvSession.Dbg.FILEIO))
             Debug.println("File ReadMPX [" + netFile.getFileId() + "] : Size=" + maxCount + " ,Pos=" + offset + ",MaxCount="
                     + maxCount);
 
@@ -1206,7 +1206,7 @@ class LanManProtocolHandler extends CoreProtocolHandler {
                 parser.setCommand(PacketTypeV1.ReadMpxSecondary);
 
                 // Debug
-                if (Debug.EnableDbg && m_sess.hasDebug(SMBSrvSession.DBG_FILEIO))
+                if (Debug.EnableDbg && m_sess.hasDebug(SMBSrvSession.Dbg.FILEIO))
                     Debug.println("File ReadMPX Secondary [" + netFile.getFileId() + "] : Size=" + rdlen + " ,Pos=" + offset);
 
                 // Send the packet
@@ -1224,7 +1224,7 @@ class LanManProtocolHandler extends CoreProtocolHandler {
             // No access to file, or file is a directory
             //
             // Debug
-            if (Debug.EnableDbg && m_sess.hasDebug(SMBSrvSession.DBG_FILEIO))
+            if (Debug.EnableDbg && m_sess.hasDebug(SMBSrvSession.Dbg.FILEIO))
                 Debug.println("File ReadMPX Error [" + netFile.getFileId() + "] : " + ex.toString());
 
             // Failed to read the file
@@ -1316,7 +1316,7 @@ class LanManProtocolHandler extends CoreProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_FILE))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.FILE))
             m_sess.debugPrintln("File Rename [" + treeId + "] old name=" + oldName + ", new name=" + newName);
 
         // Access the disk interface and rename the requested file
@@ -1431,7 +1431,7 @@ class LanManProtocolHandler extends CoreProtocolHandler {
         }
 
         // DEBUG
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_NEGOTIATE))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.NEGOTIATE))
             m_sess.debugPrintln("Session setup from user=" + user + ", password=" + pwd + ", domain=" + domain + ", os="
                     + clientOS + ", VC=" + vcNum + ", maxBuf=" + maxBufSize + ", maxMpx=" + maxMpx);
 
@@ -1464,7 +1464,7 @@ class LanManProtocolHandler extends CoreProtocolHandler {
             else {
 
                 // DEBUG
-                if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_NEGOTIATE))
+                if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.NEGOTIATE))
                     m_sess.debugPrintln("Session already has client information set");
             }
         }
@@ -1502,13 +1502,13 @@ class LanManProtocolHandler extends CoreProtocolHandler {
         if (uid == VirtualCircuit.InvalidID) {
 
             // DEBUG
-            if (Debug.EnableDbg && m_sess.hasDebug(SMBSrvSession.DBG_NEGOTIATE))
+            if (Debug.EnableDbg && m_sess.hasDebug(SMBSrvSession.Dbg.NEGOTIATE))
                 Debug.println("Failed to allocate UID for virtual circuit, " + vc);
 
             // Failed to allocate a UID
             throw new SMBSrvException(SMBStatus.NTLogonFailure, SMBStatus.ErrDos, SMBStatus.DOSAccessDenied);
         }
-        else if (Debug.EnableDbg && m_sess.hasDebug(SMBSrvSession.DBG_NEGOTIATE)) {
+        else if (Debug.EnableDbg && m_sess.hasDebug(SMBSrvSession.Dbg.NEGOTIATE)) {
 
             // DEBUG
             Debug.println("Allocated UID=" + uid + " for VC=" + vc);
@@ -1677,7 +1677,7 @@ class LanManProtocolHandler extends CoreProtocolHandler {
         }
 
         // DEBUG
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_TRAN))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.TRAN))
             m_sess.debugPrintln("Transaction [" + treeId + "] tbuf=" + transBuf);
 
         // Process the transaction buffer
@@ -1763,7 +1763,7 @@ class LanManProtocolHandler extends CoreProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_TRAN))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.TRAN))
             m_sess.debugPrintln("Transaction Secondary [" + treeId + "] paramLen=" + plen + ", dataLen=" + dlen);
 
         // Check if the transaction has been received or there are more sections to be received
@@ -1776,7 +1776,7 @@ class LanManProtocolHandler extends CoreProtocolHandler {
         if ((paramDisp + plen) == totParam && (dataDisp + dlen) == totData) {
 
             // Debug
-            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_TRAN))
+            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.TRAN))
                 m_sess.debugPrintln("Transaction complete, processing ...");
 
             // Clear the in progress transaction
@@ -1789,7 +1789,7 @@ class LanManProtocolHandler extends CoreProtocolHandler {
             }
 
             // DEBUG
-            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_TRAN))
+            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.TRAN))
                 m_sess.debugPrintln("Transaction second [" + treeId + "] tbuf=" + transBuf);
 
             // Process the transaction
@@ -1922,7 +1922,7 @@ class LanManProtocolHandler extends CoreProtocolHandler {
             searchId = vc.allocateSearchSlot();
 
             // Debug
-            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_SEARCH))
+            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.SEARCH))
                 m_sess.debugPrintln("Start trans search [" + searchId + "] - " + srchPath + ", attr=0x"
                         + Integer.toHexString(srchAttr) + ", maxFiles=" + maxFiles + ", infoLevel=" + infoLevl + ", flags=0x"
                         + Integer.toHexString(srchFlag));
@@ -2064,14 +2064,14 @@ class LanManProtocolHandler extends CoreProtocolHandler {
             tpkt.doTransactionResponse(m_sess, replyBuf, smbPkt);
 
             // Debug
-            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_SEARCH))
+            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.SEARCH))
                 m_sess.debugPrintln("Search [" + searchId + "] Returned " + fileCnt + " files, moreFiles=" + ctx.hasMoreFiles());
 
             // Check if the search is complete
             if (searchDone == true) {
 
                 // Debug
-                if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_SEARCH))
+                if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.SEARCH))
                     m_sess.debugPrintln("End start search [" + searchId + "] (Search complete)");
 
                 // Release the search context
@@ -2173,7 +2173,7 @@ class LanManProtocolHandler extends CoreProtocolHandler {
             if (ctx == null) {
 
                 // DEBUG
-                if (Debug.EnableError && m_sess.hasDebug(SMBSrvSession.DBG_SEARCH))
+                if (Debug.EnableError && m_sess.hasDebug(SMBSrvSession.Dbg.SEARCH))
                     m_sess.debugPrintln("Search context null - [" + searchId + "]");
 
                 // Invalid search handle
@@ -2182,7 +2182,7 @@ class LanManProtocolHandler extends CoreProtocolHandler {
             }
 
             // Debug
-            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_SEARCH))
+            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.SEARCH))
                 m_sess.debugPrintln("Continue search [" + searchId + "] - " + resumeName + ", maxFiles=" + maxFiles
                         + ", infoLevel=" + infoLevl + ", flags=0x" + Integer.toHexString(srchFlag));
 
@@ -2261,14 +2261,14 @@ class LanManProtocolHandler extends CoreProtocolHandler {
             tpkt.doTransactionResponse(m_sess, replyBuf, smbPkt);
 
             // Debug
-            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_SEARCH))
+            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.SEARCH))
                 m_sess.debugPrintln("Search [" + searchId + "] Returned " + fileCnt + " files, moreFiles=" + ctx.hasMoreFiles());
 
             // Check if the search is complete
             if (searchDone == true) {
 
                 // Debug
-                if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_SEARCH))
+                if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.SEARCH))
                     m_sess.debugPrintln("End start search [" + searchId + "] (Search complete)");
 
                 // Release the search context
@@ -2356,7 +2356,7 @@ class LanManProtocolHandler extends CoreProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableDbg && m_sess.hasDebug(SMBSrvSession.DBG_INFO))
+        if (Debug.EnableDbg && m_sess.hasDebug(SMBSrvSession.Dbg.INFO))
             Debug.println("Query File - level=0x" + Integer.toHexString(infoLevl) + ", fid=" + fid + ", stream="
                     + netFile.getStreamId() + ", name=" + netFile.getFullName());
 
@@ -2399,7 +2399,7 @@ class LanManProtocolHandler extends CoreProtocolHandler {
             if (streams == true && (infoLevl == FileInfoLevel.PathFileStreamInfo || infoLevl == FileInfoLevel.NTFileStreamInfo)) {
 
                 // Debug
-                if (Debug.EnableDbg && m_sess.hasDebug(SMBSrvSession.DBG_STREAMS))
+                if (Debug.EnableDbg && m_sess.hasDebug(SMBSrvSession.Dbg.STREAMS))
                     Debug.println("Get NTFS streams list fid=" + fid + ", name=" + netFile.getFullName());
 
                 // Get the list of streams from the share driver
@@ -2517,7 +2517,7 @@ class LanManProtocolHandler extends CoreProtocolHandler {
         int infoLevl = paramBuf.getShort();
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_INFO))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.INFO))
             m_sess.debugPrintln("Query File System Info - level = 0x" + Integer.toHexString(infoLevl));
 
         // Access the shared device disk interface
@@ -2664,7 +2664,7 @@ class LanManProtocolHandler extends CoreProtocolHandler {
         String path = paramBuf.getString(tbuf.isUnicode());
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_INFO))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.INFO))
             m_sess.debugPrintln("Query Path - level = 0x" + Integer.toHexString(infoLevl) + ", path = " + path);
 
         // Access the shared device disk interface
@@ -2800,7 +2800,7 @@ class LanManProtocolHandler extends CoreProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_TREE))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.TREE))
             m_sess.debugPrintln("Tree Connect AndX - " + uncPath + ", " + service);
 
         // Parse the requested share name
@@ -2872,7 +2872,7 @@ class LanManProtocolHandler extends CoreProtocolHandler {
         tree.setPermission(sharePerm);
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_TREE))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.TREE))
             m_sess.debugPrintln("Tree Connect AndX - Allocated Tree Id = " + treeId + ", Permission = " + sharePerm.name());
 
         // Build the tree connect response
@@ -2958,7 +2958,7 @@ class LanManProtocolHandler extends CoreProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_FILEIO))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.FILEIO))
             m_sess.debugPrintln("File Write AndX [" + netFile.getFileId() + "] : Size=" + dataLen + " ,Pos=" + offset);
 
         // Write data to the file
@@ -2983,7 +2983,7 @@ class LanManProtocolHandler extends CoreProtocolHandler {
         catch (IOException ex) {
 
             // Debug
-            if (Debug.EnableError && m_sess.hasDebug(SMBSrvSession.DBG_FILEIO))
+            if (Debug.EnableError && m_sess.hasDebug(SMBSrvSession.Dbg.FILEIO))
                 m_sess.debugPrintln("File Write Error [" + netFile.getFileId() + "] : " + ex.toString());
 
             // Failed to read the file
@@ -3062,7 +3062,7 @@ class LanManProtocolHandler extends CoreProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableDbg && m_sess.hasDebug(SMBSrvSession.DBG_FILEIO))
+        if (Debug.EnableDbg && m_sess.hasDebug(SMBSrvSession.Dbg.FILEIO))
             Debug.println("File WriteMPX [" + netFile.getFileId() + "] : Size=" + dataLen + " ,Pos=" + offset + ", TotLen="
                     + totLen);
 
@@ -3118,7 +3118,7 @@ class LanManProtocolHandler extends CoreProtocolHandler {
                 dataPos = parser.getParameter(7) + RFCNetBIOSProtocol.HEADER_LEN;
 
                 // Debug
-                if (Debug.EnableDbg && m_sess.hasDebug(SMBSrvSession.DBG_FILEIO))
+                if (Debug.EnableDbg && m_sess.hasDebug(SMBSrvSession.Dbg.FILEIO))
                     Debug.println("File WriteMPX Secondary [" + netFile.getFileId() + "] : Size=" + dataLen + " ,Pos=" + offset);
 
                 // Write the block of data
@@ -3170,7 +3170,7 @@ class LanManProtocolHandler extends CoreProtocolHandler {
         SMBV1Parser parser = (SMBV1Parser) smbPkt.getParser();
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_STATE) &&
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.STATE) &&
                 parser.hasChainedCommand())
             m_sess.debugPrintln("AndX Command = 0x" + Integer.toHexString( parser.getAndXCommand()));
 

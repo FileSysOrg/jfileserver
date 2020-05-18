@@ -48,9 +48,21 @@ public final class FileName {
     /**
      * Build a path using the specified components.
      *
-     * @param dev      java.lang.String
-     * @param path     java.lang.String
-     * @param filename java.lang.String
+     * @param path     String
+     * @param filename String
+     * @param sep      char
+     * @return java.lang.String
+     */
+    public static String buildPath(String path, String filename, char sep) {
+        return buildPath( null, path, filename, sep);
+    }
+
+    /**
+     * Build a path using the specified components.
+     *
+     * @param dev      String
+     * @param path     String
+     * @param filename String
      * @param sep      char
      * @return java.lang.String
      */
@@ -59,7 +71,7 @@ public final class FileName {
         //  Debug.println ( "BuildPath: dev=" + dev + ", path=" + path + ",filename=" + filename);
 
         //  Build the path string
-        StringBuffer fullPath = new StringBuffer();
+        StringBuilder fullPath = new StringBuilder();
 
         //  Check for a device name
         if (dev != null) {

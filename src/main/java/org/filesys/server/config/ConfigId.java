@@ -123,6 +123,7 @@ public class ConfigId {
 	public static final int NFSFileCacheCloseTimer = GroupNFS + 12;
 	public static final int NFSFileCacheDebug 	= GroupNFS + 13;
 	public static final int NFSRPCRegistrationPort = GroupNFS + 14;
+	public static final int NFSDisableNIO		= GroupNFS + 15;
 
 	// NetBIOS server variables
 	public static final int NetBIOSNamePort 	= GroupNetBIOS + 1;

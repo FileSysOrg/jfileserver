@@ -23,10 +23,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 import org.filesys.debug.Debug;
 import org.filesys.netbios.server.LANAMonitor;
@@ -225,7 +222,7 @@ public class SMBServer extends NetworkFileServer implements Runnable, Configurat
             getConfiguration().addListener(this);
 
             // Check if debug output is enabled
-            if (getSMBConfiguration().getSessionDebugFlags() != 0)
+            if (getSMBConfiguration().getSessionDebugFlags().isEmpty() == false)
                 setDebug(true);
 
             // Set the server version
@@ -248,10 +245,10 @@ public class SMBServer extends NetworkFileServer implements Runnable, Configurat
                 m_packetPool.setMaximumOverSizedAllocation( m_coreConfig.getMaximumOversizedPacket());
 
                 // Check if packet pool debugging is enabled
-                if ((m_smbConfig.getSessionDebugFlags() & SMBSrvSession.DBG_PKTPOOL) != 0)
+                if (m_smbConfig.getSessionDebugFlags().contains( SMBSrvSession.Dbg.PKTPOOL))
                     m_packetPool.setDebug(true);
 
-                if ((m_smbConfig.getSessionDebugFlags() & SMBSrvSession.DBG_PKTALLOC) != 0)
+                if (m_smbConfig.getSessionDebugFlags().contains( SMBSrvSession.Dbg.PKTALLOC))
                     m_packetPool.setAllocateDebug(true);
             }
         }
@@ -310,9 +307,9 @@ public class SMBServer extends NetworkFileServer implements Runnable, Configurat
     /**
      * Return the per session debug flag settings.
      *
-     * @return int
+     * @return EnumSet&lt;SMBSrvSession.Dbg&gt;
      */
-    public final int getSessionDebug() {
+    public final EnumSet<SMBSrvSession.Dbg> getSessionDebug() {
         return getSMBConfiguration().getSessionDebugFlags();
     }
 

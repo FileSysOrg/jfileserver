@@ -20,10 +20,14 @@
 package org.filesys.oncrpc.nfs;
 
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.util.EnumSet;
 import java.util.Enumeration;
 
 import org.filesys.debug.Debug;
 import org.filesys.oncrpc.Rpc;
+import org.filesys.oncrpc.RpcPacketHandler;
 import org.filesys.server.NetworkServer;
 import org.filesys.server.SrvSession;
 import org.filesys.server.auth.ClientInfo;
@@ -37,7 +41,24 @@ import org.filesys.server.filesys.TreeConnectionHash;
  *
  * @author gkspencer
  */
-public class NFSSrvSession extends SrvSession {
+public class NFSSrvSession extends SrvSession<NFSSrvSession.Dbg> {
+
+    //	Debug flags
+    public enum Dbg {
+        RXDATA,     // Received data
+        TXDATA,     // Transmit data
+        DUMPDATA,   // Dump data packets
+        SEARCH,     // File/directory search
+        INFO,       // Information requests
+        FILE,       // File open/close/info
+        FILEIO,     // File read/write
+        ERROR,      // Errors
+        TIMING,     // Time packet processing
+        DIRECTORY,  // Directory commands
+        SESSION,    // Session creation/deletion
+        SOCKET,     // Socket handling
+        THREADPOOL  // Thread pool
+    }
 
     //	Default and maximum number of search slots
     private static final int DefaultSearches    = 32;
@@ -48,7 +69,7 @@ public class NFSSrvSession extends SrvSession {
     private int m_remPort;
 
     //	Session type (TCP or UDP)
-    private int m_type;
+    private Rpc.ProtocolId m_type;
 
     //	Authentication identifier
     //
@@ -71,26 +92,94 @@ public class NFSSrvSession extends SrvSession {
     // NFS client information
     private ClientInfo m_nfsClientInfo;
 
+    // RPC processor for this session
+    private RpcSessionProcessor m_rpcProcessor;
+
+    // RPC packet handler for this session
+    private RpcPacketHandler m_pktHandler;
+
+    /**
+     * Create a new NFS session
+     *
+     * @param pktHandler RpcPacketHandler
+     * @param nfsServer NFSServer
+     * @param sessId int
+     * @param protocolType Rpc.ProtocolId
+     * @param remAddr SocketAddress
+     * @return NFSSrvSession
+     */
+    public static NFSSrvSession createSession(RpcPacketHandler pktHandler, NFSServer nfsServer, int sessId, Rpc.ProtocolId protocolType,
+                                              SocketAddress remAddr) {
+
+        // Make sure the socket address is the expected type
+        if ( remAddr instanceof InetSocketAddress == false)
+            throw new RuntimeException( "NFS session, socket address is not an InetSocketAddress");
+
+        // Create a new NFS session
+        return new NFSSrvSession( sessId, nfsServer, pktHandler, (InetSocketAddress) remAddr, protocolType);
+    }
+
+    /**
+     * Class constructor
+     *
+     * @param sessId int
+     * @param srv  NFSServer
+     * @param pktHandler RpcPacketHandler
+     * @param addr InetSocketAddress
+     * @param type Rpc.ProtocolId
+     */
+    public NFSSrvSession(int sessId, NFSServer srv, RpcPacketHandler pktHandler, InetSocketAddress addr, Rpc.ProtocolId type) {
+        super(sessId, srv, "NFS", null, NFSSrvSession.Dbg.class);
+
+        //	Save the remote address/port and type
+        if ( addr != null) {
+
+            // Set the remote address and port
+            m_remAddr = addr.getAddress();
+            m_remPort = addr.getPort();
+
+            // Set the remote host name
+            setRemoteName( addr.getHostName());
+        }
+        m_type = type;
+
+        // Save the associated  packet handler
+        m_pktHandler = pktHandler;
+
+        //	Create a unique id for the session from the remote address, port and type
+        StringBuilder str = new StringBuilder();
+
+        str.append(type == Rpc.ProtocolId.TCP ? "T" : "U");
+        str.append(m_remAddr.getHostAddress());
+        str.append(":");
+        str.append(m_remPort);
+
+        setUniqueId(str.toString());
+
+        //	Initialize the last access date/time
+        setLastAccess(System.currentTimeMillis());
+    }
+
     /**
      * Class constructor
      *
      * @param srv  NetworkServer
      * @param addr InetAddress
      * @param port int
-     * @param type int
+     * @param type Rpc.ProtocolId
      */
-    public NFSSrvSession(NetworkServer srv, InetAddress addr, int port, int type) {
-        super(-1, srv, "NFS", null);
+    public NFSSrvSession(NetworkServer srv, InetAddress addr, int port, Rpc.ProtocolId type) {
+        super(-1, srv, "NFS", null, NFSSrvSession.Dbg.class);
 
-        //	Save the remove address/port and type
+        //	Save the remote address/port and type
         m_remAddr = addr;
         m_remPort = port;
         m_type = type;
 
         //	Create a unique id for the session from the remote address, port and type
-        StringBuffer str = new StringBuffer();
+        StringBuilder str = new StringBuilder();
 
-        str.append(type == Rpc.TCP ? "T" : "U");
+        str.append(type == Rpc.ProtocolId.TCP ? "T" : "U");
         str.append(m_remAddr.getHostAddress());
         str.append(":");
         str.append(m_remPort);
@@ -107,9 +196,9 @@ public class NFSSrvSession extends SrvSession {
     /**
      * Return the session type
      *
-     * @return int
+     * @return Rpc.ProtocolId
      */
-    public final int isType() {
+    public final Rpc.ProtocolId isType() {
         return m_type;
     }
 
@@ -128,7 +217,7 @@ public class NFSSrvSession extends SrvSession {
             // Copy settings to the file cache
             NFSConfigSection config = getNFSServer().getNFSConfiguration();
 
-            m_fileCache.setDebug(hasDebug(NFSServer.DBG_FILE));
+            m_fileCache.setDebug(hasDebug(NFSSrvSession.Dbg.FILE));
 
             if (config.getNFSFileCacheIOTimer() > 0)
                 m_fileCache.setIOTimer(config.getNFSFileCacheIOTimer());
@@ -140,6 +229,24 @@ public class NFSSrvSession extends SrvSession {
 
         // Return the file cache
         return m_fileCache;
+    }
+
+    /**
+     * Determine if the session has an associated packet handler
+     *
+     * @return boolean
+     */
+    public final boolean hasPacketHandler() {
+        return m_pktHandler != null ? true : false;
+    }
+
+    /**
+     * Return the associated packet handler
+     *
+     * @return RpcPacketHandler
+     */
+    public final RpcPacketHandler getPacketHandler() {
+        return m_pktHandler;
     }
 
     /**
@@ -203,6 +310,33 @@ public class NFSSrvSession extends SrvSession {
      */
     public final void setNFSClientInformation(ClientInfo cInfo) {
         m_nfsClientInfo = cInfo;
+    }
+
+    /**
+     * Check if the session has an associated RPC processor
+     *
+     * @return boolean
+     */
+    public final boolean hasRpcProcessor() {
+        return m_rpcProcessor != null ? true : false;
+    }
+
+    /**
+     * Get the associated RPC processor
+     *
+     * @return RpcSessionProcessor
+     */
+    public final RpcSessionProcessor getRpcProcessor() {
+        return m_rpcProcessor;
+    }
+
+    /**
+     * Set the associated RPC processor
+     *
+     * @param rpcProc RpcSessionProcessor
+     */
+    public final void setRpcProcessor(RpcSessionProcessor rpcProc) {
+        m_rpcProcessor = rpcProc;
     }
 
     /**
@@ -285,7 +419,7 @@ public class NFSSrvSession extends SrvSession {
      * @param search SearchContext
      * @return int  Search slot index, or -1 if there are no more search slots available.
      */
-    protected synchronized final int allocateSearchSlot(SearchContext search) {
+    public synchronized final int allocateSearchSlot(SearchContext search) {
 
         //  Check if the search array has been allocated
         if (m_search == null)
@@ -324,7 +458,7 @@ public class NFSSrvSession extends SrvSession {
      *
      * @param ctxId int
      */
-    protected synchronized final void deallocateSearchSlot(int ctxId) {
+    public synchronized final void deallocateSearchSlot(int ctxId) {
 
         //  Check if the search array has been allocated and that the index is valid
         if (m_search == null || ctxId >= m_search.length)
@@ -354,7 +488,7 @@ public class NFSSrvSession extends SrvSession {
      * @param srchId int
      * @return SearchContext
      */
-    protected final SearchContext getSearchContext(int srchId) {
+    public final SearchContext getSearchContext(int srchId) {
 
         //  Check if the search array is valid and the search index is valid
         if (m_search == null || srchId >= m_search.length)
@@ -395,7 +529,7 @@ public class NFSSrvSession extends SrvSession {
     protected final void cleanupSession() {
 
         //  Debug
-        if (Debug.EnableInfo && hasDebug(NFSServer.DBG_SESSION))
+        if (Debug.EnableInfo && hasDebug(Dbg.SESSION))
             debugPrintln("NFS Cleanup session, searches=" + getSearchCount() +
                     ", files=" + (m_fileCache != null ? m_fileCache.numberOfEntries() : 0) +
                     ", treeConns=" + (m_connections != null ? m_connections.numberOfEntries() : 0));

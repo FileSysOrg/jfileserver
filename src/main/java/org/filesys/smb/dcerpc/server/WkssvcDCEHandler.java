@@ -64,7 +64,7 @@ public class WkssvcDCEHandler implements DCEHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_DCERPC))
+        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.DCERPC))
             sess.debugPrintln("DCE/RPC WksSvc request=" + Wkssvc.getOpcodeName(opNum));
 
         // Create the output DCE buffer and add the response header
@@ -125,7 +125,7 @@ public class WkssvcDCEHandler implements DCEHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_DCERPC))
+        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.DCERPC))
             sess.debugPrintln("NetWkstaGetInfo srvName=" + srvName + ", infoLevel=" + infoLevel);
 
         // Create the workstation information and set the common values

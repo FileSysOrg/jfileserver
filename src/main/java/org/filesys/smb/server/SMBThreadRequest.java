@@ -60,7 +60,7 @@ public class SMBThreadRequest implements ThreadRequest {
             int asyncCnt = m_sess.sendQueuedAsyncResponses();
 
             // DEBUG
-            if (asyncCnt > 0 && Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_SOCKET))
+            if (asyncCnt > 0 && Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.SOCKET))
                 Debug.println("Sent queued async packets count=" + asyncCnt + ", sess=" + m_sess.getUniqueId());
         }
         else {

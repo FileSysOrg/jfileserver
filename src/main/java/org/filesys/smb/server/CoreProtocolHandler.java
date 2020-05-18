@@ -235,7 +235,7 @@ class CoreProtocolHandler extends ProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_FILE))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.FILE))
             m_sess.debugPrintln("Directory Check [" + treeId + "] name=" + dirName);
 
         // Access the disk interface and check for the directory
@@ -332,7 +332,7 @@ class CoreProtocolHandler extends ProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_FILE))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.FILE))
             m_sess.debugPrintln("File close [" + treeId + "] fid=" + fid);
 
         // Close the file
@@ -431,7 +431,7 @@ class CoreProtocolHandler extends ProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_FILE))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.FILE))
             m_sess.debugPrintln("Directory Create [" + treeId + "] name=" + dirName);
 
         // Access the disk interface and create the new directory
@@ -547,7 +547,7 @@ class CoreProtocolHandler extends ProtocolHandler {
         FileOpenParams params = new FileOpenParams(fileName, FileAction.CreateNotExist, AccessMode.ReadWrite, attr, parser.getProcessIdFull());
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_FILE))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.FILE))
             m_sess.debugPrintln("File Create [" + treeId + "] params=" + params);
 
         // Access the disk interface and create the new file
@@ -673,7 +673,7 @@ class CoreProtocolHandler extends ProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_FILE))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.FILE))
             m_sess.debugPrintln("Directory Delete [" + treeId + "] name=" + dirName);
 
         // Access the disk interface and delete the directory
@@ -778,7 +778,7 @@ class CoreProtocolHandler extends ProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_FILE))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.FILE))
             m_sess.debugPrintln("File Delete [" + treeId + "] name=" + fileName);
 
         // Access the disk interface and delete the file(s)
@@ -826,7 +826,7 @@ class CoreProtocolHandler extends ProtocolHandler {
             throws java.io.IOException, SMBSrvException {
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_INFO))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.INFO))
             m_sess.debugPrintln("Get disk attributes");
 
         // Parameter and byte count should be zero
@@ -881,7 +881,7 @@ class CoreProtocolHandler extends ProtocolHandler {
         SrvDiskInfo diskInfo = getDiskInformation(disk, diskCtx);
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_INFO))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.INFO))
             m_sess.debugPrintln("  Disk info - total=" + diskInfo.getTotalUnits() + ", free=" + diskInfo.getFreeUnits()
                     + ", blocksPerUnit=" + diskInfo.getBlocksPerAllocationUnit() + ", blockSize=" + diskInfo.getBlockSize());
 
@@ -948,7 +948,7 @@ class CoreProtocolHandler extends ProtocolHandler {
         int echoCnt = parser.getParameter(0);
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_ECHO))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.ECHO))
             m_sess.debugPrintln("Echo - Count = " + echoCnt);
 
         // Loop until all echo packets have been sent
@@ -964,7 +964,7 @@ class CoreProtocolHandler extends ProtocolHandler {
             echoCnt--;
 
             // Debug
-            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_ECHO))
+            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.ECHO))
                 m_sess.debugPrintln("Echo Packet, Seq = " + echoSeq);
         }
     }
@@ -1022,7 +1022,7 @@ class CoreProtocolHandler extends ProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_FILE))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.FILE))
             m_sess.debugPrintln("File Flush [" + netFile.getFileId() + "]");
 
         // Flush the file
@@ -1043,7 +1043,7 @@ class CoreProtocolHandler extends ProtocolHandler {
         catch (java.io.IOException ex) {
 
             // Debug
-            if (Debug.EnableError && m_sess.hasDebug(SMBSrvSession.DBG_FILE))
+            if (Debug.EnableError && m_sess.hasDebug(SMBSrvSession.Dbg.FILE))
                 m_sess.debugPrintln("File Flush Error [" + netFile.getFileId() + "] : " + ex.toString());
 
             // Failed to flush the file
@@ -1113,7 +1113,7 @@ class CoreProtocolHandler extends ProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_FILE))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.FILE))
             m_sess.debugPrintln("Get File Information [" + treeId + "] name=" + fileName);
 
         // Access the disk interface and get the file information
@@ -1226,7 +1226,7 @@ class CoreProtocolHandler extends ProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_FILE))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.FILE))
             m_sess.debugPrintln("Get File Information 2 [" + netFile.getFileId() + "]");
 
         // Access the disk interface and get the file information
@@ -1372,7 +1372,7 @@ class CoreProtocolHandler extends ProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_FILEIO))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.FILEIO))
             m_sess.debugPrintln("File Lock [" + netFile.getFileId() + "] : Offset=" + lockoff + " ,Count=" + lockcnt);
 
         // ***** Always return a success status, simulated locking ****
@@ -1447,7 +1447,7 @@ class CoreProtocolHandler extends ProtocolHandler {
         FileOpenParams params = new FileOpenParams(fileName, mode, AccessMode.ReadWrite, attr, parser.getProcessIdFull());
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_FILE))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.FILE))
             m_sess.debugPrintln("File Open [" + treeId + "] params=" + params);
 
         // Access the disk interface and open the requested file
@@ -1552,7 +1552,7 @@ class CoreProtocolHandler extends ProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_FILE))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.FILE))
             m_sess.debugPrintln("Process Exit - Open files = " + conn.openFileCount());
 
         // Close all open files
@@ -1624,7 +1624,7 @@ class CoreProtocolHandler extends ProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_FILEIO))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.FILEIO))
             m_sess.debugPrintln("File Read [" + netFile.getFileId() + "] : Size=" + reqcnt + " ,Pos=" + reqoff);
 
         // Read data from the file
@@ -1650,7 +1650,7 @@ class CoreProtocolHandler extends ProtocolHandler {
                     reqcnt = maxClientCnt;
 
                 // Debug
-                if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_FILEIO))
+                if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.FILEIO))
                     m_sess.debugPrintln("File Read [" + netFile.getFileId() + "] Limited to " + reqcnt);
             }
 
@@ -1680,7 +1680,7 @@ class CoreProtocolHandler extends ProtocolHandler {
         catch (java.io.IOException ex) {
 
             // Debug
-            if (Debug.EnableError && m_sess.hasDebug(SMBSrvSession.DBG_FILEIO))
+            if (Debug.EnableError && m_sess.hasDebug(SMBSrvSession.Dbg.FILEIO))
                 m_sess.debugPrintln("File Read Error [" + netFile.getFileId() + "] : " + ex.toString());
 
             // Failed to read the file
@@ -1778,7 +1778,7 @@ class CoreProtocolHandler extends ProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_FILE))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.FILE))
             m_sess.debugPrintln("File Rename [" + treeId + "] old name=" + oldName + ", new name=" + newName);
 
         // Access the disk interface and rename the requested file
@@ -1945,7 +1945,7 @@ class CoreProtocolHandler extends ProtocolHandler {
                     if (ctx.getSearchString().compareTo("????????.???") == 0) {
 
                         // Debug
-                        if (Debug.EnableWarn && m_sess.hasDebug(SMBSrvSession.DBG_SEARCH))
+                        if (Debug.EnableWarn && m_sess.hasDebug(SMBSrvSession.Dbg.SEARCH))
                             m_sess.debugPrintln("Release leaked search [" + idx + "]");
 
                         // Deallocate the search context
@@ -1971,7 +1971,7 @@ class CoreProtocolHandler extends ProtocolHandler {
             }
 
             // Debug
-            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_SEARCH))
+            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.SEARCH))
                 m_sess.debugPrintln("Start search [" + searchId + "] - " + srchPath + ", attr=0x" + Integer.toHexString(srchAttr)
                         + ", maxFiles=" + maxFiles);
 
@@ -2012,14 +2012,14 @@ class CoreProtocolHandler extends ProtocolHandler {
             if (resumeId < RESUME_DOTDOT && ctx.getResumeId() != resumeId) {
 
                 // Debug
-                if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_SEARCH))
+                if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.SEARCH))
                     m_sess.debugPrintln("Search resume at " + resumeId);
 
                 // Restart the search at the specified point
                 if (ctx.restartAt(resumeId) == false) {
 
                     // Debug
-                    if (Debug.EnableError && m_sess.hasDebug(SMBSrvSession.DBG_SEARCH))
+                    if (Debug.EnableError && m_sess.hasDebug(SMBSrvSession.Dbg.SEARCH))
                         m_sess.debugPrintln("Search restart failed");
 
                     // Failed to restart the search
@@ -2087,7 +2087,7 @@ class CoreProtocolHandler extends ProtocolHandler {
                 dirInfo = new FileInfo(".", 0, FileAttribute.Directory);
 
             // Debug
-            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_SEARCH))
+            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.SEARCH))
                 m_sess.debugPrintln("Search adding . and .. entries:  " + dirInfo.toString());
 
             // Reset the file name to '.' and pack the directory information
@@ -2129,7 +2129,7 @@ class CoreProtocolHandler extends ProtocolHandler {
             resumeId = ctx.getResumeId();
 
             // Debug
-            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_SEARCH))
+            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.SEARCH))
                 m_sess.debugPrintln("Search return file " + fileInfo.toString() + ", resumeId=" + resumeId);
 
             // Check if the share is read-only, if so then force the read-only flag for the file
@@ -2161,7 +2161,7 @@ class CoreProtocolHandler extends ProtocolHandler {
             m_sess.sendResponseSMB(respPkt);
 
             // Debug
-            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_SEARCH))
+            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.SEARCH))
                 m_sess.debugPrintln("End search [" + searchId + "]");
 
             // Release the search context
@@ -2186,7 +2186,7 @@ class CoreProtocolHandler extends ProtocolHandler {
             if (fileCnt == 1 && resumeLen == 0 && WildCard.containsWildcards(srchPath) == false) {
 
                 // Debug
-                if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_SEARCH))
+                if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.SEARCH))
                     m_sess.debugPrintln("End search [" + searchId + "] (Not wildcard)");
 
                 // Release the search context
@@ -2195,7 +2195,7 @@ class CoreProtocolHandler extends ProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_TXDATA))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.TXDATA))
             m_sess.debugPrintln("Tx " + parser.getLength() + " bytes");
     }
 
@@ -2235,7 +2235,7 @@ class CoreProtocolHandler extends ProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_SEARCH))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.SEARCH))
             m_sess.debugPrintln("Start Search - Volume Label");
 
         // Access the shared devices disk interface
@@ -2300,7 +2300,7 @@ class CoreProtocolHandler extends ProtocolHandler {
         m_sess.sendResponseSMB(smbPkt);
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_SEARCH))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.SEARCH))
             m_sess.debugPrintln("Volume label for " + conn.toString() + " is " + volLabel);
     }
 
@@ -2359,7 +2359,7 @@ class CoreProtocolHandler extends ProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_FILE))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.FILE))
             m_sess.debugPrintln("File Seek [" + netFile.getFileId() + "] : Mode = " + seekMode + ", Pos = " + seekPos);
 
         // Seek to the specified position within the file
@@ -2383,7 +2383,7 @@ class CoreProtocolHandler extends ProtocolHandler {
         catch (IOException ex) {
 
             // Debug
-            if (Debug.EnableError && m_sess.hasDebug(SMBSrvSession.DBG_FILE))
+            if (Debug.EnableError && m_sess.hasDebug(SMBSrvSession.Dbg.FILE))
                 m_sess.debugPrintln("File Seek Error [" + netFile.getFileId() + "] : " + ex.toString());
 
             // Failed to seek the file
@@ -2485,7 +2485,7 @@ class CoreProtocolHandler extends ProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_FILE))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.FILE))
             m_sess.debugPrintln("Set File Attributes [" + treeId + "] name=" + fileName + ", attr=0x"
                     + Integer.toHexString(fattr) + ", fdate=" + fdate + ", ftime=" + ftime);
 
@@ -2598,7 +2598,7 @@ class CoreProtocolHandler extends ProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_FILE))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.FILE))
             m_sess.debugPrintln("Set File Information 2 [" + netFile.getFileId() + "] " + finfo.toString());
 
         // Access the disk interface and set the file information
@@ -2707,7 +2707,7 @@ class CoreProtocolHandler extends ProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_TREE))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.TREE))
             m_sess.debugPrintln("Tree connect - " + uncPath + ", " + service);
 
         // Parse the requested share name
@@ -2828,7 +2828,7 @@ class CoreProtocolHandler extends ProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_TREE))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.TREE))
             m_sess.debugPrintln("Tree disconnect - " + treeId + ", " + conn.toString());
 
         // Remove the specified connection from the session
@@ -2841,7 +2841,7 @@ class CoreProtocolHandler extends ProtocolHandler {
             m_sess.removeVirtualCircuit(vc.getId());
 
             // Debug
-            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_TREE))
+            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.TREE))
                 m_sess.debugPrintln("  Removed virtual circuit " + vc);
         }
 
@@ -2855,7 +2855,7 @@ class CoreProtocolHandler extends ProtocolHandler {
         if (m_sess.numberOfVirtualCircuits() == 0) {
 
             // DEBUG
-            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_NEGOTIATE))
+            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.NEGOTIATE))
                 Debug.println("  Closing session, no more virtual circuits");
 
             // Close the session/socket
@@ -2922,7 +2922,7 @@ class CoreProtocolHandler extends ProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_FILEIO))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.FILEIO))
             m_sess.debugPrintln("File UnLock [" + netFile.getFileId() + "] : Offset=" + lockoff + " ,Count=" + lockcnt);
 
         // ***** Always return a success status, simulated locking ****
@@ -3005,7 +3005,7 @@ class CoreProtocolHandler extends ProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_FILEIO))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.FILEIO))
             m_sess.debugPrintln("File Write [" + netFile.getFileId() + "] : Size=" + wrtcnt + " ,Pos=" + wrtoff);
 
         // Write data to the file
@@ -3049,7 +3049,7 @@ class CoreProtocolHandler extends ProtocolHandler {
         catch (java.io.IOException ex) {
 
             // Debug
-            if (Debug.EnableError && m_sess.hasDebug(SMBSrvSession.DBG_FILEIO))
+            if (Debug.EnableError && m_sess.hasDebug(SMBSrvSession.Dbg.FILEIO))
                 m_sess.debugPrintln("File Write Error [" + netFile.getFileId() + "] : " + ex.toString());
 
             // Failed to read the file
@@ -3121,7 +3121,7 @@ class CoreProtocolHandler extends ProtocolHandler {
         }
 
         // Debug
-        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.DBG_FILEIO))
+        if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.FILEIO))
             m_sess.debugPrintln("File Write And Close [" + netFile.getFileId() + "] : Size=" + wrtcnt + " ,Pos=" + wrtoff);
 
         // Write data to the file
@@ -3155,7 +3155,7 @@ class CoreProtocolHandler extends ProtocolHandler {
         catch (java.io.IOException ex) {
 
             // Debug
-            if (Debug.EnableError && m_sess.hasDebug(SMBSrvSession.DBG_FILEIO))
+            if (Debug.EnableError && m_sess.hasDebug(SMBSrvSession.Dbg.FILEIO))
                 m_sess.debugPrintln("File Write Error [" + netFile.getFileId() + "] : " + ex.toString());
 
             // Failed to read the file

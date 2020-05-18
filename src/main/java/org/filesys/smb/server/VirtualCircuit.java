@@ -363,7 +363,7 @@ public class VirtualCircuit {
     public synchronized final void closeCircuit(SrvSession sess) {
 
         //  Debug
-        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_STATE))
+        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.STATE))
             sess.debugPrintln("Cleanup vc=" + getVCNumber() + ", id=" + getId() + ", searches=" + getSearchCount() + ", treeConns=" + getConnectionCount());
 
         //  Check if there are any active searches

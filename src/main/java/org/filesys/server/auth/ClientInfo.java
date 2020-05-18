@@ -19,6 +19,8 @@
 
 package org.filesys.server.auth;
 
+import org.filesys.oncrpc.AuthType;
+
 /**
  * <p>The client information class holds the details of a remote user from a session setup or
  * tree connect request.
@@ -69,7 +71,7 @@ public class ClientInfo {
     private int[] m_groups;
 
     //	NFS authentication type
-    private int m_nfsAuthType = -1;
+    private AuthType m_nfsAuthType = AuthType.Invalid;
 
     // Logged on name, may be a principal name
     private String m_loggedOnName;
@@ -266,9 +268,9 @@ public class ClientInfo {
     /**
      * Return the NFS authentication type
      *
-     * @return int
+     * @return AuthType
      */
-    public final int getNFSAuthenticationType() {
+    public final AuthType getNFSAuthenticationType() {
         return m_nfsAuthType;
     }
 
@@ -427,9 +429,9 @@ public class ClientInfo {
     /**
      * Set the NFS authentication type
      *
-     * @param type int
+     * @param type AuthType
      */
-    public final void setNFSAuthenticationType(int type) {
+    public final void setNFSAuthenticationType(AuthType type) {
         m_nfsAuthType = type;
     }
 

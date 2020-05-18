@@ -367,7 +367,7 @@ public abstract class SMBAuthenticator implements ISMBAuthenticator {
         }
 
         // DEBUG
-        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_NEGOTIATE)) {
+        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.NEGOTIATE)) {
             Debug.println("[SMB] NT Session setup from user=" + user + ", password="
                     + (uniPwd != null ? HexDump.hexString(uniPwd) : "none") + ", ANSIpwd="
                     + (ascPwd != null ? HexDump.hexString(ascPwd) : "none") + ", domain=" + domain + ", os=" + clientOS + ", VC="
@@ -406,19 +406,19 @@ public abstract class SMBAuthenticator implements ISMBAuthenticator {
             isGuest = true;
 
             // DEBUG
-            if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_NEGOTIATE))
+            if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.NEGOTIATE))
                 Debug.println("[SMB] User " + user + ", logged on as guest");
         }
         else if (sts != AuthStatus.AUTHENTICATED) {
 
             // DEBUG
-            if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_NEGOTIATE))
+            if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.NEGOTIATE))
                 Debug.println("[SMB] User " + user + ", access denied");
 
             // Invalid user, reject the session setup request
             throw new SMBSrvException(SMBStatus.NTLogonFailure, SMBStatus.ErrDos, SMBStatus.DOSAccessDenied);
         }
-        else if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_NEGOTIATE)) {
+        else if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.NEGOTIATE)) {
 
             // DEBUG
             Debug.println("[SMB] User " + user + " logged on "
@@ -432,13 +432,13 @@ public abstract class SMBAuthenticator implements ISMBAuthenticator {
         if (uid == VirtualCircuit.InvalidID) {
 
             // DEBUG
-            if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_NEGOTIATE))
+            if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.NEGOTIATE))
                 Debug.println("[SMB] Failed to allocate UID for virtual circuit, " + vc);
 
             // Failed to allocate a UID
             throw new SMBSrvException(SMBStatus.NTLogonFailure, SMBStatus.ErrDos, SMBStatus.DOSAccessDenied);
         }
-        else if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_NEGOTIATE)) {
+        else if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.NEGOTIATE)) {
 
             // DEBUG
             Debug.println("[SMB] Allocated UID=" + uid + " for VC=" + vc);
@@ -456,7 +456,7 @@ public abstract class SMBAuthenticator implements ISMBAuthenticator {
             int discCnt = sess.disconnectClientSessions();
 
             // DEBUG
-            if (discCnt > 0 && Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_NEGOTIATE))
+            if (discCnt > 0 && Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.NEGOTIATE))
                 Debug.println("[SMB] Disconnected " + discCnt + " existing sessions from client, sess=" + sess);
         }
 

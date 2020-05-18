@@ -20,6 +20,7 @@
 package org.filesys.server;
 
 import java.net.InetAddress;
+import java.util.EnumSet;
 
 import org.filesys.debug.Debug;
 import org.filesys.server.auth.AuthContext;
@@ -36,7 +37,7 @@ import org.filesys.server.filesys.TransactionalFilesystemInterface;
  *
  * @author gkspencer
  */
-public abstract class SrvSession {
+public abstract class SrvSession <T extends Enum<T>> {
 
     // Network server this session is associated with
     private NetworkServer m_server;
@@ -66,7 +67,7 @@ public abstract class SrvSession {
     private AuthContext m_authContext;
 
     // Debug flags for this session, and debug output interface.
-    private int m_debug;
+    private EnumSet<T> m_debug;
     private String m_dbgPrefix;
 
     // List of dynamic/temporary shares created for this session
@@ -101,13 +102,16 @@ public abstract class SrvSession {
      * @param srv        NetworkServer
      * @param proto      String
      * @param remoteName String
+     * @param enumClass Class&lt;T&gt;
      */
-    public SrvSession(int sessId, NetworkServer srv, String proto, String remoteName) {
+    public SrvSession(int sessId, NetworkServer srv, String proto, String remoteName, Class<T> enumClass) {
         m_sessId = sessId;
         m_server = srv;
 
         setProtocolName(proto);
         setRemoteName(remoteName);
+
+        m_debug = EnumSet.<T>noneOf( enumClass);
     }
 
     /**
@@ -312,15 +316,13 @@ public abstract class SrvSession {
     }
 
     /**
-     * Determine if the specified debug flag is enabled.
+     * Check if debug enum value set
      *
-     * @param dbgFlag int
+     * @param flg Enum&lt;T&gt;
      * @return boolean
      */
-    public final boolean hasDebug(int dbgFlag) {
-        if ((m_debug & dbgFlag) != 0)
-            return true;
-        return false;
+    public final boolean hasDebug(Enum<T> flg) {
+        return m_debug.contains( flg);
     }
 
     /**
@@ -377,12 +379,41 @@ public abstract class SrvSession {
     }
 
     /**
-     * Set the debug output interface.
+     * Set a debug flag
      *
-     * @param flgs int
+     * @param flg T
      */
-    public final void setDebug(int flgs) {
-        m_debug = flgs;
+    public final void setDebug(T flg) {
+        m_debug.add( flg);
+    }
+
+    /**
+     * Set debug flags
+     *
+     * @param flgs EnumSet&lt;T&gt;
+     */
+    public final void setDebug(EnumSet<T> flgs) { m_debug = flgs; }
+
+    /**
+     * Dump the debug flag strings
+     *
+     * @return String
+     */
+    public final String dumpFlags() {
+        StringBuilder str = new StringBuilder();
+        str.append("[");
+
+        for ( T flg : m_debug) {
+            str.append( flg.name());
+            str.append(" ");
+        }
+
+        if ( str.length() > 1)
+            str.setLength( str.length() - 1);
+
+        str.append("]");
+
+        return str.toString();
     }
 
     /**

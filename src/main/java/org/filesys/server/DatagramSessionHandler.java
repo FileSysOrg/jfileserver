@@ -26,6 +26,7 @@ import java.net.InetAddress;
 import java.net.SocketException;
 
 import org.filesys.debug.Debug;
+import org.filesys.server.core.NoPooledMemoryException;
 
 /**
  * Datagram Session Handler Class
@@ -260,15 +261,17 @@ public abstract class DatagramSessionHandler implements SessionHandlerInterface,
      * @exception IOException Socket error
      */
     protected abstract boolean processDatagram(DatagramPacket pkt)
-            throws IOException;
+        throws IOException;
 
     /**
      * Allocate a buffer for the datagram receive
      *
      * @param bufSize int
      * @return byte[]
+     * @exception NoPooledMemoryException No pooled memory available
      */
-    protected byte[] allocateBuffer(int bufSize) {
+    protected byte[] allocateBuffer(int bufSize)
+        throws NoPooledMemoryException {
 
         //	Allocate a buffer for the datagram
 

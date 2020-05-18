@@ -839,7 +839,7 @@ public class JavaFileDiskDriver implements DiskInterface {
             String[] paths = FileName.splitPath(searchPath);
 
             //	DEBUG
-            if (Debug.EnableInfo && sess != null && sess.hasDebug(SMBSrvSession.DBG_SEARCH))
+            if (Debug.EnableInfo && sess != null && sess.hasDebug(SMBSrvSession.Dbg.SEARCH))
                 sess.debugPrintln("  Start search path=" + path + ", relPath=" + paths[0]);
 
             //  Initialize the search

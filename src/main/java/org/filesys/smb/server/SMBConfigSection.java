@@ -20,6 +20,7 @@
 package org.filesys.smb.server;
 
 import java.net.InetAddress;
+import java.util.EnumSet;
 import java.util.List;
 
 import org.filesys.netbios.RFCNetBIOSProtocol;
@@ -89,7 +90,7 @@ public class SMBConfigSection extends ConfigSection {
     private boolean m_announceDebug = false;
 
     //  Default session debugging setting
-    private int m_sessDebug;
+    private EnumSet<SMBSrvSession.Dbg> m_sessDebug;
 
     //  Name server port
     private int m_namePort = RFCNetBIOSProtocol.NAMING;
@@ -359,9 +360,9 @@ public class SMBConfigSection extends ConfigSection {
     /**
      * Return the server debug flags.
      *
-     * @return int
+     * @return EnumSet&lt;SMBSrvSession.Dbg&gt;
      */
-    public final int getSessionDebugFlags() {
+    public final EnumSet<SMBSrvSession.Dbg> getSessionDebugFlags() {
         return m_sessDebug;
     }
 
@@ -1061,15 +1062,15 @@ public class SMBConfigSection extends ConfigSection {
     /**
      * Set the debug flags to be used by the server.
      *
-     * @param flags int
+     * @param flags EnumSet&lt;SMBSrvSession.Dbg&gt;
      * @return int
      * @throws InvalidConfigurationException Failed to set the session debug flags
      */
-    public final int setSessionDebugFlags(int flags)
+    public final int setSessionDebugFlags(EnumSet<SMBSrvSession.Dbg> flags)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.SMBSessionDebug, new Integer(flags));
+        int sts = fireConfigurationChange(ConfigId.SMBSessionDebug, flags);
         m_sessDebug = flags;
 
         //  Return the change status

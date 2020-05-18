@@ -93,13 +93,13 @@ public class OpLockHelper {
                         netFile.setOpLock(oplock);
 
                         // DEBUG
-                        if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.DBG_OPLOCK))
+                        if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.Dbg.OPLOCK))
                             sess.debugPrintln("Granted oplock sess=" + sess.getUniqueId() + " oplock=" + oplock);
                     }
                     else {
 
                         // DEBUG
-                        if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.DBG_OPLOCK))
+                        if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.Dbg.OPLOCK))
                             sess.debugPrintln("Oplock not granted sess=" + sess.getUniqueId() + " oplock=" + oplock + " (Open count)");
 
                         // Clear the oplock, not granted
@@ -109,7 +109,7 @@ public class OpLockHelper {
                 catch (ExistingOpLockException ex) {
 
                     // DEBUG
-                    if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.DBG_OPLOCK))
+                    if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.Dbg.OPLOCK))
                         sess.debugPrintln("Failed to grant oplock sess=" + sess.getUniqueId() + ", file=" + params.getPath() + " (Oplock exists)");
 
                     // Indicate no oplock was granted
@@ -119,7 +119,7 @@ public class OpLockHelper {
             else {
 
                 // DEBUG
-                if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.DBG_OPLOCK))
+                if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.Dbg.OPLOCK))
                     sess.debugPrintln("OpLock manager is null, tree=" + tree);
             }
         }
@@ -156,7 +156,7 @@ public class OpLockHelper {
             if (oplockMgr == null) {
 
                 // DEBUG
-                if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.DBG_OPLOCK))
+                if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.Dbg.OPLOCK))
                     sess.debugPrintln("OpLock manager is null, tree=" + tree);
 
                 // Nothing to do
@@ -169,7 +169,7 @@ public class OpLockHelper {
             if (oplock != null && oplock.getLockType() != OpLockType.LEVEL_II) {
 
                 // DEBUG
-                if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.DBG_OPLOCK))
+                if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.Dbg.OPLOCK))
                     sess.debugPrintln("Check oplock on file " + params.getPath() + ", oplock=" + oplock);
 
                 // Check if the oplock is local
@@ -190,7 +190,7 @@ public class OpLockHelper {
                                 (params.getAccessMode() & (AccessMode.NTGenericRead + AccessMode.NTGenericWrite + AccessMode.NTGenericExecute)) == 0) {
 
                             // DEBUG
-                            if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.DBG_OPLOCK))
+                            if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.Dbg.OPLOCK))
                                 sess.debugPrintln("No oplock break, access attributes only, params=" + params + ", oplock=" + oplock);
 
                             // Oplock break not required
@@ -204,7 +204,7 @@ public class OpLockHelper {
                             if ( localOpLock.getOplockOwner().isOwner( OpLockType.LEVEL_BATCH, params.getOplockOwner())) {
 
                                 // DEBUG
-                                if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.DBG_OPLOCK))
+                                if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.Dbg.OPLOCK))
                                     sess.debugPrintln("No oplock break, oplock owner, params=" + params + ", oplock=" + oplock);
 
                                 // Oplock break not required
@@ -217,7 +217,7 @@ public class OpLockHelper {
                         if (oplock.hasOplockBreakFailed()) {
 
                             // DEBUG
-                            if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.DBG_OPLOCK))
+                            if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.Dbg.OPLOCK))
                                 sess.debugPrintln("Oplock has failed break attempt, failing open request params=" + params);
 
                             // Fail the open request with an access denied error
@@ -228,7 +228,7 @@ public class OpLockHelper {
                         try {
 
                             // DEBUG
-                            if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.DBG_OPLOCK))
+                            if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.Dbg.OPLOCK))
                                 sess.debugPrintln("Oplock break required, owner=" + oplock + ", open=" + sess.getUniqueId());
 
                             // Request the owner session break the oplock
@@ -265,7 +265,7 @@ public class OpLockHelper {
                         oplockMgr.releaseOpLock(oplock.getPath());
 
                         // DEBUG
-                        if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.DBG_OPLOCK))
+                        if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.Dbg.OPLOCK))
                             sess.debugPrintln("Oplock released, session invalid sess=" + opSess.getUniqueId());
                     }
                 }
@@ -281,7 +281,7 @@ public class OpLockHelper {
                     if (oplock.hasOplockBreakFailed()) {
 
                         // DEBUG
-                        if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.DBG_OPLOCK))
+                        if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.Dbg.OPLOCK))
                             sess.debugPrintln("Oplock has failed break attempt, failing open request params=" + params);
 
                         // Fail the open request with an access denied error
@@ -294,7 +294,7 @@ public class OpLockHelper {
                         oplockMgr.requestOpLockBreak(oplock.getPath(), oplock, sess, pkt);
 
                         // DEBUG
-                        if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.DBG_OPLOCK))
+                        if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.Dbg.OPLOCK))
                             sess.debugPrintln("Remote oplock break sent, oplock=" + oplock);
 
                         // Indicate that the current SMB request packet processing should be deferred, until the oplock break is received
@@ -365,7 +365,7 @@ public class OpLockHelper {
                     netFile.setOpLock(null);
 
                     // DEBUG
-                    if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.DBG_OPLOCK))
+                    if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.Dbg.OPLOCK))
                         sess.debugPrintln("Released oplock sess=" + sess.getUniqueId() + " oplock=" + oplock);
                 }
             }

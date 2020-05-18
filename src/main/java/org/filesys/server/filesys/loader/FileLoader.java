@@ -21,12 +21,14 @@ package org.filesys.server.filesys.loader;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.EnumSet;
 
 import org.filesys.server.SrvSession;
 import org.filesys.server.core.DeviceContext;
 import org.filesys.server.filesys.FileOpenParams;
 import org.filesys.server.filesys.NetworkFile;
 import org.filesys.server.filesys.db.DBDeviceContext;
+import org.filesys.server.filesys.db.DBInterface;
 import org.springframework.extensions.config.ConfigElement;
 
 
@@ -44,9 +46,16 @@ public interface FileLoader {
      * Return the database features required by this file loader. Return zero if no database features
      * are required by the loader.
      *
-     * @return int
+     * @return EnumSet&lt;Feature&gt;
      */
-    public int getRequiredDBFeatures();
+    public EnumSet<DBInterface.Feature> getRequiredDBFeatures();
+
+    /**
+     * Determine if the file loader is online
+     *
+     * @return boolean
+     */
+    public boolean isOnline();
 
     /**
      * Create a network file for the specified file
