@@ -52,11 +52,7 @@ public class BackgroundLoadSave {
         Requeue,
         Error
     }
-/**
-    public final static int StsSuccess  = 0;
-    public final static int StsRequeue  = 1;
-    public final static int StsError    = 2;
-**/
+
     // Default/minimum/maximum number of worker threads to use
     public static final int DefaultWorkerThreads = 4;
     public static final int MinimumWorkerThreads = 1;
@@ -211,8 +207,7 @@ public class BackgroundLoadSave {
                         Debug.println("BackgroundLoadSave loader=" + getName() + ", fileReq=" + fileReq + ", queued="
                                 + mi_queue.numberOfRequests());
 
-                    // Check if the in-memory file request queue has reached the low water mark, if
-                    // so then wakeup the queue loader
+                    // Check if the in-memory file request queue has reached the low water mark, if so then wakeup the queue loader
                     // thread to load more file request records from the database
                     mi_loader.checkRequestQueue();
 
