@@ -859,6 +859,15 @@ public class FileOpenParams {
     }
 
     /**
+     * Set the allocation size for a new file
+     *
+     * @param allocSize long
+     */
+    public final void setAllocationSize(long allocSize) {
+        m_allocSize = allocSize;
+    }
+
+    /**
      * Convert a Core/LanMan access mode to an NT access mode
      *
      * @param accessMode int
