@@ -39,9 +39,10 @@ public interface NamedFileLoader {
      *
      * @param dir String
      * @param fid int
+     * @param parentId Parent directory file id
      * @throws IOException Failed to create the directory
      */
-    public void createDirectory(String dir, int fid)
+    public void createDirectory(String dir, int fid, int parentId)
             throws IOException;
 
     /**

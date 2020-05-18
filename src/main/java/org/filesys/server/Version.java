@@ -30,7 +30,7 @@ package org.filesys.server;
 public class Version {
 
     // Top level version
-    public static String ReleaseVersion         = "1.0.0";
+    public static String ReleaseVersion         = "1.3.0";
 
     // Server version strings
     public static String SMBServerVersion       = ReleaseVersion;

@@ -49,12 +49,12 @@ public interface RpcAuthenticator {
      * Authenticate an RPC client using the credentials within the RPC request. The object that is returned is
      * used as the key to find the associated session object.
      *
-     * @param authType int
+     * @param authType AuthType
      * @param rpc      RpcPacket
      * @return Object
      * @exception RpcAuthenticationException Authentication error
      */
-    public Object authenticateRpcClient(int authType, RpcPacket rpc)
+    public Object authenticateRpcClient(AuthType authType, RpcPacket rpc)
             throws RpcAuthenticationException;
 
     /**
@@ -72,9 +72,9 @@ public interface RpcAuthenticator {
      * Return a list of the authentication types that the RPC authenticator implementation supports. The
      * authentication types are specified in the AuthType class.
      *
-     * @return int[]
+     * @return AuthType[]
      */
-    public int[] getRpcAuthenticationTypes();
+    public AuthType[] getRpcAuthenticationTypes();
 
     /**
      * Set the current authenticated user context for processing of the current RPC request

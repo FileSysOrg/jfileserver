@@ -19,6 +19,8 @@
 
 package org.filesys.server.filesys.loader;
 
+import org.filesys.server.filesys.db.BackgroundLoadSave;
+
 /**
  * Background File Loader Interface
  *
@@ -27,25 +29,25 @@ package org.filesys.server.filesys.loader;
  *
  * @author gkspencer
  */
-public interface BackgroundFileLoader {
+public interface BackgroundFileLoader <T extends FileRequest> {
 
     /**
      * Load a file
      *
      * @param loadReq FileRequest
-     * @return int
+     * @return BackgroundLoadSave.Status
      * @throws Exception Error loading file data
      */
-    public int loadFile(FileRequest loadReq)
+    public BackgroundLoadSave.Status loadFile(T loadReq)
             throws Exception;
 
     /**
      * Store a file
      *
      * @param saveReq FileRequest
-     * @return int
+     * @return BackgroundLoadSave.Status
      * @throws Exception Error saving file data
      */
-    public int storeFile(FileRequest saveReq)
+    public BackgroundLoadSave.Status storeFile(T saveReq)
             throws Exception;
 }

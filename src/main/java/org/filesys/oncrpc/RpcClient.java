@@ -37,7 +37,7 @@ public abstract class RpcClient {
     private int m_port;
 
     //	Protocol type
-    private int m_protocol;
+    private Rpc.ProtocolId m_protocol;
 
     //	Maximum RPC size to send/receive
     private int m_maxRpcSize;
@@ -47,12 +47,12 @@ public abstract class RpcClient {
      *
      * @param addr       InetAddress
      * @param port       int
-     * @param proto      int
+     * @param proto      Rpc.ProtocolId
      * @param maxRpcSize int
      * @exception IOException Socket error
      * @exception SocketException Socket error
      */
-    protected RpcClient(InetAddress addr, int port, int proto, int maxRpcSize)
+    protected RpcClient(InetAddress addr, int port, Rpc.ProtocolId proto, int maxRpcSize)
             throws IOException, SocketException {
 
         //	Save the server address, port and the protocol type
@@ -95,9 +95,9 @@ public abstract class RpcClient {
     /**
      * Return the protocol type
      *
-     * @return int
+     * @return Rpc.ProtocolId
      */
-    public final int isProtocol() {
+    public final Rpc.ProtocolId isProtocol() {
         return m_protocol;
     }
 
@@ -126,7 +126,7 @@ public abstract class RpcClient {
         StringBuffer str = new StringBuffer();
 
         str.append("[");
-        str.append(isProtocol() == Rpc.TCP ? "TCP:" : "UDP:");
+        str.append(isProtocol().name());
         str.append(getServerAddress().getHostAddress());
         str.append(":");
         str.append(getServerPort());

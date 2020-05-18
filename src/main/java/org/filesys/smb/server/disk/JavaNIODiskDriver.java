@@ -861,7 +861,7 @@ public class JavaNIODiskDriver implements DiskInterface {
             String[] paths = FileName.splitPath(path, File.separatorChar);
 
             //	DEBUG
-            if (Debug.EnableInfo && sess != null && sess.hasDebug(SMBSrvSession.DBG_SEARCH))
+            if (Debug.EnableInfo && sess != null && sess.hasDebug(SMBSrvSession.Dbg.SEARCH))
                 sess.debugPrintln("  Start search path=" + path + ", relPath=" + paths[0]);
 
             if (paths[1] != null && WildCard.containsWildcards(paths[1]) == false) {

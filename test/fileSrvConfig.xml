@@ -4,7 +4,7 @@
 <fileserver>
     <servers>
         <SMB enable="true"/>
-        <FTP enable="true"/>
+        <FTP enable="false"/>
         <NFS enable="false"/>
     </servers>
 
@@ -64,7 +64,11 @@
 
     <NFS>
         <enablePortMapper/>
-        <debug flags="File,FileIO"/>
+        <PortMapperPort>1111</PortMapperPort>
+        <MountServerPort>1112</MountServerPort>
+        <debug flags="File,FileIO,Search,Info,Error,Directory,Session,Socket,Threadpool"/>
+        <NOportMapperDebug/>
+        <NOmountServerDebug/>
     </NFS>
 
     <debug>
@@ -76,14 +80,16 @@
     </debug>
 
     <shares>
-        <diskshare name="JFILESHARE" comment="Test share">
+        <diskshare name="TEST" command="Test share">
             <driver>
                 <class>org.filesys.smb.server.disk.JavaNIODiskDriver</class>
-                <LocalPath>/JFileSrv/TestShare</LocalPath>
+
+                <!-- ThunderBolt3 SSD based file share -->
+                <LocalPath>/Volumes/1TB-SSD/JFileServer/fileShare</LocalPath>
+                <TrashcanPath>/Volumes/1TB-SSD/JFileServer/trashcan</TrashcanPath>
+
                 <Debug/>
             </driver>
-
-            <notifyDebug/>
         </diskshare>
     </shares>
 

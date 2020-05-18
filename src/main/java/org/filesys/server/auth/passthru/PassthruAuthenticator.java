@@ -425,7 +425,7 @@ public class PassthruAuthenticator extends SMBAuthenticator implements SessionLi
         }
 
         // Debug
-        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_NEGOTIATE)) {
+        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.NEGOTIATE)) {
             if (respBlob == null)
                 Debug.println("[SMB] User " + client.getUserName() + " logged on "
                         + (client != null ? " (type " + client.getLogonTypeString() + ")" : ""));
@@ -527,7 +527,7 @@ public class PassthruAuthenticator extends SMBAuthenticator implements SessionLi
                 int discCnt = sess.disconnectClientSessions();
 
                 // DEBUG
-                if (discCnt > 0 && Debug.EnableInfo && sess.hasDebug(SMBSrvSession.DBG_NEGOTIATE))
+                if (discCnt > 0 && Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.NEGOTIATE))
                     Debug.println("[SMB] Disconnected " + discCnt + " existing sessions from client, sess=" + sess);
             }
 
@@ -541,12 +541,12 @@ public class PassthruAuthenticator extends SMBAuthenticator implements SessionLi
             if (uid == VirtualCircuit.InvalidID) {
 
                 // DEBUG
-                if (hasDebug() && sess.hasDebug(SMBSrvSession.DBG_NEGOTIATE))
+                if (hasDebug() && sess.hasDebug(SMBSrvSession.Dbg.NEGOTIATE))
                     Debug.println("Failed to allocate UID for virtual circuit, " + vc);
 
                 // Failed to allocate a UID
                 throw new SMBSrvException(SMBStatus.NTLogonFailure, SMBStatus.DOSAccessDenied, SMBStatus.ErrDos);
-            } else if (hasDebug() && sess.hasDebug(SMBSrvSession.DBG_NEGOTIATE)) {
+            } else if (hasDebug() && sess.hasDebug(SMBSrvSession.Dbg.NEGOTIATE)) {
 
                 // DEBUG
                 Debug.println("Allocated UID=" + uid + " for VC=" + vc);

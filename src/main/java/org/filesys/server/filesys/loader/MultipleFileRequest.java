@@ -37,10 +37,10 @@ public class MultipleFileRequest extends FileRequest {
     /**
      * Class constructor
      *
-     * @param typ    int
+     * @param typ    RequestType
      * @param tranId int
      */
-    public MultipleFileRequest(int typ, int tranId) {
+    public MultipleFileRequest(RequestType typ, int tranId) {
         super(typ);
         setTransactionId(tranId);
 
@@ -84,7 +84,7 @@ public class MultipleFileRequest extends FileRequest {
      * @return String
      */
     public String toString() {
-        StringBuffer str = new StringBuffer();
+        StringBuilder str = new StringBuilder();
 
         if (isTransaction()) {
             str.append("[Tran=");

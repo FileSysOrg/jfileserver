@@ -24,7 +24,7 @@ import org.filesys.smb.server.SMBSrvSession;
 /**
  * Request Handler Class
  *
- * <P>Base for all requets handler implementations.
+ * <P>Base for all request handler implementations.
  *
  * @author gkspencer
  */

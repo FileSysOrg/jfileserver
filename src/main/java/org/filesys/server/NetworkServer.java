@@ -55,9 +55,8 @@ public abstract class NetworkServer {
     private GlobalConfigSection m_globalConfig;
     private SecurityConfigSection m_securityConfig;
 
-    //	Debug enabled flag and debug flags
+    //	Debug enabled flag
     private boolean m_debug;
-    private int m_debugFlags;
 
     //	List of addresses that the server is bound to
     private InetAddress[] m_ipAddr;
@@ -284,16 +283,6 @@ public abstract class NetworkServer {
     }
 
     /**
-     * Determine if the specified debug flag is enabled
-     *
-     * @param flg int
-     * @return boolean
-     */
-    public final boolean hasDebugFlag(int flg) {
-        return (m_debugFlags & flg) != 0 ? true : false;
-    }
-
-    /**
      * Check if the shutdown flag is set
      *
      * @return boolean
@@ -354,16 +343,6 @@ public abstract class NetworkServer {
      */
     protected final void setDebug(boolean dbg) {
         m_debug = dbg;
-    }
-
-    /**
-     * Set the debug flags
-     *
-     * @param flags int
-     */
-    protected final void setDebugFlags(int flags) {
-        m_debugFlags = flags;
-        setDebug(flags == 0 ? false : true);
     }
 
     /**
@@ -469,7 +448,7 @@ public abstract class NetworkServer {
                 sessListener.sessionClosed(sess);
             }
             catch (Exception ex) {
-// TODO:				debugPrintln("Session listener error [closed]: " + ex.toString());
+				sess.debugPrintln("Session listener error [closed]: " + ex.toString());
             }
         }
     }
@@ -494,7 +473,7 @@ public abstract class NetworkServer {
                 sessListener.sessionLoggedOn(sess);
             }
             catch (Exception ex) {
-// TODO:				debugPrintln("Session listener error [logon]: " + ex.toString());
+				sess.debugPrintln("Session listener error [logon]: " + ex.toString());
             }
         }
     }
@@ -519,7 +498,7 @@ public abstract class NetworkServer {
                 sessListener.sessionCreated(sess);
             }
             catch (Exception ex) {
-// TODO:				debugPrintln("Session listener error [open]: " + ex.toString());
+    			sess.debugPrintln("Session listener error [open]: " + ex.toString());
             }
         }
     }

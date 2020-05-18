@@ -29,14 +29,14 @@ public class RpcAuthenticationException extends Exception {
     private static final long serialVersionUID = 8169939638737905039L;
 
     //	Authentication failure error code
-    private int m_authError;
+    private Rpc.AuthSts m_authError;
 
     /**
      * Class constructor
      *
-     * @param authError int
+     * @param authError Rpc.AuthSts
      */
-    public RpcAuthenticationException(int authError) {
+    public RpcAuthenticationException(Rpc.AuthSts authError) {
         m_authError = authError;
     }
 
@@ -46,7 +46,7 @@ public class RpcAuthenticationException extends Exception {
      * @param authError int
      * @param msg       String
      */
-    public RpcAuthenticationException(int authError, String msg) {
+    public RpcAuthenticationException(Rpc.AuthSts authError, String msg) {
         super(msg);
         m_authError = authError;
     }
@@ -54,9 +54,9 @@ public class RpcAuthenticationException extends Exception {
     /**
      * Get the authentication error code
      *
-     * @return int
+     * @return Rpc.AuthSts
      */
-    public final int getAuthenticationErrorCode() {
+    public final Rpc.AuthSts getAuthenticationErrorCode() {
         return m_authError;
     }
 }
