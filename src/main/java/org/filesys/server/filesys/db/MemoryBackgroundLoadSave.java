@@ -22,12 +22,7 @@ package org.filesys.server.filesys.db;
 import org.filesys.debug.Debug;
 import org.filesys.server.filesys.cache.FileState;
 import org.filesys.server.filesys.cache.FileStateCache;
-import org.filesys.server.filesys.loader.BackgroundFileLoader;
-import org.filesys.server.filesys.loader.CachedFileInfo;
-import org.filesys.server.filesys.loader.FileRequest;
-import org.filesys.server.filesys.loader.FileRequestQueue;
-import org.filesys.server.filesys.loader.MultipleFileRequest;
-import org.filesys.server.filesys.loader.SingleFileRequest;
+import org.filesys.server.filesys.loader.*;
 
 
 /**
@@ -77,8 +72,8 @@ public class MemoryBackgroundLoadSave {
     private String m_name;
 
     //	Queue of file requests
-    private FileRequestQueue m_readQueue;
-    private FileRequestQueue m_writeQueue;
+    private volatile FileRequestQueue m_readQueue;
+    private volatile FileRequestQueue m_writeQueue;
 
     //	Maximum in-memory file request size and low water mark
     private int m_maxQueueSize;
@@ -89,8 +84,8 @@ public class MemoryBackgroundLoadSave {
     private ThreadWorker[] m_writeThreads;
 
     //	Number of worker threads to create for read/write requests
-    private int m_readWorkers;
-    private int m_writeWorkers;
+    private int m_readWorkers   = DefaultWorkerThreads;
+    private int m_writeWorkers  = DefaultWorkerThreads;
 
     //	Enable debug output
     private boolean m_debug;
@@ -114,7 +109,7 @@ public class MemoryBackgroundLoadSave {
         private int mi_id;
 
         //	Associated request queue
-        private FileRequestQueue mi_queue;
+        private volatile FileRequestQueue mi_queue;
 
         //	Shutdown flag
         private boolean mi_shutdown = false;
@@ -171,7 +166,7 @@ public class MemoryBackgroundLoadSave {
                 }
 
                 //	If the file request is valid process it
-                if (fileReq != null) {
+                if (fileReq != null && getFileLoader() != null) {
 
                     //	DEBUG
                     if (Debug.EnableInfo && hasDebug())
@@ -190,7 +185,8 @@ public class MemoryBackgroundLoadSave {
 
                             //	Load the file
                             reqSts = getFileLoader().loadFile(fileReq);
-                        } else if (fileReq.isType() == FileRequest.RequestType.Save || fileReq.isType() == FileRequest.RequestType.TransSave) {
+                        }
+                        else if (fileReq.isType() == FileRequest.RequestType.Save || fileReq.isType() == FileRequest.RequestType.TransSave) {
 
                             //	Save the file
                             reqSts = getFileLoader().storeFile(fileReq);
@@ -223,12 +219,12 @@ public class MemoryBackgroundLoadSave {
                                 if (finfo.hasFileState())
                                     finfo.getFileState().setExpiryTime(expireAt);
                             }
-                        } else {
+                        } else if ( fileReq instanceof FileStateFileRequest) {
 
                             //	Reset the associated file state to expire in a short while
-                            SingleFileRequest singleReq = (SingleFileRequest) fileReq;
-                            if (singleReq.hasFileState())
-                                singleReq.getFileState().setExpiryTime(System.currentTimeMillis() + RequestProcessedExpire);
+                            FileStateFileRequest fsReq = (FileStateFileRequest) fileReq;
+                            if (fsReq.hasFileState())
+                                fsReq.getFileState().setExpiryTime(System.currentTimeMillis() + RequestProcessedExpire);
                         }
 
                         //	DEBUG
@@ -366,10 +362,11 @@ public class MemoryBackgroundLoadSave {
 
         //	Make sure the associated file state stays in memory for a short time, if the queue is small
         //	the request may get processed soon.
-        if (req instanceof SingleFileRequest) {
+        if (req instanceof FileStateFileRequest) {
 
             //	Get the request details
-            SingleFileRequest fileReq = (SingleFileRequest) req;
+            FileStateFileRequest fileReq = (FileStateFileRequest) req;
+
             if (fileReq.hasFileState()) {
 
                 //	Lock the file state so it does not get expired during the load/save
