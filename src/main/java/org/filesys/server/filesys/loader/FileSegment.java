@@ -25,7 +25,6 @@ import java.io.RandomAccessFile;
 
 import org.filesys.debug.Debug;
 
-
 /**
  * File Segment Class
  *
@@ -33,16 +32,10 @@ import org.filesys.debug.Debug;
  *
  * @author gkspencer
  */
-public class FileSegment {
-
-    //	Shared file segment details
-    private FileSegmentInfo m_info;
+public class FileSegment extends Segment {
 
     //	Local file containing the data segment
-    private RandomAccessFile m_segment;
-
-    //	Open file for write access
-    private boolean m_writeable;
+    private RandomAccessFile m_tempFile;
 
     /**
      * Class constructor
@@ -53,8 +46,7 @@ public class FileSegment {
      * @param writeable boolean
      */
     public FileSegment(FileSegmentInfo info, boolean writeable) {
-        m_info = info;
-        m_writeable = writeable;
+        super( info, writeable);
     }
 
     /**
@@ -63,10 +55,10 @@ public class FileSegment {
      * @return long
      * @throws IOException Failed to get the file length
      */
-    public final long getFileLength()
-            throws IOException {
+    public long getFileLength()
+        throws IOException {
         if (isOpen())
-            return m_segment.length();
+            return m_tempFile.length();
         return -1;
     }
 
@@ -75,17 +67,8 @@ public class FileSegment {
      *
      * @return FileSegmentInfo
      */
-    public final FileSegmentInfo getInfo() {
-        return m_info;
-    }
-
-    /**
-     * Return the readable file data length
-     *
-     * @return long
-     */
-    public final long getReadableLength() {
-        return m_info.getReadableLength();
+    public final FileSegmentInfo getFileInfo() {
+        return (FileSegmentInfo) getInfo();
     }
 
     /**
@@ -93,81 +76,7 @@ public class FileSegment {
      *
      * @return String
      */
-    public final String getTemporaryFile() {
-        return m_info.getTemporaryFile();
-    }
-
-    /**
-     * Check if the file data is loaded or queued for loading
-     *
-     * @return boolean
-     */
-    public final boolean isDataLoading() {
-        if (m_info.hasStatus() == FileSegmentInfo.State.Initial &&
-                m_info.isQueued() == false)
-            return false;
-        return true;
-    }
-
-    /**
-     * Check if the file data is available
-     *
-     * @return boolean
-     */
-    public final boolean isDataAvailable() {
-        if (m_info.hasStatus().ordinal() >= FileSegmentInfo.State.Available.ordinal() &&
-                m_info.hasStatus().ordinal() < FileSegmentInfo.State.Error.ordinal())
-            return true;
-        return false;
-    }
-
-    /**
-     * Return the segment status
-     *
-     * @return State
-     */
-    public final FileSegmentInfo.State hasStatus() {
-        return m_info.hasStatus();
-    }
-
-    /**
-     * Check if the file load had an error
-     *
-     * @return boolean
-     */
-    public final boolean hasLoadError() {
-        return m_info.hasStatus() == FileSegmentInfo.State.Error;
-    }
-
-    /**
-     * Set the readable data length for the file, used during data loading to allow the file to be read before
-     * the file load completes.
-     *
-     * @param readable long
-     */
-    public final void setReadableLength(long readable) {
-        m_info.setReadableLength(readable);
-    }
-
-    /**
-     * Set the segment load/update status
-     *
-     * @param sts State
-     */
-    public final void setStatus(FileSegmentInfo.State sts) {
-        m_info.setStatus(sts);
-    }
-
-    /**
-     * Set the segment load/update status and queued status
-     *
-     * @param sts    State
-     * @param queued boolean
-     */
-    public final synchronized void setStatus(FileSegmentInfo.State sts, boolean queued) {
-        m_info.setStatus(sts);
-        m_info.setQueued(queued);
-    }
+    public final String getTemporaryFile() { return getFileInfo().getTemporaryFile(); }
 
     /**
      * Check if the temporary file is open
@@ -175,113 +84,7 @@ public class FileSegment {
      * @return boolean
      */
     public final boolean isOpen() {
-        return m_segment != null ? true : false;
-    }
-
-    /**
-     * Check if the file segment has been updated
-     *
-     * @return boolean
-     */
-    public final boolean isUpdated() {
-        return m_info.isUpdated();
-    }
-
-    /**
-     * Check if the file segment has a file request queued
-     *
-     * @return boolean
-     */
-    public final boolean isQueued() {
-        return m_info.isQueued();
-    }
-
-    /**
-     * Check if a save request is queued for this file segment
-     *
-     * @return boolean
-     */
-    public final synchronized boolean isSaveQueued() {
-        if (m_info.isQueued() && m_info.hasStatus() == FileSegmentInfo.State.SaveWait)
-            return true;
-        return false;
-    }
-
-    /**
-     * Check if the file segment is being saved
-     *
-     * @return boolean
-     */
-    public final synchronized boolean isSaving() {
-        if (m_info.isQueued() && m_info.hasStatus() == FileSegmentInfo.State.Saving)
-            return true;
-        return false;
-    }
-
-    /**
-     * Check if the file segment is being loaded
-     *
-     * @return boolean
-     */
-    public final synchronized boolean isLoading() {
-        if (m_info.isQueued() && m_info.hasStatus() == FileSegmentInfo.State.Loading)
-            return true;
-        return false;
-    }
-
-    /**
-     * Check if the file is writeable
-     *
-     * @return boolean
-     */
-    public final boolean isWriteable() {
-        return m_writeable;
-    }
-
-    /**
-     * Get the load lock for this file. If successful the current thread will proceed and can load the file, else
-     * the thread will wait until the load has been completed by the thread with the lock.
-     *
-     * @return boolean        true if the current thread has the load lock, else false to indicate that the file
-     * should now be loaded.
-     * @throws InterruptedException Error during wait
-     */
-    public final synchronized boolean getLoadLock()
-            throws InterruptedException {
-
-        //	Check if the file is currently being loaded
-        boolean sts = false;
-
-        if (isLoading() == true) {
-
-            //	Wait until the file has been loaded by another thread
-            wait();
-        } else {
-
-            //	Set the file status to loading
-            setStatus(FileSegmentInfo.State.Loading);
-            sts = true;
-        }
-
-        //	Return the lock status
-        return sts;
-    }
-
-    /**
-     * Wait for another thread to load the file data
-     *
-     * @param tmo long
-     */
-    public final void waitForData(long tmo) {
-        m_info.waitForData(tmo);
-    }
-
-    /**
-     * Signal that the file data is available, any threads using the waitForData() method
-     * will return so that the threads can access the file data.
-     */
-    public final void signalDataAvailable() {
-        m_info.signalDataAvailable();
+        return m_tempFile != null ? true : false;
     }
 
     /**
@@ -292,7 +95,7 @@ public class FileSegment {
     public final boolean fileExists() {
 
         //	Check if the file is open
-        if (m_segment != null)
+        if (m_tempFile != null)
             return true;
 
         //	Check if the temporary file exists
@@ -322,9 +125,9 @@ public class FileSegment {
             throws IOException {
 
         //	Close the temporary file
-        if (m_segment != null) {
-            m_segment.close();
-            m_segment = null;
+        if (m_tempFile != null) {
+            m_tempFile.close();
+            m_tempFile = null;
         }
     }
 
@@ -335,10 +138,10 @@ public class FileSegment {
      */
     public final void openFile()
             throws IOException {
-        if (m_segment == null) {
+        if (m_tempFile == null) {
 
             //	Open the temporary file
-            m_segment = new RandomAccessFile(m_info.getTemporaryFile(), "rw");
+            m_tempFile = new RandomAccessFile(getFileInfo().getTemporaryFile(), "rw");
         }
     }
 
@@ -356,7 +159,7 @@ public class FileSegment {
             throws IOException {
 
         //	Check if the temporary file is open
-        if (m_segment == null) {
+        if (m_tempFile == null) {
 
             //	Open the temporary file
             openFile();
@@ -367,7 +170,7 @@ public class FileSegment {
         }
 
         //	Seek to the read position within the segment
-        m_segment.seek(fileOff);
+        m_tempFile.seek(fileOff);
 
         //	Fill the user buffer
 
@@ -380,7 +183,7 @@ public class FileSegment {
             while (totLen < len && rdLen > 0) {
 
                 //	Read data into the user buffer
-                rdLen = m_segment.read(buf, bufPos, rdLen);
+                rdLen = m_tempFile.read(buf, bufPos, rdLen);
 
                 //	Update the total read length
                 if (rdLen > 0) {
@@ -412,7 +215,7 @@ public class FileSegment {
             throws IOException {
 
         //	Check if the temporary file is open
-        if (m_segment == null) {
+        if (m_tempFile == null) {
 
             //	Open the temporary file
             openFile();
@@ -424,13 +227,13 @@ public class FileSegment {
 
         //	We need to seek to the write position. If the write position is off the end of the file
         //	we must null out the area between the current end of file and the write position.
-        long fileLen = m_segment.length();
+        long fileLen = m_tempFile.length();
         long endpos = fileOff + len;
 
         if (fileOff > fileLen) {
 
             //	Extend the file
-            m_segment.setLength(endpos);
+            m_tempFile.setLength(endpos);
         }
 
         //	Check for a zero length write
@@ -438,14 +241,14 @@ public class FileSegment {
             return;
 
         //	Seek to the write position within the segment
-        m_segment.seek(fileOff);
+        m_tempFile.seek(fileOff);
 
         //	Write data to the segment file
-        m_segment.write(buf, pos, len);
+        m_tempFile.write(buf, pos, len);
 
         //	Update the file segment status to indicate the data has been updated
-        if (m_info.isUpdated() == false)
-            m_info.setUpdated(true);
+        if (getInfo().isUpdated() == false)
+            getInfo().setUpdated(true);
     }
 
     /**
@@ -457,8 +260,8 @@ public class FileSegment {
             throws IOException {
 
         //	If the file is open flush all buffered output
-        if (m_segment != null)
-            m_segment.getFD().sync();
+        if (m_tempFile != null)
+            m_tempFile.getFD().sync();
     }
 
     /**
@@ -471,11 +274,11 @@ public class FileSegment {
             throws IOException {
 
         //	Check if the temporary file is open
-        if (m_segment == null)
+        if (m_tempFile == null)
             openFile();
 
         //	Set the temporary file size
-        m_segment.setLength(siz);
+        m_tempFile.setLength(siz);
     }
 
     /**
@@ -487,10 +290,10 @@ public class FileSegment {
             throws IOException {
 
         //	Delete the temporary file
-        if (m_segment != null)
+        if (m_tempFile != null)
             throw new IOException("Attempt to delete file segment whilst open");
-        else if (m_info != null)
-            m_info.deleteTemporaryFile();
+        else if (getFileInfo() != null)
+            getFileInfo().deleteTemporaryFile();
     }
 
     /**
@@ -537,24 +340,15 @@ public class FileSegment {
     }
 
     /**
-     * Return the file segment details as a string
-     *
-     * @return String
-     */
-    public String toString() {
-        return m_info.toString();
-    }
-
-    /**
      * Object is about to be garbage collected
      */
     protected void finalize() {
 
         //	Make sure the file is closed
-        if (m_segment != null) {
+        if (m_tempFile != null) {
             try {
-                m_segment.close();
-                m_segment = null;
+                m_tempFile.close();
+                m_tempFile = null;
             }
             catch (Exception ex) {
                 Debug.println(ex);
@@ -571,10 +365,10 @@ public class FileSegment {
             throws IOException {
 
         //	Check if the file is open
-        if (m_segment != null) {
+        if (m_tempFile != null) {
 
             //	Check if the file descriptor is valid
-            if (m_segment.getFD() != null && m_segment.getFD().valid() == false) {
+            if (m_tempFile.getFD() != null && m_tempFile.getFD().valid() == false) {
 
                 //	Close the file
                 try {

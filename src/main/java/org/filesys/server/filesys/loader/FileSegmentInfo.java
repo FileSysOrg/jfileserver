@@ -32,42 +32,16 @@ import org.filesys.debug.Debug;
  *
  * @author gkspencer
  */
-public class FileSegmentInfo {
-
-    //	Segment load/save states
-    public enum State {
-        Initial,
-        LoadWait,
-        Loading,
-        Available,
-        SaveWait,
-        Saving,
-        Saved,
-        Error
-    }
-
-    //	Flags
-    private static final int Updated        = 0x0001;
-    private static final int RequestQueued  = 0x0002;
-    private static final int DeleteOnStore  = 0x0004;
+public class FileSegmentInfo extends SegmentInfo {
 
     //	Temporary file path
     private String m_tempFile;
-
-    //	Flags to indicate if this segment has been updated, queued
-    private int m_flags;
-
-    //	Segment status
-    private State m_status = State.Initial;
-
-    //  Amount of valid data in the file, used to allow reads during data loading
-    private long m_readable;
 
     /**
      * Default constructor
      */
     public FileSegmentInfo() {
-        m_status = State.Initial;
+        super();
     }
 
     /**
@@ -76,7 +50,8 @@ public class FileSegmentInfo {
      * @param tempFile String
      */
     public FileSegmentInfo(String tempFile) {
-        m_status = State.Initial;
+        super();
+
         setTemporaryFile(tempFile);
     }
 
@@ -87,46 +62,6 @@ public class FileSegmentInfo {
      */
     public final String getTemporaryFile() {
         return m_tempFile;
-    }
-
-    /**
-     * Check if the segment has been updated
-     *
-     * @return boolean
-     */
-    public final boolean isUpdated() {
-        return (m_flags & Updated) != 0 ? true : false;
-    }
-
-    /**
-     * Check if the segment has a file request queued
-     *
-     * @return boolean
-     */
-    public final boolean isQueued() {
-        return (m_flags & RequestQueued) != 0 ? true : false;
-    }
-
-    /**
-     * Check if the file data is available
-     *
-     * @return boolean
-     */
-    public final boolean isDataAvailable() {
-        if (hasStatus().ordinal() >= FileSegmentInfo.State.Available.ordinal() &&
-                hasStatus().ordinal() < FileSegmentInfo.State.Error.ordinal())
-            return true;
-        return false;
-    }
-
-    /**
-     * Check if the associated temporary file should be deleted once the data store
-     * has completed successfully.
-     *
-     * @return boolean
-     */
-    public final boolean hasDeleteOnStore() {
-        return (m_flags & DeleteOnStore) != 0 ? true : false;
     }
 
     /**
@@ -151,55 +86,17 @@ public class FileSegmentInfo {
     }
 
     /**
-     * Return the segment status
-     *
-     * @return State
-     */
-    public final State hasStatus() {
-        return m_status;
-    }
-
-    /**
      * Return the temporary file length
      *
      * @return long
      * @throws IOException Failed to get the file length
      */
-    public final long getFileLength()
+    public long getFileLength()
             throws IOException {
 
         //	Get the file length
         File tempFile = new File(getTemporaryFile());
         return tempFile.length();
-    }
-
-    /**
-     * Return the readable file data length
-     *
-     * @return long
-     */
-    public final long getReadableLength() {
-        return m_readable;
-    }
-
-    /**
-     * Set the readable data length for the file, used during data loading to allow the file to be read before
-     * the file load completes.
-     *
-     * @param readable long
-     */
-    public final void setReadableLength(long readable) {
-        m_readable = readable;
-    }
-
-    /**
-     * Set the segment load/update status
-     *
-     * @param sts State
-     */
-    public synchronized final void setStatus(State sts) {
-        m_status = sts;
-        notifyAll();
     }
 
     /**
@@ -212,78 +109,6 @@ public class FileSegmentInfo {
     }
 
     /**
-     * Set/clear the updated segment flag
-     *
-     * @param sts boolean
-     */
-    public synchronized final void setUpdated(boolean sts) {
-        setFlag(Updated, sts);
-    }
-
-    /**
-     * Set/clear the request queued flag
-     *
-     * @param qd boolean
-     */
-    public synchronized final void setQueued(boolean qd) {
-        setFlag(RequestQueued, qd);
-    }
-
-    /**
-     * Set the delete on store flag so that the temporary file is deleted as soon as the
-     * data store has completed successfully.
-     */
-    public final synchronized void setDeleteOnStore() {
-        if (hasDeleteOnStore() == false)
-            setFlag(DeleteOnStore, true);
-    }
-
-    /**
-     * Set/clear the specified flag
-     *
-     * @param flag int
-     * @param sts  boolean
-     */
-    protected final synchronized void setFlag(int flag, boolean sts) {
-        boolean state = (m_flags & flag) != 0 ? true : false;
-        if (state && sts == false)
-            m_flags -= flag;
-        else if (state == false && sts == true)
-            m_flags += flag;
-    }
-
-    /**
-     * Wait for another thread to load the file data
-     *
-     * @param tmo long
-     */
-    public final void waitForData(long tmo) {
-
-        //	Check if the file data has been loaded, if not then wait
-        if (isDataAvailable() == false) {
-            synchronized (this) {
-                try {
-
-                    //	Wait for file data
-                    wait(tmo);
-                }
-                catch (InterruptedException ex) {
-                }
-            }
-        }
-    }
-
-    /**
-     * Signal that the file data is available, any threads using the waitForData() method
-     * will return so that the threads can access the file data.
-     */
-    public final synchronized void signalDataAvailable() {
-
-        //	Notify any waiting threads that the file data ia available
-        notifyAll();
-    }
-
-    /**
      * Return the file segment details as a string
      *
      * @return String
@@ -291,7 +116,7 @@ public class FileSegmentInfo {
     public String toString() {
         StringBuilder str = new StringBuilder();
 
-        str.append("[");
+        str.append("[File:");
         str.append(getTemporaryFile());
         str.append(":");
         str.append(hasStatus().name());
