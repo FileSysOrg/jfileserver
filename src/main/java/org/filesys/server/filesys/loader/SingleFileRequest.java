@@ -28,7 +28,7 @@ import org.filesys.server.filesys.cache.FileState;
  *
  * @author gkspencer
  */
-public class SingleFileRequest extends FileRequest {
+public class SingleFileRequest extends FileStateFileRequest {
 
     //	File id and stream id
     private int m_fid;
@@ -43,9 +43,6 @@ public class SingleFileRequest extends FileRequest {
     //	Virtual path of file
     private String m_virtPath;
 
-    //	Associated file state
-    private FileState m_state;
-
     /**
      * Class constructor
      *
@@ -57,12 +54,12 @@ public class SingleFileRequest extends FileRequest {
      * @param state    FileState
      */
     public SingleFileRequest(RequestType typ, int fid, int stid, String tempPath, String virtPath, FileState state) {
-        super(typ);
+        super(typ, state);
+
         m_fid = fid;
         m_stid = stid;
         m_tempPath = tempPath;
         m_virtPath = virtPath;
-        m_state = state;
     }
 
     /**
@@ -76,12 +73,12 @@ public class SingleFileRequest extends FileRequest {
      * @param state    FileState
      */
     public SingleFileRequest(RequestType typ, int fid, int stid, FileSegmentInfo segInfo, String virtPath, FileState state) {
-        super(typ);
+        super(typ, state);
+
         m_fid = fid;
         m_stid = stid;
         m_tempPath = segInfo.getTemporaryFile();
         m_virtPath = virtPath;
-        m_state = state;
 
         //	Mark the file segment as queued
         segInfo.setQueued(true);
@@ -99,7 +96,8 @@ public class SingleFileRequest extends FileRequest {
      * @param state    FileState
      */
     public SingleFileRequest(RequestType typ, int fid, int stid, String tempPath, String virtPath, int seq, FileState state) {
-        super(typ);
+        super(typ, state);
+
         m_fid = fid;
         m_stid = stid;
         m_tempPath = tempPath;
@@ -153,33 +151,6 @@ public class SingleFileRequest extends FileRequest {
     }
 
     /**
-     * Check if the request has an associated file state
-     *
-     * @return boolean
-     */
-    public final boolean hasFileState() {
-        return m_state != null ? true : false;
-    }
-
-    /**
-     * Return the associated file state
-     *
-     * @return FileState
-     */
-    public final FileState getFileState() {
-        return m_state;
-    }
-
-    /**
-     * Set the associated file state for the request
-     *
-     * @param state FileState
-     */
-    public final void setFileState(FileState state) {
-        m_state = state;
-    }
-
-    /**
      * Set the request unique id
      *
      * @param id int
@@ -220,10 +191,9 @@ public class SingleFileRequest extends FileRequest {
                 str.append("(Last)");
         }
 
-        if (isType() == RequestType.Load)
-            str.append(",LOAD:");
-        else
-            str.append(",SAVE:");
+        str.append(",");
+        str.append( isType().name());
+        str.append(":");
 
         str.append(getTemporaryFile());
         str.append(",");
