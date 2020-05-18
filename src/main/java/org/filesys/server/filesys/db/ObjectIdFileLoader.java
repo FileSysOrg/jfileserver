@@ -166,6 +166,17 @@ public abstract class ObjectIdFileLoader implements FileLoader, BackgroundFileLo
     }
 
     /**
+     * Determine if the file loader is online
+     *
+     * @return boolean
+     */
+    public boolean isOnline() {
+
+        // Default online status depends on the database
+        return m_dbCtx.getDBInterface().isOnline();
+    }
+
+    /**
      * Return the database device context
      *
      * @return DBDeviceContext
@@ -367,7 +378,7 @@ public abstract class ObjectIdFileLoader implements FileLoader, BackgroundFileLo
         if (dir == false) {
 
             // Create the network file and associated file segment
-            CachedNetworkFile cacheFile = createNetworkFile(fstate, params, name, fid, stid, did);
+            FileCachedNetworkFile cacheFile = createNetworkFile(fstate, params, name, fid, stid, did);
             netFile = cacheFile;
 
             // Check if the file is being opened for sequential access and the data has not yet been loaded
@@ -389,7 +400,7 @@ public abstract class ObjectIdFileLoader implements FileLoader, BackgroundFileLo
                     // Queue a file data load request
                     if (fileSeg.isDataLoading() == false)
                         queueFileRequest(new SingleFileRequest(FileRequest.RequestType.Load, cacheFile.getFileId(), cacheFile.getStreamId(),
-                                fileSeg.getInfo(), cacheFile.getFullName(), fstate));
+                                fileSeg.getFileInfo(), cacheFile.getFullName(), fstate));
                 }
 
                 // DEBUG
@@ -424,7 +435,7 @@ public abstract class ObjectIdFileLoader implements FileLoader, BackgroundFileLo
         if (netFile instanceof CachedNetworkFile) {
 
             // Get the cached network file
-            CachedNetworkFile cacheFile = (CachedNetworkFile) netFile;
+            FileCachedNetworkFile cacheFile = (FileCachedNetworkFile) netFile;
             cacheFile.closeFile();
 
             // Get the file segment details
@@ -444,7 +455,7 @@ public abstract class ObjectIdFileLoader implements FileLoader, BackgroundFileLo
 
                     // Create a file save request for the updated file segment
                     SingleFileRequest fileReq = new SingleFileRequest(FileRequest.RequestType.Save, cacheFile.getFileId(), cacheFile.getStreamId(),
-                            fileSeg.getInfo(), netFile.getFullName(), cacheFile.getFileState());
+                            fileSeg.getFileInfo(), netFile.getFullName(), cacheFile.getFileState());
 
                     // Check if there are any attributes to be added to the file request
                     if (hasRequiredAttributes() && sess != null) {
@@ -1421,10 +1432,10 @@ public abstract class ObjectIdFileLoader implements FileLoader, BackgroundFileLo
      * @param fid    int
      * @param stid   int
      * @param did    int
-     * @return CachedNetworkFile
+     * @return FileCachedNetworkFile
      * @exception IOException I/O error
      */
-    private final CachedNetworkFile createNetworkFile(FileState state, FileOpenParams params, String fname, int fid, int stid,
+    private final FileCachedNetworkFile createNetworkFile(FileState state, FileOpenParams params, String fname, int fid, int stid,
                                                       int did)
             throws IOException {
 
@@ -1432,7 +1443,7 @@ public abstract class ObjectIdFileLoader implements FileLoader, BackgroundFileLo
         // sessions opening the file at the same time. We have to be careful that only one thread creates the
         // file segment.
         FileSegment fileSeg = null;
-        CachedNetworkFile netFile = null;
+        FileCachedNetworkFile netFile = null;
 
         synchronized (state) {
 
@@ -1490,7 +1501,7 @@ public abstract class ObjectIdFileLoader implements FileLoader, BackgroundFileLo
             }
 
             // Create the new network file
-            netFile = new CachedNetworkFile(fname, fid, stid, did, m_stateCache.getFileStateProxy(state), fileSeg, this);
+            netFile = new FileCachedNetworkFile(fname, fid, stid, did, m_stateCache.getFileStateProxy(state), fileSeg, this);
 
             netFile.setGrantedAccess(params.isReadOnlyAccess() ? NetworkFile.Access.READ_ONLY : NetworkFile.Access.READ_WRITE);
             netFile.setSequentialOnly(params.isSequentialAccessOnly());
