@@ -332,6 +332,17 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
     }
 
     /**
+     * Determine if the file loader is online
+     *
+     * @return boolean
+     */
+    public boolean isOnline() {
+
+        // Online status depends on the database
+        return m_dbCtx.getDBInterface().isOnline();
+    }
+
+    /**
      * Return the database device context
      *
      * @return DBDeviceContext
@@ -377,7 +388,7 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
     }
 
     /**
-     * Return the current temporry sub-directory
+     * Return the current temporary sub-directory
      *
      * @return File
      */
@@ -557,17 +568,15 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
         if (dir == false) {
 
             // Create the network file and associated file segment
-            CachedNetworkFile cacheFile = createNetworkFile(fstate, params, name, fid, stid, did);
+            FileCachedNetworkFile cacheFile = createNetworkFile(fstate, params, name, fid, stid, did);
             netFile = cacheFile;
 
-            // Check if the file is being opened for sequential access and the data has not yet been
-            // loaded
+            // Check if the file is being opened for sequential access and the data has not yet been loaded
             FileSegment fileSeg = cacheFile.getFileSegment();
 
             if (create == true || params.isOverwrite() == true) {
 
-                // Indicate that the file data is available, this is a new file or the existing file
-                // is being overwritten
+                // Indicate that the file data is available, this is a new file or the existing file is being overwritten
                 // so there is no data to load.
                 fileSeg.setStatus(FileSegmentInfo.State.Available);
             } else if (params.isSequentialAccessOnly() && fileSeg.isDataLoading() == false) {
@@ -581,7 +590,7 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
                     // Queue a file data load request
                     if (fileSeg.isDataLoading() == false)
                         queueFileRequest(new SingleFileRequest(FileRequest.RequestType.Load, cacheFile.getFileId(), cacheFile.getStreamId(),
-                                fileSeg.getInfo(), cacheFile.getFullNameStream(), fstate));
+                                fileSeg.getFileInfo(), cacheFile.getFullNameStream(), fstate));
                 }
 
                 // DEBUG
@@ -617,7 +626,7 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
         if (netFile instanceof CachedNetworkFile) {
 
             // Get the cached network file
-            CachedNetworkFile cacheFile = (CachedNetworkFile) netFile;
+            FileCachedNetworkFile cacheFile = (FileCachedNetworkFile) netFile;
             cacheFile.closeFile();
 
             // Get the file segment details
@@ -641,7 +650,7 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
 
                     // Create a file save request for the updated file segment
                     SingleFileRequest fileReq = new SingleFileRequest(FileRequest.RequestType.Save, cacheFile.getFileId(), cacheFile.getStreamId(),
-                            fileSeg.getInfo(), cacheFile.getFileState().getPath(), cacheFile.getFileState());
+                            fileSeg.getFileInfo(), cacheFile.getFileState().getPath(), cacheFile.getFileState());
                     // Set the file segment status
                     fileSeg.setStatus(FileSegmentInfo.State.SaveWait, true);
 
@@ -2165,18 +2174,17 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
      * @param fid    int
      * @param stid   int
      * @param did    int
-     * @return CachedNetworkFile
+     * @return FileCachedNetworkFile
      * @throws IOException I/O error
      */
-    private final CachedNetworkFile createNetworkFile(FileState state, FileOpenParams params, String fname, int fid, int stid,
+    private final FileCachedNetworkFile createNetworkFile(FileState state, FileOpenParams params, String fname, int fid, int stid,
                                                       int did)
             throws IOException {
 
-        // The file state is used to synchronize the creation of the file segment as there may be
-        // other sessions opening the file at the same time. We have to be careful that only one thread
-        // creates the file segment.
+        // The file state is used to synchronize the creation of the file segment as there may be other sessions opening
+        // the file at the same time. We have to be careful that only one thread creates the file segment.
         FileSegment fileSeg = null;
-        CachedNetworkFile netFile = null;
+        FileCachedNetworkFile netFile = null;
 
         synchronized (state) {
 
@@ -2184,7 +2192,7 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
             FileSegmentInfo fileSegInfo = (FileSegmentInfo) state.findAttribute(DBFileSegmentInfo);
             if (fileSegInfo == null) {
 
-                // Check if we need to create a new temporary sub-drectory
+                // Check if we need to create a new temporary sub-directory
                 if (m_tempCount++ >= m_tempMax)
                     createNewTempDirectory();
 
@@ -2212,8 +2220,7 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
                 // Add the segment to the file state cache
                 state.addAttribute(DBFileSegmentInfo, fileSegInfo);
 
-                // Check if the file is zero length, if so then set the file segment state to
-                // indicate it is available
+                // Check if the file is zero length, if so then set the file segment state to indicate it is available
                 DBFileInfo finfo = (DBFileInfo) state.findAttribute(FileState.FileInformation);
                 if (finfo != null && finfo.getSize() == 0)
                     fileSeg.setStatus(FileSegmentInfo.State.Available);
@@ -2236,7 +2243,7 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
 
             // Create the new network file
             FileStateProxy stateProxy = m_stateCache.getFileStateProxy(state);
-            netFile = new CachedNetworkFile(fname, fid, stid, did, stateProxy, fileSeg, this);
+            netFile = new FileCachedNetworkFile(fname, fid, stid, did, stateProxy, fileSeg, this);
 
             netFile.setGrantedAccess(params.isReadOnlyAccess() ? NetworkFile.Access.READ_ONLY : NetworkFile.Access.READ_WRITE);
             netFile.setSequentialOnly(params.isSequentialAccessOnly());
