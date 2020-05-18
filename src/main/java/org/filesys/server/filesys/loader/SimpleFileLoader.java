@@ -73,6 +73,15 @@ public class SimpleFileLoader implements FileLoader, NamedFileLoader {
     }
 
     /**
+     * Determine if the file loader is online
+     *
+     * @return boolean
+     */
+    public boolean isOnline() {
+        return true;
+    }
+
+    /**
      * Open/create a file
      *
      * @param params FileOpenParams
@@ -173,9 +182,10 @@ public class SimpleFileLoader implements FileLoader, NamedFileLoader {
      *
      * @param dir String
      * @param fid int
+     * @param parentId int
      * @throws IOException Failed to create the directory
      */
-    public void createDirectory(String dir, int fid)
+    public void createDirectory(String dir, int fid, int parentId)
             throws IOException {
 
         //	DEBUG
