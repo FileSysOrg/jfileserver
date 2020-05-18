@@ -29,7 +29,7 @@ import org.filesys.server.filesys.db.BackgroundLoadSave;
  *
  * @author gkspencer
  */
-public interface BackgroundFileLoader {
+public interface BackgroundFileLoader <T extends FileRequest> {
 
     /**
      * Load a file
@@ -38,7 +38,7 @@ public interface BackgroundFileLoader {
      * @return BackgroundLoadSave.Status
      * @throws Exception Error loading file data
      */
-    public BackgroundLoadSave.Status loadFile(FileRequest loadReq)
+    public BackgroundLoadSave.Status loadFile(T loadReq)
             throws Exception;
 
     /**
@@ -48,6 +48,6 @@ public interface BackgroundFileLoader {
      * @return BackgroundLoadSave.Status
      * @throws Exception Error saving file data
      */
-    public BackgroundLoadSave.Status storeFile(FileRequest saveReq)
+    public BackgroundLoadSave.Status storeFile(T saveReq)
             throws Exception;
 }
