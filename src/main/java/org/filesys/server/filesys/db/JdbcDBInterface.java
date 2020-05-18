@@ -33,8 +33,10 @@ import org.filesys.server.filesys.loader.FileRequestQueue;
 import org.filesys.server.filesys.loader.MultipleFileRequest;
 import org.filesys.server.filesys.loader.SingleFileRequest;
 import org.filesys.util.MemorySize;
+import org.filesys.util.db.DBCallbacks;
 import org.filesys.util.db.DBConnectionPool;
 import org.filesys.util.db.DBConnectionPoolListener;
+import org.filesys.util.db.DBStatus;
 import org.springframework.extensions.config.ConfigElement;
 
 /**
@@ -490,7 +492,7 @@ public abstract class JdbcDBInterface implements DBInterface, DBConnectionPoolLi
      * @return Connection
      * @exception SQLException SQL error
      */
-    protected final Connection getConnection()
+    protected Connection getConnection()
             throws SQLException {
 
         //	Get a database connection
@@ -526,7 +528,7 @@ public abstract class JdbcDBInterface implements DBInterface, DBConnectionPoolLi
      *
      * @param conn Connection
      */
-    protected final void releaseConnection(Connection conn) {
+    protected void releaseConnection(Connection conn) {
 
         //	Release the connection to the available pool
         m_connPool.releaseConnection(conn);
@@ -862,8 +864,21 @@ public abstract class JdbcDBInterface implements DBInterface, DBConnectionPoolLi
     protected final void createConnectionPool()
             throws Exception {
 
+        // Create the connection pool without using callbacks
+        createConnectionPool( null);
+    }
+
+    /**
+     * Create the database connection pool
+     *
+     * @param callback DBCallbacks
+     * @throws Exception Error creating the connection pool
+     */
+    protected final void createConnectionPool(DBCallbacks callback)
+            throws Exception {
+
         //	Create the connection pool
-        m_connPool = new DBConnectionPool(m_driver, m_dsn, m_userName, m_password, m_dbInitConns, m_dbMaxConns);
+        m_connPool = new DBConnectionPool(m_driver, m_dsn, m_userName, m_password, m_dbInitConns, m_dbMaxConns, callback);
 
         // Set the online check interval, if specified
         if (m_onlineCheckInterval != 0)
@@ -909,19 +924,19 @@ public abstract class JdbcDBInterface implements DBInterface, DBConnectionPoolLi
     /**
      * Database online/offline status event
      *
-     * @param dbonline boolean
+     * @param dbSts DBStatus
      */
-    public void databaseOnlineStatus(boolean dbonline) {
+    public void databaseOnlineStatus(DBStatus dbSts) {
 
         // DEBUG
         if (hasDebug())
-            Debug.println("JDBCInterface: Database connection event, status=" + (dbonline ? "OnLine" : "OffLine"));
+            Debug.println("JDBCInterface: Database connection event, status=" + dbSts.name());
 
-        // Set the shared device availabel status depending on the database state
-        m_dbCtx.setAvailable(dbonline);
+        // Set the shared device available status depending on the database state
+        m_dbCtx.setAvailable(dbSts == DBStatus.Online ? true : false);
 
         // If the database is back online then check if there are queued save/delete requests
-        if (dbonline == true) {
+        if (dbSts == DBStatus.Online) {
 
             //  Check if there are any queued delete file requests
             if (m_dbCtx.hasOfflineFileDeletes()) {
