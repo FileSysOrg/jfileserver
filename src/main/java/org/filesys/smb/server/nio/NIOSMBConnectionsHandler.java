@@ -20,6 +20,7 @@
 package org.filesys.smb.server.nio;
 
 import java.io.IOException;
+import java.net.StandardSocketOptions;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
@@ -80,7 +81,10 @@ public class NIOSMBConnectionsHandler implements SMBConnectionsHandler, RequestH
     // Client socket timeout, in milliseconds
     private int m_clientSocketTimeout;
 
-    // Idle session reper thread
+    // Enable client socket keep-alives
+    private boolean m_socketKeepAlive;
+
+    // Idle session reaper thread
     private IdleSessionReaper m_idleSessReaper;
 
     // Debug output
@@ -278,6 +282,9 @@ public class NIOSMBConnectionsHandler implements SMBConnectionsHandler, RequestH
         // Set the client socket timeout
         m_clientSocketTimeout = config.getSocketTimeout();
 
+        // Set client socket keep-alives enable
+        m_socketKeepAlive = config.hasSocketKeepAlive();
+
         // Create the session request handler list and add the first handler
         m_requestHandlers = new ArrayList<SMBRequestHandler>();
         SMBRequestHandler reqHandler = new SMBRequestHandler(m_server.getThreadPool(), SessionSocketsPerHandler, m_clientSocketTimeout, hasDebug());
@@ -411,9 +418,13 @@ public class NIOSMBConnectionsHandler implements SMBConnectionsHandler, RequestH
                         // Create the new session
                         SMBSrvSession sess = SMBSrvSession.createSession(pktHandler, m_server, ++m_sessId);
 
+                        // Enable socket keep-alives
+                        if ( m_socketKeepAlive)
+                            sockChannel.setOption( StandardSocketOptions.SO_KEEPALIVE, true);
+
                         // DEBUG
                         if (Debug.EnableInfo && hasDebug())
-                            Debug.println("[SMB] Created session " + sess.getUniqueId());
+                            Debug.println("[SMB] Created session " + sess.getUniqueId() + ", keepAlive=" + m_socketKeepAlive);
 
                         if (Debug.EnableInfo && hasDebug())
                             Debug.println("[SMB] Connection from " + sockChannel.socket().getRemoteSocketAddress() + ", handler=" + channelHandler + ", sess=" + sess.getUniqueId());

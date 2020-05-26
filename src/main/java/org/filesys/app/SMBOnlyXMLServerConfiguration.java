@@ -1219,6 +1219,12 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 			else
 				throw new InvalidConfigurationException("Session timeout value not specified");
 		}
+
+		// Check if socket keep-alives should be disabled
+		elem = findChildNode( "disableKeepAlive", host.getChildNodes());
+
+		if ( elem != null)
+			smbConfig.setSocketKeepAlive( false);
 	}
 
 	/**
