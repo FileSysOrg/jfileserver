@@ -128,6 +128,9 @@ public class SMBConfigSection extends ConfigSection {
     // Client session socket timeout, in milliseconds
     private int m_clientSocketTimeout = DefSessionTimeout;
 
+    // Enable TCP socket keep-alive for client connections
+    private boolean m_clientKeepAlive = true;
+
     // Per session virtual circuit limit
     private int m_virtualCircuitLimit = SMBV1VirtualCircuitList.DefMaxCircuits;
 
@@ -590,6 +593,13 @@ public class SMBConfigSection extends ConfigSection {
     public final int getSocketTimeout() {
         return m_clientSocketTimeout;
     }
+
+    /**
+     * Check if socket keep-alives should be enabled for client socket connections
+     *
+     * @return boolean
+     */
+    public final boolean hasSocketKeepAlive() { return m_clientKeepAlive; }
 
     /**
      * Return the maximum virtual circuits per session
@@ -1366,6 +1376,24 @@ public class SMBConfigSection extends ConfigSection {
         //  Inform listeners, validate the configuration change
         int sts = fireConfigurationChange(ConfigId.SMBSocketTimeout, new Integer(tmo));
         m_clientSocketTimeout = tmo;
+
+        //  Return the change status
+        return sts;
+    }
+
+    /**
+     * Enable or disable use of TCP socket keep-alives on client socket connections
+     *
+     * @param ena boolean
+     * @return int
+     * @throws InvalidConfigurationException Failed to set the client socket keep-alive value
+     */
+    public final int setSocketKeepAlive(boolean ena)
+        throws InvalidConfigurationException {
+
+        //  Inform listeners, validate the configuration change
+        int sts = fireConfigurationChange(ConfigId.SMBSocketKeepAlive, new Boolean(ena));
+        m_clientKeepAlive = ena;
 
         //  Return the change status
         return sts;
