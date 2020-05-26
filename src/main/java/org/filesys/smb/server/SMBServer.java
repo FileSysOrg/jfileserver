@@ -932,13 +932,19 @@ public class SMBServer extends NetworkFileServer implements Runnable, Configurat
                         m_disconnectedSessList.removeSession( curSess.getSessionId());
 
                         // DEBUG
-                        if ( hasDebug())
+                        if ( getSessionDebug().contains( SMBSrvSession.Dbg.SOCKET))
                             Debug.println("[SMB] Disconnected session expired, sess=" + curSess);
 
                         // Cleanup the disconnected session
                         curSess.setPersistentSession( false);
                         curSess.closeSession();
                     }
+                }
+                else {
+
+                    // DEBUG
+                    if ( getSessionDebug().contains( SMBSrvSession.Dbg.SOCKET))
+                        Debug.println("[SMB] Ignored disconnected session=" + curSess);
                 }
             }
         }
