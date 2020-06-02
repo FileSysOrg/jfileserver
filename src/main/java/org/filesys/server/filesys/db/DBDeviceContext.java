@@ -335,6 +335,11 @@ public class DBDeviceContext extends DiskDeviceContext implements FileStateCache
         // Set the enabled database features
         if (hasNTFSStreamsEnabled() == true && m_loader.supportsStreams() == true)
             dbFeatures.add( DBInterface.Feature.NTFS);
+        else {
+
+            // Disable NTFS streams
+            m_ntfsStreams = false;
+        }
 
         if (hasRetentionPeriod() == true)
             dbFeatures.add( DBInterface.Feature.Retention);
