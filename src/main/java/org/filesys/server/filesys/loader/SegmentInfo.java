@@ -46,13 +46,14 @@ public abstract class SegmentInfo {
     public enum Flags {
         Updated,        // file data has been updated
         RequestQueued,  // file load/save request has been queued
-        DeleteOnStore,  // delete the local copy after storing
+        DeleteOnSave,   // delete the local copy after storing
         AllData,        // segment contains all the file data
         Streamed,       // file data is being streamed from/to the back-end store
         ReadError,      // error during file data loading
         WriteError,     // error during file data save
         FileClosed,     // file has been closed
-        DeleteFromStore // delete the file from the store
+        DeleteFromStore,// delete the file from the store
+        RenameOnStore   // rename the file after saving to the store
     }
 
     //	Flags to indicate if this segment has been updated, queued
@@ -121,6 +122,13 @@ public abstract class SegmentInfo {
     public final boolean hasDeleteFromStore() { return m_flags.contains( Flags.DeleteFromStore); }
 
     /**
+     * Check if the file should be renamed on the store after the background save
+     *
+     * @return boolean
+     */
+    public final boolean hasRenameOnStore() { return m_flags.contains( Flags.RenameOnStore); }
+
+    /**
      * Check if the file data is available
      *
      * @param fileOff long
@@ -139,8 +147,8 @@ public abstract class SegmentInfo {
      *
      * @return boolean
      */
-    public final boolean hasDeleteOnStore() {
-        return m_flags.contains( Flags.DeleteOnStore);
+    public final boolean hasDeleteOnSave() {
+        return m_flags.contains( Flags.DeleteOnSave);
     }
 
     /**
@@ -244,8 +252,8 @@ public abstract class SegmentInfo {
      * Set the delete on store flag so that the temporary file is deleted as soon as the data store has completed
      * successfully.
      */
-    public final void setDeleteOnStore() {
-        setFlag(Flags.DeleteOnStore, true);
+    public final void setDeleteOnSave() {
+        setFlag(Flags.DeleteOnSave, true);
     }
 
     /**
@@ -253,6 +261,21 @@ public abstract class SegmentInfo {
      *
      */
     public final void setDeleteFromStore() { setFlag(Flags.DeleteFromStore, true); }
+
+    /**
+     * Reset the delete from store flag
+     */
+    public final void resetDeleteFromStore() { setFlag(Flags.DeleteFromStore, false); }
+
+    /**
+     * Set the rename after save during a background save
+     */
+    public final void setRenameOnStore() { setFlag(Flags.RenameOnStore, true); }
+
+    /**
+     * Reset the rename on store flag
+     */
+    public final void resetRenameOnStore() { setFlag(Flags.RenameOnStore, false); }
 
     /**
      * Set/clear the all data flag
@@ -302,9 +325,6 @@ public abstract class SegmentInfo {
             m_flags.add( flag);
         else
             m_flags.remove( flag);
-
-        // TEST
-        Debug.println("SegmentInfo: setFlag flag=" + flag.name() + ", sts=" + sts + ", flags=" + m_flags);
     }
 
     /**
