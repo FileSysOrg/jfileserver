@@ -22,6 +22,7 @@ package org.filesys.server.filesys.loader;
 import java.io.IOException;
 
 import org.filesys.server.filesys.FileInfo;
+import org.filesys.server.filesys.cache.FileState;
 
 
 /**
@@ -61,10 +62,11 @@ public interface NamedFileLoader {
      * @param curName String
      * @param fid     int
      * @param newName String
+     * @param fstate  FileState
      * @param isdir   boolean
      * @throws IOException Failed to rename the file or directory
      */
-    public void renameFileDirectory(String curName, int fid, String newName, boolean isdir)
+    public void renameFileDirectory(String curName, int fid, String newName, FileState fstate, boolean isdir)
             throws IOException;
 
     /**
