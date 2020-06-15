@@ -1247,7 +1247,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
 
                 //  Rename the file/directory
                 NamedFileLoader namedLoader = (NamedFileLoader) dbCtx.getFileLoader();
-                namedLoader.renameFileDirectory(oldName, fid, newName, curInfo.isDirectory());
+                namedLoader.renameFileDirectory(oldName, fid, newName, fstate, curInfo.isDirectory());
             }
 
             //  Get the new file/directory name
