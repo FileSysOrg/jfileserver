@@ -33,6 +33,7 @@ import org.filesys.server.filesys.FileInfo;
 import org.filesys.server.filesys.FileName;
 import org.filesys.server.filesys.FileOpenParams;
 import org.filesys.server.filesys.NetworkFile;
+import org.filesys.server.filesys.cache.FileState;
 import org.filesys.server.filesys.db.DBDeviceContext;
 import org.filesys.server.filesys.db.DBInterface;
 import org.filesys.server.filesys.db.LocalDataNetworkFile;
@@ -271,10 +272,11 @@ public class SimpleFileLoader implements FileLoader, NamedFileLoader {
      * @param curName String
      * @param fid     int
      * @param newName String
+     * @param fstate  FileState
      * @param isdir   boolean
      * @throws IOException Failed to rename the file or directory
      */
-    public void renameFileDirectory(String curName, int fid, String newName, boolean isdir)
+    public void renameFileDirectory(String curName, int fid, String newName, FileState fstate, boolean isdir)
             throws IOException {
 
         //	DEBUG
