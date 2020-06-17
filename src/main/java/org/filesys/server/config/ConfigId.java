@@ -125,6 +125,7 @@ public class ConfigId {
 	public static final int NFSFileCacheDebug 	= GroupNFS + 13;
 	public static final int NFSRPCRegistrationPort = GroupNFS + 14;
 	public static final int NFSDisableNIO		= GroupNFS + 15;
+	public static final int NFSVersions			= GroupNFS + 16;
 
 	// NetBIOS server variables
 	public static final int NetBIOSNamePort 	= GroupNetBIOS + 1;

@@ -38,6 +38,12 @@ import java.util.EnumSet;
  */
 public class NFSConfigSection extends ConfigSection {
 
+    // Available NFS versions
+    public enum NFSVersion {
+        NFS3,
+        NFS4
+    }
+
     // NFS server configuration section name
     public static final String SectionName = "NFS";
 
@@ -55,6 +61,9 @@ public class NFSConfigSection extends ConfigSection {
 
     // RPC registration port, 0 = use next free non-privileged port
     private int m_rpcRegisterPort;
+
+    // Enabled NFS versions
+    private EnumSet m_nfsVersions = EnumSet.of( NFSVersion.NFS3);
 
     //  NFS debug flags
     private EnumSet<NFSSrvSession.Dbg> m_nfsDebug;
@@ -138,6 +147,13 @@ public class NFSConfigSection extends ConfigSection {
     public final int getNFSServerPort() {
         return m_nfsServerPort;
     }
+
+    /**
+     * Return the enabled NFS version(s)
+     *
+     * @return EnumSet&lt;NFSVersion&gt;
+     */
+    public final EnumSet<NFSVersion> getEnabledNFSVersions() { return m_nfsVersions; }
 
     /**
      * Return the RPC registration port
@@ -303,6 +319,24 @@ public class NFSConfigSection extends ConfigSection {
         //  Inform listeners, validate the configuration change
         int sts = fireConfigurationChange(ConfigId.NFSServerPort, new Integer(port));
         m_nfsServerPort = port;
+
+        //  Return the change status
+        return sts;
+    }
+
+    /**
+     * Set the enabled NFS verison(s)
+     *
+     * @param nfsVersions EnumSet&lt;NFSVersion&gt;
+     * @return int
+     * @exception InvalidConfigurationException Error setting the NFS versions
+     */
+    public final int setEnabledNFSVersions(EnumSet<NFSVersion> nfsVersions)
+            throws InvalidConfigurationException {
+
+        //  Inform listeners, validate the configuration change
+        int sts = fireConfigurationChange(ConfigId.NFSVersions, nfsVersions);
+        m_nfsVersions = nfsVersions;
 
         //  Return the change status
         return sts;

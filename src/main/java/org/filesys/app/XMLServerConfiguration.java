@@ -29,6 +29,8 @@ import java.util.EnumSet;
 import java.util.StringTokenizer;
 
 import org.filesys.ftp.*;
+import org.filesys.oncrpc.RpcProcessorFactory;
+import org.filesys.oncrpc.nfs.NFS;
 import org.filesys.oncrpc.nfs.NFSConfigSection;
 import org.filesys.oncrpc.nfs.NFSSrvSession;
 import org.filesys.server.config.InvalidConfigurationException;
@@ -224,7 +226,7 @@ public class XMLServerConfiguration extends SMBOnlyXMLServerConfiguration {
 	 * @param ftp Element
 	 * @exception InvalidConfigurationException Error parsing the configuration
 	 */
-	protected final void procFTPServerElement(Element ftp)
+	protected void procFTPServerElement(Element ftp)
 		throws InvalidConfigurationException {
 
 		// Check if the FTP element is valid, if not then disable the FTP server
@@ -600,7 +602,7 @@ public class XMLServerConfiguration extends SMBOnlyXMLServerConfiguration {
 	 * @param nfs Element
 	 * @exception InvalidConfigurationException Error parsing the configuration
 	 */
-	protected final void procNFSServerElement(Element nfs)
+	protected void procNFSServerElement(Element nfs)
 		throws InvalidConfigurationException {
 
 		// Check if the NFS element is valid
@@ -659,6 +661,60 @@ public class XMLServerConfiguration extends SMBOnlyXMLServerConfiguration {
 			}
 			catch (NumberFormatException ex) {
 				throw new InvalidConfigurationException("Invalid NFS server port");
+			}
+		}
+
+		// Check the enabled NFS version(s)
+		elem = findChildNode( "NFSVersions", nfs.getChildNodes());
+		if ( elem != null) {
+
+			// Parse the enabled NFS versions list
+			String verListStr = getText( elem);
+			EnumSet<NFSConfigSection.NFSVersion> nfsVersions = EnumSet.noneOf( NFSConfigSection.NFSVersion.class);
+
+			if ( verListStr != null) {
+
+				// Parse the flags
+				verListStr = verListStr.toUpperCase();
+				StringTokenizer token = new StringTokenizer(verListStr, ",");
+
+				while (token.hasMoreTokens()) {
+
+					// Get the current NFS version token
+					String verStr = token.nextToken().trim();
+
+					// Convert the NFS version name to an enum value
+					try {
+						// Parse the NFS version name
+						NFSConfigSection.NFSVersion nfsVer = NFSConfigSection.NFSVersion.valueOf( verStr);
+
+						// Check if the NFS version is available, may require the Enterprise file server
+						switch ( nfsVer) {
+							case NFS3:
+								if ( RpcProcessorFactory.supportsRpcVersion(NFS.ProgramId, NFS.V3_VersionId) == false)
+									throw new InvalidConfigurationException("NFS v3 not available");
+								break;
+
+							case NFS4:
+								if ( RpcProcessorFactory.supportsRpcVersion(NFS.ProgramId, NFS.V4_VersionId) == false)
+									throw new InvalidConfigurationException("NFS v4 not available");
+								break;
+						}
+
+						nfsVersions.add( nfsVer);
+					}
+					catch ( IllegalArgumentException ex) {
+						throw new InvalidConfigurationException("Invalid NFS version, " + verListStr);
+					}
+				}
+
+				// Set the enabled NFS versions
+				nfsConfig.setEnabledNFSVersions( nfsVersions);
+			}
+			else {
+
+				// Empty NFS versions string
+				throw new InvalidConfigurationException("Invalid NFSVersions specified");
 			}
 		}
 

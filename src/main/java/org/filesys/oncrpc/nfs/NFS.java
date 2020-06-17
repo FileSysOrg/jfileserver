@@ -28,4 +28,9 @@ public final class NFS {
 
     //	Default NFS server port
     public static final int DefaultPort = 2049;
+
+    //	NFS Program and version ids
+    public static final int ProgramId = 100003;
+    public static final int V3_VersionId = 3;
+    public static final int V4_VersionId = 4;
 }

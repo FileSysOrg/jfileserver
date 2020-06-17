@@ -1694,7 +1694,7 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
             DialectSelector diaSel = smbConfig.getEnabledDialects();
             diaSel.ClearAll();
 
-            // Parse the SMB dilaects list
+            // Parse the SMB dialects list
             StringTokenizer token = new StringTokenizer(getTextWithEnvVars(elem), ",");
 
             while (token.hasMoreTokens()) {
