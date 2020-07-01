@@ -20,7 +20,9 @@
 package org.filesys.oncrpc.mount;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.List;
 
 import org.filesys.debug.Debug;
 import org.filesys.oncrpc.*;
@@ -164,13 +166,14 @@ public class MountServer extends RpcNetworkServer implements RpcProcessor {
             tcpThread.start();
 
             //	Register the mount server with the portmapper
-            PortMapping[] mappings = new PortMapping[4];
-            mappings[0] = new PortMapping(Mount.ProgramId, Mount.VersionId1, Rpc.ProtocolId.UDP, m_udpHandler.getPort());
-            mappings[1] = new PortMapping(Mount.ProgramId, Mount.VersionId3, Rpc.ProtocolId.UDP, m_udpHandler.getPort());
-            mappings[2] = new PortMapping(Mount.ProgramId, Mount.VersionId1, Rpc.ProtocolId.TCP, m_tcpHandler.getPort());
-            mappings[3] = new PortMapping(Mount.ProgramId, Mount.VersionId3, Rpc.ProtocolId.TCP, m_tcpHandler.getPort());
+            List<PortMapping> mappingList = new ArrayList<>();
 
-            registerRPCServer(mappings);
+            mappingList.add( new PortMapping(Mount.ProgramId, Mount.VersionId1, Rpc.ProtocolId.UDP, m_udpHandler.getPort()));
+            mappingList.add( new PortMapping(Mount.ProgramId, Mount.VersionId3, Rpc.ProtocolId.UDP, m_udpHandler.getPort()));
+            mappingList.add( new PortMapping(Mount.ProgramId, Mount.VersionId1, Rpc.ProtocolId.TCP, m_tcpHandler.getPort()));
+            mappingList.add( new PortMapping(Mount.ProgramId, Mount.VersionId3, Rpc.ProtocolId.TCP, m_tcpHandler.getPort()));
+
+            registerRPCServer(mappingList);
         }
         catch (Exception ex) {
             Debug.println(ex);
@@ -205,13 +208,14 @@ public class MountServer extends RpcNetworkServer implements RpcProcessor {
 
         //  Unregister the mount server with the portmapper
         try {
-            PortMapping[] mappings = new PortMapping[4];
-            mappings[0] = new PortMapping(Mount.ProgramId, Mount.VersionId1, Rpc.ProtocolId.UDP, m_udpHandler.getPort());
-            mappings[1] = new PortMapping(Mount.ProgramId, Mount.VersionId3, Rpc.ProtocolId.UDP, m_udpHandler.getPort());
-            mappings[2] = new PortMapping(Mount.ProgramId, Mount.VersionId1, Rpc.ProtocolId.TCP, m_tcpHandler.getPort());
-            mappings[3] = new PortMapping(Mount.ProgramId, Mount.VersionId3, Rpc.ProtocolId.TCP, m_tcpHandler.getPort());
+            List<PortMapping> mappingList = new ArrayList<>();
 
-            unregisterRPCServer(mappings);
+            mappingList.add( new PortMapping(Mount.ProgramId, Mount.VersionId1, Rpc.ProtocolId.UDP, m_udpHandler.getPort()));
+            mappingList.add( new PortMapping(Mount.ProgramId, Mount.VersionId3, Rpc.ProtocolId.UDP, m_udpHandler.getPort()));
+            mappingList.add( new PortMapping(Mount.ProgramId, Mount.VersionId1, Rpc.ProtocolId.TCP, m_tcpHandler.getPort()));
+            mappingList.add( new PortMapping(Mount.ProgramId, Mount.VersionId3, Rpc.ProtocolId.TCP, m_tcpHandler.getPort()));
+
+            unregisterRPCServer(mappingList);
         }
         catch (IOException ex) {
 

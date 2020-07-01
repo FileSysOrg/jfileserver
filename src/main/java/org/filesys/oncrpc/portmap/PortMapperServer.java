@@ -440,7 +440,7 @@ public class PortMapperServer extends NetworkServer implements RpcProcessor {
         m_mappings.put(key, portMap);
 
         //	Add a port mapping with a version id of zero
-        key = new Integer(PortMapping.generateHashCode(portMap.getProgramId(), 0, portMap.getProtocol().intValue()));
+        key = new Integer(PortMapping.generateHashCode(portMap.getProgramId(), 0, portMap.getProtocol()));
         m_noVerMappings.put(key, portMap);
 
         //	Indicate that the mapping was added
@@ -459,7 +459,7 @@ public class PortMapperServer extends NetworkServer implements RpcProcessor {
         Integer key = new Integer(portMap.hashCode());
         Object removedObj = m_mappings.remove(key);
 
-        key = new Integer(PortMapping.generateHashCode(portMap.getProgramId(), 0, portMap.getProtocol().intValue()));
+        key = new Integer(PortMapping.generateHashCode(portMap.getProgramId(), 0, portMap.getProtocol()));
         m_noVerMappings.remove(key);
 
         //	Return a status indicating if the mapping was removed
@@ -477,7 +477,7 @@ public class PortMapperServer extends NetworkServer implements RpcProcessor {
     private final PortMapping findPortMapping(int progId, int verId, Rpc.ProtocolId proto) {
 
         //	Create a key for the RPC service
-        Integer key = new Integer(PortMapping.generateHashCode(progId, verId, proto.intValue()));
+        Integer key = new Integer(PortMapping.generateHashCode(progId, verId, proto));
 
         //	Search for the required port mapping, including the version id
         PortMapping portMap = m_mappings.get(key);

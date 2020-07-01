@@ -20,8 +20,10 @@
 package org.filesys.oncrpc.nfs;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.Enumeration;
+import java.util.List;
 
 import org.filesys.debug.Debug;
 import org.filesys.oncrpc.*;
@@ -268,11 +270,24 @@ public class NFSServer extends RpcNetworkServer implements RpcProcessor {
             }
 
             //	Register the NFS server with the portmapper
-            PortMapping[] mappings = new PortMapping[2];
-            mappings[0] = new PortMapping(NFS3.ProgramId, NFS3.VersionId, Rpc.ProtocolId.UDP, getPort());
-            mappings[1] = new PortMapping(NFS3.ProgramId, NFS3.VersionId, Rpc.ProtocolId.TCP, getPort());
+            List<PortMapping> mappingList = new ArrayList<PortMapping>();
 
-            registerRPCServer(mappings);
+            if ( m_nfsConfig.getEnabledNFSVersions().contains( NFSConfigSection.NFSVersion.NFS3)) {
+
+                // Add a mapping for NFS v3
+                mappingList.add( new PortMapping(NFS.ProgramId, NFS.V3_VersionId, Rpc.ProtocolId.UDP, getPort()));
+                mappingList.add( new PortMapping(NFS.ProgramId, NFS.V3_VersionId, Rpc.ProtocolId.TCP, getPort()));
+            }
+
+            if ( m_nfsConfig.getEnabledNFSVersions().contains(NFSConfigSection.NFSVersion.NFS4)) {
+
+                // Add a mapping for NFS v4
+                mappingList.add( new PortMapping(NFS.ProgramId, NFS.V4_VersionId, Rpc.ProtocolId.UDP, getPort()));
+                mappingList.add( new PortMapping(NFS.ProgramId, NFS.V4_VersionId, Rpc.ProtocolId.TCP, getPort()));
+            }
+
+            // Register the NFS server
+            registerRPCServer(mappingList);
 
             // Indicate the NFS server is running
             setActive(true);
@@ -295,11 +310,23 @@ public class NFSServer extends RpcNetworkServer implements RpcProcessor {
 
         //  Unregister the NFS server with the portmapper
         try {
-            PortMapping[] mappings = new PortMapping[2];
-            mappings[0] = new PortMapping(NFS3.ProgramId, NFS3.VersionId, Rpc.ProtocolId.UDP, getPort());
-            mappings[1] = new PortMapping(NFS3.ProgramId, NFS3.VersionId, Rpc.ProtocolId.TCP, getPort());
+            List<PortMapping> mappingList = new ArrayList<PortMapping>();
 
-            unregisterRPCServer(mappings);
+            if ( m_nfsConfig.getEnabledNFSVersions().contains( NFSConfigSection.NFSVersion.NFS3)) {
+
+                // Add a mapping for NFS v3
+                mappingList.add( new PortMapping(NFS.ProgramId, NFS.V3_VersionId, Rpc.ProtocolId.UDP, getPort()));
+                mappingList.add( new PortMapping(NFS.ProgramId, NFS.V3_VersionId, Rpc.ProtocolId.TCP, getPort()));
+            }
+
+            if ( m_nfsConfig.getEnabledNFSVersions().contains(NFSConfigSection.NFSVersion.NFS4)) {
+
+                // Add a mapping for NFS v4
+                mappingList.add( new PortMapping(NFS.ProgramId, NFS.V4_VersionId, Rpc.ProtocolId.UDP, getPort()));
+                mappingList.add( new PortMapping(NFS.ProgramId, NFS.V4_VersionId, Rpc.ProtocolId.TCP, getPort()));
+            }
+
+            unregisterRPCServer(mappingList);
         }
         catch (IOException ex) {
 

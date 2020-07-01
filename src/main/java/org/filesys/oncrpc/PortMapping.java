@@ -97,7 +97,7 @@ public class PortMapping {
     public int hashCode() {
 
         //	Create a hash code from the program id + version + protocol
-        return generateHashCode(m_programId, m_versionId, m_protocol.ordinal());
+        return generateHashCode(m_programId, m_versionId, m_protocol);
     }
 
     /**
@@ -105,13 +105,13 @@ public class PortMapping {
      *
      * @param progId int
      * @param verId  int
-     * @param proto  int
+     * @param proto  Rpc.ProtocolId
      * @return int
      */
-    public final static int generateHashCode(int progId, int verId, int proto) {
+    public final static int generateHashCode(int progId, int verId, Rpc.ProtocolId proto) {
 
         //	Create a hash code from the program id + version + protocol
-        return (progId << 16) + (verId << 8) + proto;
+        return (progId << 16) + (verId << 8) + proto.ordinal();
     }
 
     /**
@@ -120,13 +120,15 @@ public class PortMapping {
      * @return String
      */
     public String toString() {
-        StringBuffer str = new StringBuffer(64);
+        StringBuilder str = new StringBuilder(32);
 
         str.append("[");
         str.append(getProgramId());
         str.append(":");
         str.append(getVersionId());
+        str.append(",");
         str.append(getProtocol().name());
+        str.append(":");
         str.append(getPort());
         str.append("]");
 

@@ -64,6 +64,9 @@ public class NFSSrvSession extends SrvSession<NFSSrvSession.Dbg> {
     private static final int DefaultSearches    = 32;
     private static final int MaxSearches        = 256;
 
+    // NFS session factory
+    private static SrvSessionFactory _sessFactory = new DefaultServerSessionFactory();
+
     //	Remote address and port
     private InetAddress m_remAddr;
     private int m_remPort;
@@ -111,12 +114,8 @@ public class NFSSrvSession extends SrvSession<NFSSrvSession.Dbg> {
     public static NFSSrvSession createSession(RpcPacketHandler pktHandler, NFSServer nfsServer, int sessId, Rpc.ProtocolId protocolType,
                                               SocketAddress remAddr) {
 
-        // Make sure the socket address is the expected type
-        if ( remAddr instanceof InetSocketAddress == false)
-            throw new RuntimeException( "NFS session, socket address is not an InetSocketAddress");
-
-        // Create a new NFS session
-        return new NFSSrvSession( sessId, nfsServer, pktHandler, (InetSocketAddress) remAddr, protocolType);
+        // Handoff to the session factory
+        return _sessFactory.createSession( pktHandler, nfsServer, sessId, protocolType, remAddr);
     }
 
     /**
@@ -586,4 +585,11 @@ public class NFSSrvSession extends SrvSession<NFSSrvSession.Dbg> {
     public boolean useCaseSensitiveSearch() {
         return true;
     }
+
+    /**
+     * Set the session factory to be use when creating new sessions
+     *
+     * @param factory SrvSessionFactory
+     */
+    public static void setFactory(SrvSessionFactory factory) { _sessFactory = factory; }
 }

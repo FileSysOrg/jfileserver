@@ -497,7 +497,7 @@ public class NFSConnectionsHandler implements Runnable, NFSRequestHandlerListene
 
             // Check if the request handler is the current head of the handler list, if not then we can close
             // this request handler
-            if (m_requestHandlers.get(0).getName().equals(reqHandler.getName()) == false) {
+            if (m_requestHandlers.size() > 0 && m_requestHandlers.get(0).getName().equals(reqHandler.getName()) == false) {
 
                 // Remove the handler from the request handler list
                 m_requestHandlers.remove(reqHandler);

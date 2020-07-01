@@ -21,6 +21,8 @@ package org.filesys.oncrpc;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.filesys.debug.Debug;
 import org.filesys.oncrpc.nfs.NFSConfigSection;
@@ -73,19 +75,19 @@ public abstract class RpcNetworkServer extends NetworkServer implements RpcProce
             throws IOException {
 
         //	Call the main registration method
-        PortMapping[] mappings = new PortMapping[1];
-        mappings[0] = mapping;
+        List<PortMapping> mappingList = new ArrayList<>();
+        mappingList.add( mapping);
 
-        registerRPCServer(mappings);
+        registerRPCServer(mappingList);
     }
 
     /**
      * Register a set of ports/protocols for the RPC server
      *
-     * @param mappings PortMapping[]
+     * @param mappings List&lt;PortMapping&gt;
      * @exception IOException Socket error
      */
-    protected final void registerRPCServer(PortMapping[] mappings)
+    protected final void registerRPCServer(List<PortMapping> mappings)
             throws IOException {
 
         // Check if portmapper registration has been disabled
@@ -110,18 +112,18 @@ public abstract class RpcNetworkServer extends NetworkServer implements RpcProce
                 RpcPacket rxRpc = new RpcPacket(512);
 
                 //	Loop through the port mappings and register each port with the portmapper service
-                for (int i = 0; i < mappings.length; i++) {
+                for (PortMapping curMapping : mappings) {
 
                     //	Build the RPC request header
                     setPortRpc.buildRequestHeader(PortMapper.ProgramId, PortMapper.VersionId, PortMapper.ProcedureId.Set.intValue(), 0, null, 0, null);
 
                     //	Pack the request parameters and set the request length
-                    setPortRpc.packPortMapping(mappings[i]);
+                    setPortRpc.packPortMapping( curMapping);
                     setPortRpc.setLength();
 
                     //	DEBUG
                     if (Debug.EnableInfo && hasDebug())
-                        Debug.println("[" + getProtocolName() + "] Register server RPC " + mappings[i] + " ...");
+                        Debug.println("[" + getProtocolName() + "] Register server RPC " + curMapping + " ...");
 
                     //	Send the RPC request and receive a response
                     rxRpc = rpcClient.sendRPC(setPortRpc, rxRpc);
@@ -131,11 +133,11 @@ public abstract class RpcNetworkServer extends NetworkServer implements RpcProce
 
                         // Server registered successfully
                         if (Debug.EnableInfo && hasDebug())
-                            Debug.println("[" + getProtocolName() + "] Registered successfully, " + mappings[i]);
+                            Debug.println("[" + getProtocolName() + "] Registered successfully, " + curMapping);
                     } else {
 
                         // Indicate that the server registration failed
-                        Debug.println("[" + getProtocolName() + "] RPC Server registration failed for " + mappings[i]);
+                        Debug.println("[" + getProtocolName() + "] RPC Server registration failed for " + curMapping);
                         Debug.println("  Response:" + rxRpc);
                     }
                 }
@@ -171,19 +173,19 @@ public abstract class RpcNetworkServer extends NetworkServer implements RpcProce
             throws IOException {
 
         //	Call the main unregister ports method
-        PortMapping[] mappings = new PortMapping[1];
-        mappings[0] = mapping;
+        List<PortMapping> mappingList = new ArrayList<>();
+        mappingList.add( mapping);
 
-        unregisterRPCServer(mappings);
+        unregisterRPCServer(mappingList);
     }
 
     /**
      * Unregister a set of ports/protocols for the RPC server
      *
-     * @param mappings PortMapping[]
+     * @param mappings Lisst&lt;PortMapping&gt;
      * @exception IOException Socket error
      */
-    protected final void unregisterRPCServer(PortMapping[] mappings)
+    protected final void unregisterRPCServer(List<PortMapping> mappings)
             throws IOException {
 
         // Check if portmapper registration has been disabled
@@ -208,18 +210,18 @@ public abstract class RpcNetworkServer extends NetworkServer implements RpcProce
                 RpcPacket rxRpc = new RpcPacket(512);
 
                 //  Loop through the port mappings and unregister each port with the portmapper service
-                for (int i = 0; i < mappings.length; i++) {
+                for (PortMapping curMapping : mappings) {
 
                     //  Build the RPC request header
                     setPortRpc.buildRequestHeader(PortMapper.ProgramId, PortMapper.VersionId, PortMapper.ProcedureId.UnSet.intValue(), 0, null, 0, null);
 
                     //  Pack the request parameters and set the request length
-                    setPortRpc.packPortMapping(mappings[i]);
+                    setPortRpc.packPortMapping( curMapping);
                     setPortRpc.setLength();
 
                     //  DEBUG
                     if (Debug.EnableInfo && hasDebug())
-                        Debug.println("[" + getProtocolName() + "] UnRegister server RPC " + mappings[i] + " ...");
+                        Debug.println("[" + getProtocolName() + "] UnRegister server RPC " + curMapping + " ...");
 
                     //  Send the RPC request and receive a response
                     rxRpc = rpcClient.sendRPC(setPortRpc, rxRpc);
@@ -229,11 +231,11 @@ public abstract class RpcNetworkServer extends NetworkServer implements RpcProce
 
                         // Server registered successfully
                         if (Debug.EnableInfo && hasDebug())
-                            Debug.println("[" + getProtocolName() + "] UnRegistered successfully, " + mappings[i]);
+                            Debug.println("[" + getProtocolName() + "] UnRegistered successfully, " + curMapping);
                     } else {
 
                         // Indicate that the server registration failed
-                        Debug.println("[" + getProtocolName() + "] RPC Server unregistration failed for " + mappings[i]);
+                        Debug.println("[" + getProtocolName() + "] RPC Server unregistration failed for " + curMapping);
                         Debug.println("  Response:" + rxRpc);
                     }
                 }
