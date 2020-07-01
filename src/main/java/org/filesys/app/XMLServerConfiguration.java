@@ -33,6 +33,7 @@ import org.filesys.oncrpc.RpcProcessorFactory;
 import org.filesys.oncrpc.nfs.NFS;
 import org.filesys.oncrpc.nfs.NFSConfigSection;
 import org.filesys.oncrpc.nfs.NFSSrvSession;
+import org.filesys.oncrpc.nfs.v3.NFS3RpcProcessor;
 import org.filesys.server.config.InvalidConfigurationException;
 import org.filesys.server.filesys.cache.hazelcast.ClusterConfigSection;
 import org.springframework.extensions.config.ConfigElement;
@@ -608,6 +609,9 @@ public class XMLServerConfiguration extends SMBOnlyXMLServerConfiguration {
 		// Check if the NFS element is valid
 		if ( nfs == null)
 			return;
+
+		// Register NFS3 RPC processer
+		RpcProcessorFactory.addRpcProcessorClass( NFS.ProgramId, NFS.V3_VersionId, NFS3RpcProcessor.class);
 
 		// Create the NFS server configuration section
 		NFSConfigSection nfsConfig = new NFSConfigSection(this);
