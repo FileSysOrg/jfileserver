@@ -282,7 +282,12 @@ public class MemoryBufferList {
         str.append("-");
 
         synchronized ( this) {
-            str.append(m_buffers);
+            if ( m_buffers != null && m_buffers.size() > 0) {
+                for (MemoryBuffer buf : m_buffers) {
+                    str.append(buf);
+                    str.append(",");
+                }
+            }
         }
 
         str.append("]");
