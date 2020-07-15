@@ -1933,7 +1933,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
         try {
 
             //  Get the file id
-            fileId = dbCtx.getDBInterface().getFileId(dirId, name, false, false);
+            fileId = dbCtx.getDBInterface().getFileId(dirId, name, false, true);
         }
         catch (DBException ex) {
         }
