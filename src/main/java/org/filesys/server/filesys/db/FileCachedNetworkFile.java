@@ -84,7 +84,7 @@ public class FileCachedNetworkFile extends CachedNetworkFile {
                 m_cacheFile.createTemporaryFile();
 
                 // DEBUG
-                if (DEBUG)
+                if ( hasDebug())
                     Debug.println("FileCachedNetworkFile.openFile() created " + m_cacheFile.getTemporaryFile());
             }
 
@@ -95,7 +95,7 @@ public class FileCachedNetworkFile extends CachedNetworkFile {
             setClosed(false);
         }
         catch (FileNotFoundException ex) {
-            if (DEBUG) {
+            if ( hasDebug()) {
                 Debug.println("openFile() FAILED name=" + getFullName() + ", error=" + ex.toString());
                 Debug.println("  fstate=" + getFileState());
                 Debug.println("  cacheFile=" + m_cacheFile);
@@ -120,7 +120,7 @@ public class FileCachedNetworkFile extends CachedNetworkFile {
             throws IOException {
 
         // DEBUG
-        if (DEBUG)
+        if ( hasDebug())
             Debug.println("FileCachedNetworkFile.readFile() offset=" + fileOff + ", len=" + len);
 
         // Determine if this is a sequential read
@@ -137,7 +137,7 @@ public class FileCachedNetworkFile extends CachedNetworkFile {
         if (m_cacheFile.hasStatus() == FileSegmentInfo.State.Error) {
 
             // DEBUG
-            if (DEBUG)
+            if ( hasDebug())
                 Debug.println("FileCachedNetworkFile file segment error");
 
             // Indicate no more data
@@ -172,7 +172,7 @@ public class FileCachedNetworkFile extends CachedNetworkFile {
         if (m_cacheFile.isDataAvailable()) {
 
             // DEBUG
-            if (DEBUG)
+            if ( hasDebug())
                 Debug.println("FileCachedNetworkFile DataAvailable Read, file=" + getName() + ", fid=" + getFileId());
 
             // Read the file using the file segment
@@ -182,7 +182,7 @@ public class FileCachedNetworkFile extends CachedNetworkFile {
             if (rdlen <= 0) {
 
                 // DEBUG
-                if (DEBUG) {
+                if ( hasDebug()) {
                     Debug.println("FileCachedNetworkFile.readFile() name=" + getFullName());
                     Debug.println("  State=" + getFileState());
                     Debug.println("  Segment=" + getFileSegment());
@@ -254,7 +254,7 @@ public class FileCachedNetworkFile extends CachedNetworkFile {
                     setIOPending(false);
 
                     // DEBUG
-                    if (DEBUG)
+                    if ( hasDebug())
                         Debug.println("FileCachedNetworkFile waited " + (endTime - startTime) + "ms for data, available="
                                 + m_cacheFile.getReadableLength());
                 }
@@ -266,7 +266,7 @@ public class FileCachedNetworkFile extends CachedNetworkFile {
                     throw new IOException("Load file error - " + getFullName());
 
                 // DEBUG
-                if (DEBUG) {
+                if ( hasDebug()) {
                     Debug.println("m_cacheFile=" + m_cacheFile + ", rdlen=" + rdlen);
                     Debug.println("fstate=" + getFileState());
                 }
@@ -278,7 +278,7 @@ public class FileCachedNetworkFile extends CachedNetworkFile {
             throw new IOException("Load file error - " + getFullName());
 
         // DEBUG
-        if (DEBUG)
+        if ( hasDebug())
             Debug.println("FileCachedNetworkFile.readFile() Waited " + waitTime + "ms for data");
 
         // Check if the required data has been read
@@ -289,7 +289,7 @@ public class FileCachedNetworkFile extends CachedNetworkFile {
         } else {
 
             // DEBUG
-            if (DEBUG) {
+            if ( hasDebug()) {
                 Debug.println("ReadFault fname=" + getFullName() + ", fid=" + getFileId() + ", state=" + getFileState());
                 Debug.println("  " + m_cacheFile.toString());
             }
@@ -395,11 +395,11 @@ public class FileCachedNetworkFile extends CachedNetworkFile {
                 m_cacheFile.closeFile();
 
                 // DEBUG
-                if (DEBUG)
+                if ( hasDebug())
                     Debug.println("FileCachedNetworkFile.closeFile()");
             }
             catch (IOException ex) {
-                if (DEBUG) {
+                if ( hasDebug()) {
                     Debug.println("**** Error closing file " + getName() + ", fid=" + getFileId() + " ****");
                     Debug.println(ex);
                 }
@@ -420,7 +420,7 @@ public class FileCachedNetworkFile extends CachedNetworkFile {
     protected FileRequest createFileRequest(FileRequest.RequestType typ, long fileOff, int len, boolean outOfSeq) {
 
         // DEBUG
-        if (DEBUG)
+        if ( hasDebug())
             Debug.println("FileCachedNetworkFile.createFileRequest() fullName=" + getFullName() + ", state=" + getFileState());
 
         // Create a file load or save request
