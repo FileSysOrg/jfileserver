@@ -39,7 +39,7 @@ public abstract class CachedNetworkFile extends DBNetworkFile {
     protected static final long DataPollSleepTime   = 250L;    // milliseconds
 
     // Debug enable flag
-    protected static final boolean DEBUG = false;
+    protected static boolean _debug = false;
 
     // Read request details
     protected long m_lastReadPos = -1L;
@@ -132,6 +132,13 @@ public abstract class CachedNetworkFile extends DBNetworkFile {
      * @return boolean
      */
     protected final boolean hasDebug() {
-        return DEBUG;
+        return _debug;
     }
+
+    /**
+     * Enable/disable debug output
+     *
+     * @param ena boolean
+     */
+    public static final void setDebug(boolean ena) { _debug = ena; }
 }
