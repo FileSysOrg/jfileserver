@@ -298,14 +298,14 @@ public abstract class SegmentInfo {
      *
      * @param readErr boolean
      */
-    public final void setReadError( boolean readErr) { setFlag( Flags.ReadError, readErr); }
+    public final void setLoadError( boolean readErr) { setFlag( Flags.ReadError, readErr); }
 
     /**
      * Set/clear the write error flag
      *
      * @param writeErr boolean
      */
-    public final void setWriteError( boolean writeErr) { setFlag( Flags.WriteError, writeErr); }
+    public final void setSaveError( boolean writeErr) { setFlag( Flags.WriteError, writeErr); }
 
     /**
      * Set/clear the closed flag
