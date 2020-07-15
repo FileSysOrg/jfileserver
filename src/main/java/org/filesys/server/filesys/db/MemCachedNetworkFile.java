@@ -23,6 +23,7 @@ import org.filesys.server.filesys.FileOfflineException;
 import org.filesys.server.filesys.NetworkFile;
 import org.filesys.server.filesys.cache.FileStateProxy;
 import org.filesys.server.filesys.loader.*;
+import org.filesys.util.MemorySize;
 
 import java.io.IOException;
 
@@ -41,6 +42,13 @@ public abstract class MemCachedNetworkFile extends CachedNetworkFile {
     // Memory segment holding all or part of the file data in memory
     protected MemorySegmentInfo m_memFile;
 
+    // The file type supports inline out of sequence file reads where a file request does not need to be queued
+    // to read the file data
+    protected boolean m_outOfSeqRead = false;
+
+    // Short read limit, where a short read will be done as an out of sequence read
+    protected int m_shortReadMaxSize = 0;   // disabled by default
+
     /**
      * Class constructor
      *
@@ -57,6 +65,10 @@ public abstract class MemCachedNetworkFile extends CachedNetworkFile {
 
         // Set the memory segment
         m_memFile = segment;
+
+        // Set the short read size, if enabled
+        if ( m_memFile != null)
+            m_memFile.setShortReadSize( getShortReadSize());
     }
 
     /**
@@ -86,6 +98,39 @@ public abstract class MemCachedNetworkFile extends CachedNetworkFile {
     public abstract long getInMemoryMaximumSize();
 
     /**
+     * Check if the file allows out of sequence reads to be done inline rather than queueing a request to load the data
+     *
+     * @return boolean
+     */
+    public final boolean hasOutOfSequenceReads() { return m_outOfSeqRead; }
+
+    /**
+     * Set the out of sequence reads support flag
+     *
+     * @param ooSeq boolean
+     */
+    protected final void setOutOfSequenceRead(boolean ooSeq) { m_outOfSeqRead = ooSeq; }
+
+    /**
+     * Get the short read maximum size, where the read will be done as an out of sequence read
+     *
+     * @return int
+     */
+    public final int getShortReadSize() { return m_shortReadMaxSize; }
+
+    /**
+     * Set the short read size, where a read will be done using an out of sequence read
+     *
+     * @param rxSiz int
+     */
+    protected final void setShortReadSize(int rxSiz) {
+        m_shortReadMaxSize = rxSiz;
+
+        if ( m_memFile != null)
+            m_memFile.setShortReadSize( getShortReadSize());
+    }
+
+    /**
      * Open the file
      *
      * @param createFlag boolean
@@ -112,7 +157,7 @@ public abstract class MemCachedNetworkFile extends CachedNetworkFile {
         throws IOException {
 
         // DEBUG
-        if (DEBUG)
+        if (hasDebug())
             Debug.println("MemCachedNetworkFile.readFile() file=" + getName() + ", offset=" + fileOff + ", len=" + len);
 
         // Check for a read error
@@ -127,17 +172,48 @@ public abstract class MemCachedNetworkFile extends CachedNetworkFile {
         MemoryLoadableFile.LoadableStatus loadSts = m_memFile.hasDataFor( fileOff, len);
         int rdlen = 0;
 
+        // Check if the available data is stale
+        if ( m_memFile.isAllFileData() && loadSts == MemoryLoadableFile.LoadableStatus.NotAvailable &&
+            m_memFile.hasStatus() == SegmentInfo.State.Available) {
+
+            // Force a reload of the file data
+            loadSts = MemoryLoadableFile.LoadableStatus.Loadable;
+
+            // DEBUG
+            if ( hasDebug())
+                Debug.println("MemCacheNetworkFile.readFile() force reload, stale data cached");
+        }
+
+        // DEBUG
+        if ( hasDebug())
+            Debug.println("MemCachedNetworkFile: hasDataFor() fileOff=" + fileOff + ", len=" + len + " sts=" + loadSts.name());
+
+        // Check if the file supports out of sequence reads
+        boolean outOfSeq = false;
+
+        if ( hasOutOfSequenceReads() == false && loadSts == MemoryLoadableFile.LoadableStatus.LoadableOutOfSeq) {
+
+            // File does not support out of sequence reads, convert to a normal load that has to be queued
+            if ( m_memFile.isQueued())
+                loadSts = MemoryLoadableFile.LoadableStatus.Loading;
+            else
+                loadSts = MemoryLoadableFile.LoadableStatus.Loadable;
+
+            // Indicate an out of sequence read for the load request
+            outOfSeq = true;
+        }
+
+        // Check if the required file data is available to read, or needs to be loaded
         if ( loadSts == MemoryLoadableFile.LoadableStatus.Available) {
 
             // DEBUG
-            if (DEBUG)
+            if (hasDebug())
                 Debug.println("MemCachedNetworkFile Data Available Read");
 
             // Read the file using the file segment
             rdlen = m_memFile.readBytes(buf, len, pos, fileOff);
         }
         else if ( loadSts == MemoryLoadableFile.LoadableStatus.Loadable ||
-                  loadSts == MemoryLoadableFile.LoadableStatus.LoadableOutOfSeq ||
                   loadSts == MemoryLoadableFile.LoadableStatus.Loading) {
 
             // Wait for the required amount of data to be read is loaded
@@ -148,8 +224,7 @@ public abstract class MemCachedNetworkFile extends CachedNetworkFile {
             while (readDone == false && waitTime < DataLoadWaitTime) {
 
                 // Check if the required data is loadable
-                if ( loadSts == MemoryLoadableFile.LoadableStatus.Loadable ||
-                     loadSts == MemoryLoadableFile.LoadableStatus.LoadableOutOfSeq) {
+                if ( loadSts == MemoryLoadableFile.LoadableStatus.Loadable) {
 
                     // Check if a file data load request needs to be queued
                     synchronized (m_memFile) {
@@ -158,14 +233,13 @@ public abstract class MemCachedNetworkFile extends CachedNetworkFile {
                         if (m_memFile.isQueued() == false) {
 
                             // DEBUG
-                            if (DEBUG)
+                            if (hasDebug())
                                 Debug.println("MemCachedNetworkFile: loadsts=" + loadSts.name() + ", flags=" + m_memFile.getFlags());
 
                             // Indicate file data is being loaded
                             m_memFile.setStatus(SegmentInfo.State.Loading);
 
                             // Queue a data load for the required file data
-                            boolean outOfSeq = loadSts == MemoryLoadableFile.LoadableStatus.LoadableOutOfSeq ? true : false;
                             getLoader().queueFileRequest(createFileRequest(FileRequest.RequestType.Load, fileOff, len, outOfSeq));
                         }
                     }
@@ -190,7 +264,7 @@ public abstract class MemCachedNetworkFile extends CachedNetworkFile {
                     setIOPending(false);
 
                     // DEBUG
-                    if (DEBUG)
+                    if (hasDebug())
                         Debug.println("MemCachedNetworkFile waited " + (endTime - startTime) + "ms for data, available="
                                 + m_memFile.getReadableLength());
                 }
@@ -198,8 +272,17 @@ public abstract class MemCachedNetworkFile extends CachedNetworkFile {
                 }
 
                 // Check if there was a data load error
-                if ( m_memFile.hasLoadError())
+                if ( m_memFile.hasLoadError()) {
+
+                    // DEBUG
+                    if (hasDebug()) {
+                        Debug.println("MemCachedNetworkFile: File offline error for " + getFullName() + ", offset=" + fileOff + ", len=" + len);
+                        Debug.println("MemCachedNetworkFile: state=" + getFileState() + ", memFile=" + m_memFile);
+                    }
+
+                    // Failed to load file data
                     throw new FileOfflineException("Load error for " + getFullName());
+                }
 
                 // Check if the data is available
                 loadSts = m_memFile.hasDataFor( fileOff, len);
@@ -219,10 +302,49 @@ public abstract class MemCachedNetworkFile extends CachedNetworkFile {
             }
 
             // Check if the read did not complete within the required time
-            if ( readDone == false)
+            if ( readDone == false) {
+
+                // DEBUG
+                if (hasDebug()) {
+                    Debug.println("MemCachedNetworkFile: File offline error for " + getFullName() + ", offset=" + fileOff + ", len=" + len);
+                    Debug.println("MemCachedNetworkFile: state=" + getFileState() + ", memFile=" + m_memFile);
+                }
+
+                // Set a load error on the file, subsequent reads will fail quicker
+                m_memFile.setLoadError( true);
+
+                // Indicate the file is offline
                 throw new FileOfflineException("Failed to load file data in " + DataLoadWaitTime + "ms for " + getFullName());
+            }
+        }
+        else if (loadSts == MemoryLoadableFile.LoadableStatus.LoadableOutOfSeq) {
+
+            // Load the required out of sequence data immediately
+            MemoryBuffer memBuf = loadOutOfSequence( fileOff, len);
+
+            if ( memBuf != null) {
+
+                // Add the data to the memory segment
+                m_memFile.addFileData( memBuf);
+
+                // Try the file read again
+                rdlen = m_memFile.readBytes(buf, len, pos, fileOff);
+
+                // DEBUG
+                if ( hasDebug())
+                    Debug.println("MemCachedNetworkFile: Out of sequence read, fileOff=" + fileOff + ", len=" + len + ", rdlen=" + rdlen);
+            }
         }
         else {
+
+            // DEBUG
+            if (hasDebug()) {
+                Debug.println("MemCachedNetworkFile: File offline error for " + getFullName() + ", offset=" + fileOff + ", len=" + len);
+                Debug.println("MemCachedNetworkFile: state=" + getFileState() + ", memFile=" + m_memFile);
+            }
+
+            // Set a load error on the file, subsequent reads will fail quicker
+            m_memFile.setLoadError( true);
 
             // Data is not available for the read request
             //
@@ -282,6 +404,19 @@ public abstract class MemCachedNetworkFile extends CachedNetworkFile {
                     // Indicate that an I/O is pending on this file
                     setIOPending(true);
 
+                    // Check if the memory segment is queued
+                    if ( m_memFile.isQueued() == false) {
+
+                        synchronized ( m_memFile) {
+
+                            if ( m_memFile.isQueued() == false) {
+
+                                // Queue a file data save request
+                                getLoader().queueFileRequest(createFileRequest(FileRequest.RequestType.Save, offset, len, false));
+                            }
+                        }
+                    }
+
                     // Wait for a writeable buffer slot to become available
                     long startTime = System.currentTimeMillis();
                     m_memFile.waitForWriteBuffer(WriteBufferWaitTime / 10);
@@ -294,7 +429,7 @@ public abstract class MemCachedNetworkFile extends CachedNetworkFile {
                     setIOPending(false);
 
                     // DEBUG
-                    if (DEBUG)
+                    if (hasDebug())
                         Debug.println("MemCachedNetworkFile waited " + (endTime - startTime) + "ms for writeable buffer");
                 }
                 catch (Exception ex) {
@@ -355,11 +490,17 @@ public abstract class MemCachedNetworkFile extends CachedNetworkFile {
                     }
                     else {
 
+                        // Mark the file with a save error so subsequent writes will fail quicker
+                        m_memFile.setSaveError( true);
+
                         // Failed to convert the in-memory file to a streamed file
                         throw new IOException("Failed to convert to streamed file, " + getFullName() + ", size=" + fileLen);
                     }
                 }
                 else {
+
+                    // Mark the file with a save error so subsequent writes will fail quicker
+                    m_memFile.setSaveError( true);
 
                     // Cannot convert the file to a streamed file
                     throw new DiskFullException("Cannot convert in-memory file to streamed, " + getFullName() + ", size=" + fileLen);
@@ -453,5 +594,18 @@ public abstract class MemCachedNetworkFile extends CachedNetworkFile {
                 }
             }
         }
+    }
+
+    /**
+     * Load data for an out of sequence read without queueing a load request
+     *
+     * @param fileOff long
+     * @param len int
+     * @return MemoryBuffer
+     */
+    protected MemoryBuffer loadOutOfSequence(long fileOff, int len) {
+
+        // Override if supported, must also set the out of sequence flag via setOutOfSequenceRead()
+        return null;
     }
 }
