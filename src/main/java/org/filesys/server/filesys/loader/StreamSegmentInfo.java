@@ -36,10 +36,11 @@ public class StreamSegmentInfo extends MemorySegmentInfo {
     public static final int StreamBufferCount   = 4;
 
     // Enable debug output
-    private static final boolean m_debug = true;
+    private static final boolean m_debug = false;
 
     // List of memory buffers that hold the current file data being read from or written to the back-end store
-    private volatile MemoryBufferList m_buffers;
+    private volatile MemoryBufferList m_rxBuffers;
+    private volatile MemoryBufferList m_txBuffers;
 
     // List of memory buffers that hold out of sequence read data
     private volatile MemoryBufferList m_outOfSeqBuffers;
@@ -69,7 +70,9 @@ public class StreamSegmentInfo extends MemorySegmentInfo {
     public StreamSegmentInfo() {
         super( EnumSet.of( Flags.Streamed));
 
-        m_buffers = new MemoryBufferList( StreamBufferCount);
+        // Allocate the read/write buffer lists
+        m_rxBuffers = new MemoryBufferList( StreamBufferCount);
+        m_txBuffers = new MemoryBufferList( StreamBufferCount);
     }
 
     /**
@@ -80,7 +83,9 @@ public class StreamSegmentInfo extends MemorySegmentInfo {
     public StreamSegmentInfo(int bufSize) {
         super( EnumSet.of( Flags.Streamed));
 
-        m_buffers = new MemoryBufferList( StreamBufferCount);
+        // Allocate the read/write buffer lists
+        m_rxBuffers = new MemoryBufferList( StreamBufferCount);
+        m_txBuffers = new MemoryBufferList( StreamBufferCount);
 
         // Set the buffer size to allocate for sections
         m_bufferSize = bufSize;
@@ -94,21 +99,60 @@ public class StreamSegmentInfo extends MemorySegmentInfo {
     public final boolean hasDebug() { return m_debug; }
 
     /**
-     * Return the count of memory buffers
+     * Return the count of read memory buffers
      *
      * @return int
      */
-    public synchronized final int getBufferCount() { return m_buffers != null ? m_buffers.numberOfSegments() : 0; }
+    public synchronized final int getRxBufferCount() { return m_rxBuffers != null ? m_rxBuffers.numberOfSegments() : 0; }
 
     /**
-     * Check if the buffer list has spare buffer slots available
+     * Return the count of write memory buffers
+     *
+     * @return int
+     */
+    public synchronized final int getTxBufferCount() { return m_txBuffers != null ? m_txBuffers.numberOfSegments() : 0; }
+
+    /**
+     * Return the read buffer list
+     *
+     * @return MemoryBufferList
+     */
+    public final MemoryBufferList getRxBufferList() { return m_rxBuffers; }
+
+    /**
+     * Return the write buffer list
+     *
+     * @return MemoryBufferList
+     */
+    public final MemoryBufferList getTxBufferList() { return m_txBuffers; }
+
+    /**
+     * Return the next write offset
+     *
+     * @return long
+     */
+    public final long getNextWriteOffset() { return m_nextWriteOffset; }
+
+    /**
+     * Check if the buffer list has spare read buffer slots available
      *
      * @return boolean
      */
-    public synchronized final boolean hasFreeBufferSlots() {
-        if ( m_buffers == null)
+    public synchronized final boolean hasFreeRxBufferSlots() {
+        if ( m_rxBuffers == null)
             return true;
-        return m_buffers.numberOfSegments() < m_maxBuffers;
+        return m_rxBuffers.numberOfSegments() < m_maxBuffers;
+    }
+
+    /**
+     * Check if the buffer list has spare write buffer slots available
+     *
+     * @return boolean
+     */
+    public synchronized final boolean hasFreeTxBufferSlots() {
+        if ( m_txBuffers == null)
+            return true;
+        return m_txBuffers.numberOfSegments() < m_maxBuffers;
     }
 
     /**
@@ -158,7 +202,7 @@ public class StreamSegmentInfo extends MemorySegmentInfo {
      * @return MemoryBuffer
      */
     public final MemoryBuffer getFileData( long fileOffset, int len) {
-        return m_buffers.findSegment( fileOffset, len);
+        return m_rxBuffers.findSegment( fileOffset, len);
     }
 
     /**
@@ -167,7 +211,7 @@ public class StreamSegmentInfo extends MemorySegmentInfo {
      * @param memBuf MemoryBuffer
      */
     public final void removeFileData( MemoryBuffer memBuf) {
-        m_buffers.removeSegment( memBuf);
+        m_rxBuffers.removeSegment( memBuf);
     }
 
     /**
@@ -184,17 +228,23 @@ public class StreamSegmentInfo extends MemorySegmentInfo {
             Debug.println("StreamSegmentInfo: hasDataFor fileOff=" + fileOff + ", len=" + len);
 
         // Check if there are any sections loaded
-        if ( m_buffers.numberOfSegments() == 0 && m_fileLen > 0L)
-            return LoadableStatus.Loadable;
+        if ( m_rxBuffers.numberOfSegments() == 0 && m_fileLen > 0L) {
+
+            // Check if this is a sequential read of the file or out of sequence
+            if (fileOff == 0L && len > getShortReadSize())
+                return LoadableStatus.Loadable;
+            else
+                return LoadableStatus.LoadableOutOfSeq;
+        }
 
         // Check if the required data is already loaded
         LoadableStatus dataSts = LoadableStatus.NotAvailable;
         int idx = 0;
 
-        while ( idx < m_buffers.numberOfSegments() && dataSts != LoadableStatus.Available) {
+        while ( idx < m_rxBuffers.numberOfSegments() && dataSts != LoadableStatus.Available) {
 
             // Check the current memory buffer
-            MemoryBuffer curBuf = m_buffers.getSegmentAt( idx);
+            MemoryBuffer curBuf = m_rxBuffers.getSegmentAt( idx);
             MemoryBuffer.Contains contains = curBuf.containsData( fileOff, len);
 
             if ( contains == MemoryBuffer.Contains.All) {
@@ -258,8 +308,13 @@ public class StreamSegmentInfo extends MemorySegmentInfo {
 
         // Check if there is data currently queued for loading and the status indicates the required data is loadable,
         // change the status to indicate there is a load in progress
-        if (( dataSts == LoadableStatus.Loadable || dataSts == LoadableStatus.LoadableOutOfSeq) && isQueued())
+        if ( dataSts == LoadableStatus.Loadable && isQueued()) {
             dataSts = LoadableStatus.Loading;
+
+            // DEBUG
+            if (hasDebug())
+                Debug.println("StreamSegmentInfo: Loading seg=" + this);
+        }
 
         // DEBUG
         if ( hasDebug())
@@ -289,7 +344,7 @@ public class StreamSegmentInfo extends MemorySegmentInfo {
         if ( fileData.isOutOfSequence() == false) {
 
             // Add the buffer to the in sequence buffer list
-            m_buffers.addSegment(fileData);
+            m_rxBuffers.addSegment(fileData);
         }
         else {
 
@@ -308,7 +363,7 @@ public class StreamSegmentInfo extends MemorySegmentInfo {
         // DEBUG
         if( hasDebug())
             Debug.println("StreamSegmentInfo: addFileData fileData=" + fileData + ", fileLen=" + m_fileLen +
-                    ", buffers=" + m_buffers.numberOfSegments());
+                    ", buffers=" + m_rxBuffers.numberOfSegments());
     }
 
     /**
@@ -329,7 +384,7 @@ public class StreamSegmentInfo extends MemorySegmentInfo {
             Debug.println("StreamSegmentInfo: readBytes fileOff=" + fileOff + ", len=" + len);
 
         // Find the memory segment with the required data
-        MemoryBuffer readBuf = m_buffers.findSegment( fileOff, len);
+        MemoryBuffer readBuf = m_rxBuffers.findSegment( fileOff, len);
         if ( readBuf == null) {
 
             // Check if there are any out of sequence buffers
@@ -373,7 +428,7 @@ public class StreamSegmentInfo extends MemorySegmentInfo {
             pos += rdlen;
 
             // Find the next data buffer
-            readBuf = m_buffers.findSegment(fileOff, len);
+            readBuf = m_rxBuffers.findSegment(fileOff, len);
 
             if (readBuf != null) {
 
@@ -386,12 +441,26 @@ public class StreamSegmentInfo extends MemorySegmentInfo {
         m_lastReadOffset = fileOff;
 
         // Remove any segments that have been read
-        int segCnt = m_buffers.removeSegmentsBefore( m_lastReadOffset);
+        int segCnt = m_rxBuffers.removeSegmentsBefore( m_lastReadOffset);
 
         // DEBUG
         if ( hasDebug())
             Debug.println("StreamSegmentInfo: readBytes len=" + len + ", rdlen=" + rdlen + ", removed=" + segCnt +
-                    ", buffers=" + m_buffers.numberOfSegments());
+                    ", buffers=" + m_rxBuffers.numberOfSegments());
+
+        // If we have read to the end of file then reset the read offset, and remove all buffers
+        if (( m_lastReadOffset + rdlen) >= getFileLength()) {
+
+            // Remove all buffered data
+            m_rxBuffers.clearSegments();
+
+            // Reset the read offset back to the start of the file
+            m_lastReadOffset = 0;
+
+            // DEBUG
+            if ( hasDebug())
+                Debug.println("StreamSegmentInfo: Read to end of file, reset buffers/read offset");
+        }
 
         // Return the length of data read
         return rdlen;
@@ -408,7 +477,7 @@ public class StreamSegmentInfo extends MemorySegmentInfo {
         setFileClosed( true);
 
         // Check if there are any buffers that need to be saved
-        return m_buffers.hasUpdatedBuffers();
+        return m_txBuffers.hasUpdatedBuffers();
     }
 
     /**
@@ -434,22 +503,25 @@ public class StreamSegmentInfo extends MemorySegmentInfo {
 
         // Find a current segment that the data can be written to
         SaveableStatus wrSts = SaveableStatus.Buffering;
-        MemoryBuffer writeBuf = m_buffers.findSegment( fileOff);
+        MemoryBuffer writeBuf = m_txBuffers.findSegment( fileOff);
 
         if ( writeBuf == null) {
 
-            // Check if the maximum number of buffers has been allocated, if so then return an error status
-            if ( m_buffers.numberOfSegments() >= m_maxBuffers)
-                return SaveableStatus.MaxBuffers;
+            synchronized ( this) {
 
-            // Need to allocate a new buffer for the write
-            writeBuf = new MemoryBuffer( new byte[ getBufferSize()], nextBufferOffset(), 0);
-            m_buffers.addSegment( writeBuf);
+                // Check if the maximum number of buffers has been allocated, if so then return an error status
+                if (m_txBuffers.numberOfSegments() >= m_maxBuffers)
+                    return SaveableStatus.MaxBuffers;
+
+                // Need to allocate a new buffer for the write
+                writeBuf = new MemoryBuffer(new byte[getBufferSize()], nextBufferOffset(), 0);
+                m_txBuffers.addSegment(writeBuf);
+            }
 
             // DEBUG
             if ( hasDebug())
                 Debug.println("StreamSegmentInfo: Add new buffer for write, buf=" + writeBuf +
-                        ", buffers=" + m_buffers.numberOfSegments());
+                        ", buffers=" + m_txBuffers.numberOfSegments());
         }
 
         // Should have a valid buffer now
@@ -461,7 +533,7 @@ public class StreamSegmentInfo extends MemorySegmentInfo {
 
             // If we have the maximum number of buffers allocated then make sure the write will fit into the current
             // buffer without needing to allocate another buffer
-            if ( m_buffers.numberOfSegments() == m_maxBuffers && writeBuf.canFitData( fileOff, len) != MemoryBuffer.Contains.All)
+            if ( m_txBuffers.numberOfSegments() == m_maxBuffers && writeBuf.canFitData( fileOff, len) != MemoryBuffer.Contains.All)
                 return SaveableStatus.MaxBuffers;
 
             // Write the data into the current buffer
@@ -478,7 +550,7 @@ public class StreamSegmentInfo extends MemorySegmentInfo {
                 wrSts = SaveableStatus.Saveable;
 
                 // Get the next buffer to write to, or create a new buffer
-                writeBuf = m_buffers.findSegment( fileOff);
+                writeBuf = m_txBuffers.findSegment( fileOff);
 
                 if ( writeBuf == null) {
 
@@ -486,12 +558,12 @@ public class StreamSegmentInfo extends MemorySegmentInfo {
                     byte[] byts = new byte[ getBufferSize()];
                     writeBuf = new MemoryBuffer( byts, nextBufferOffset(), 0);
 
-                    m_buffers.addSegment( writeBuf);
+                    m_txBuffers.addSegment( writeBuf);
 
                     // DEBUG
                     if ( hasDebug())
                         Debug.println("StreamSegmentInfo: Add new buffer for second write, buf=" + writeBuf +
-                                ", buffers=" + m_buffers.numberOfSegments());
+                                ", buffers=" + m_txBuffers.numberOfSegments());
                 }
 
                 // Write the remaining data
@@ -541,7 +613,8 @@ public class StreamSegmentInfo extends MemorySegmentInfo {
         if ( siz == 0) {
 
             // Remove all buffers
-            m_buffers.clearSegments();
+            m_rxBuffers.clearSegments();
+            m_txBuffers.clearSegments();
 
             // Set the file length to zero
             m_fileLen = 0L;
@@ -551,19 +624,19 @@ public class StreamSegmentInfo extends MemorySegmentInfo {
             // Update the new file length
             m_fileLen = siz;
 
-            // Remove all buffers that are beyond the new end of file
-            int idx = m_buffers.numberOfSegments() - 1;
+            // Remove all write buffers that are beyond the new end of file
+            int idx = m_txBuffers.numberOfSegments() - 1;
 
             while ( idx >= 0) {
 
                 // Check if the current segment is above the new end of file offset, or contains the new file
                 // offset
-                MemoryBuffer curBuf = m_buffers.getSegmentAt( idx);
+                MemoryBuffer curBuf = m_txBuffers.getSegmentAt( idx);
 
                 if ( curBuf.getFileOffset() >= m_fileLen) {
 
                     // Remove the segment
-                    m_buffers.removeSegment(curBuf);
+                    m_txBuffers.removeSegment(curBuf);
                 }
                 else if ( curBuf.containsData( m_fileLen, 0) == MemoryBuffer.Contains.All) {
 
@@ -585,18 +658,30 @@ public class StreamSegmentInfo extends MemorySegmentInfo {
     public MemoryBuffer dataToSave() {
 
         // Check if there is a full data buffer to be saved
-        if ( m_buffers.numberOfSegments() == 0)
-            return null;
+        if ( m_txBuffers.numberOfSegments() == 0) {
 
-        MemoryBuffer firstBuf = m_buffers.getSegmentAt( 0);
+            // DEBUG
+            if (hasDebug())
+                Debug.println("StreamSegmentInfo: dataToSave(), no buffers");
+
+            return null;
+        }
+
+        MemoryBuffer firstBuf = m_txBuffers.getSegmentAt( 0);
 
         if ( firstBuf != null && (firstBuf.isFull() || isClosed()) && firstBuf.getFileOffset() == m_nextWriteOffset) {
 
             // DEBUG
             if ( hasDebug())
-                Debug.println("StreamSegmentInfo: Data to save buf=" + firstBuf);
+                Debug.println("StreamSegmentInfo: Data to save buf=" + firstBuf + ", isClosed=" + isClosed());
 
             return firstBuf;
+        }
+
+        // DEBUG
+        if ( m_txBuffers.numberOfSegments() > 0 && hasDebug()) {
+            Debug.println("StreamSegmentInfo: dataToSave(), no data, nextWrite=" + getNextWriteOffset() + ", firstBuf=" + firstBuf);
+            Debug.println("StreamSegmentInfo: buffers=" + m_txBuffers);
         }
 
         return null;
@@ -610,7 +695,7 @@ public class StreamSegmentInfo extends MemorySegmentInfo {
     public void dataSaved( MemoryBuffer memBuf) {
 
         // Remove the memory buffer from the buffer list, should be the first element
-        MemoryBuffer remBuf = m_buffers.removeSegmentAt( 0);
+        MemoryBuffer remBuf = m_txBuffers.removeSegmentAt( 0);
 
         if ( remBuf != null && remBuf.getFileOffset() == memBuf.getFileOffset()) {
 
@@ -629,7 +714,7 @@ public class StreamSegmentInfo extends MemorySegmentInfo {
             // DEBUG
             if ( hasDebug()) {
                 Debug.println("StreamSegmentInfo: ** Removed wrong segment from the list head");
-                Debug.println("  buffers=" + m_buffers);
+                Debug.println("  buffers=" + m_txBuffers);
             }
         }
     }
@@ -642,7 +727,7 @@ public class StreamSegmentInfo extends MemorySegmentInfo {
     public void waitForWriteBuffer(long tmo) {
 
         //	Check if the file data has been loaded, if not then wait
-        if ( m_buffers.numberOfSegments() >= m_maxBuffers) {
+        if ( m_txBuffers.numberOfSegments() >= m_maxBuffers) {
             synchronized (this) {
                 try {
 
@@ -690,6 +775,43 @@ public class StreamSegmentInfo extends MemorySegmentInfo {
             return true;
         return false;
     }
+
+    /**
+     * Reset the segment save state
+     */
+    public final void resetTxState() {
+
+        // Remove any save buffers
+        m_txBuffers.clearSegments();
+
+        // Reset the save offsets
+        m_nextWriteOffset = 0L;
+        m_nextAllocOffset = 0L;
+
+        // Reset save flags
+        setFlag( Flags.DeleteOnSave, false);
+        setFlag( Flags.WriteError, false);
+        setFlag( Flags.Updated, false);
+        setFlag( Flags.FileClosed, false);
+    }
+
+    /**
+     * Reset the segment load state
+     */
+    public final void resetRxState() {
+
+        // Remove any read buffers
+        m_rxBuffers.clearSegments();
+        m_outOfSeqBuffers.clearSegments();
+
+        // Reset the load offset
+        m_lastReadOffset = 0L;
+
+        // Reset flags
+        setFlag( Flags.ReadError, false);
+        setFlag( Flags.FileClosed, false);
+    }
+
     /**
      * Return the file segment details as a string
      *
@@ -698,8 +820,10 @@ public class StreamSegmentInfo extends MemorySegmentInfo {
     public String toString() {
         StringBuilder str = new StringBuilder();
 
-        str.append("[Stream:buffers=");
-        str.append(m_buffers);
+        str.append("[Stream:rxbufs=");
+        str.append(m_rxBuffers);
+        str.append(",txbufs=");
+        str.append(m_txBuffers);
         str.append(",len=");
         str.append(getFileLength());
         str.append(":");
@@ -710,6 +834,16 @@ public class StreamSegmentInfo extends MemorySegmentInfo {
             str.append(",Updated");
         if (isQueued())
             str.append(",Queued");
+
+        if ( m_nextAllocOffset != 0) {
+            str.append(",nextAlloc=");
+            str.append(m_nextAllocOffset);
+        }
+
+        if ( m_nextWriteOffset != 0) {
+            str.append(",nextWrite=");
+            str.append(m_nextWriteOffset);
+        }
 
         str.append("]");
 
