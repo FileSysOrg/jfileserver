@@ -29,11 +29,15 @@ package org.filesys.util;
  */
 public class MemorySize {
 
-	//	Convertor constants
+	//	Converter constants
 	public static final long KILOBYTE		= 1024L;
 	public static final long MEGABYTE		= 1024L * KILOBYTE;
 	public static final long GIGABYTE		= 1024L * MEGABYTE;
 	public static final long TERABYTE		= 1024L * GIGABYTE;
+
+	public static final int KILOBYTE_INT	= (int) KILOBYTE;
+	public static final int MEGABYTE_INT	= (int) MEGABYTE;
+	public static final int GIGABYTE_INT	= (int) GIGABYTE;
 
 	/**
 	 * Convert a memory size to an integer byte value.
