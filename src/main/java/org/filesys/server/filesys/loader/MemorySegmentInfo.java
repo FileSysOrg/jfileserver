@@ -16,6 +16,8 @@
  */
 package org.filesys.server.filesys.loader;
 
+import org.filesys.util.MemorySize;
+
 import java.io.IOException;
 import java.util.EnumSet;
 
@@ -27,6 +29,9 @@ import java.util.EnumSet;
  * @author gkspencer
  */
 public abstract class MemorySegmentInfo extends SegmentInfo implements MemoryLoadableFile, MemoryStorableFile {
+
+    // Short read limit, where a short read will be done as an out of sequence read
+    protected int m_shortReadMaxSize = 0;   // disabled by default
 
     /**
      * Default constructor
@@ -42,6 +47,20 @@ public abstract class MemorySegmentInfo extends SegmentInfo implements MemoryLoa
     public MemorySegmentInfo(EnumSet<Flags> flags) {
         super( flags);
     }
+
+    /**
+     * Return the short read size
+     *
+     * @return int
+     */
+    public final int getShortReadSize() { return m_shortReadMaxSize; }
+
+    /**
+     * Set the maximum short read size
+     *
+     * @param rxSiz int
+     */
+    public final void setShortReadSize(int rxSiz) { m_shortReadMaxSize = rxSiz; }
 
     /**
      * Close the memory file
