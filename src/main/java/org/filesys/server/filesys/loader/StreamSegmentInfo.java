@@ -61,9 +61,6 @@ public class StreamSegmentInfo extends MemorySegmentInfo {
     // Maximum number of buffers to use for streaming this file
     private int m_maxBuffers = StreamBufferCount;
 
-    // File has been closed
-    private boolean m_closed = false;
-
     /**
      * Default constructor
      */
@@ -231,10 +228,18 @@ public class StreamSegmentInfo extends MemorySegmentInfo {
         if ( m_rxBuffers.numberOfSegments() == 0 && m_fileLen > 0L) {
 
             // Check if this is a sequential read of the file or out of sequence
+            //
+            // Large read at the start of the file
             if (fileOff == 0L && len > getShortReadSize())
                 return LoadableStatus.Loadable;
-            else
+
+            // Short read or read passed the end of the next buffer to be loaded
+            else if (len <= getShortReadSize() || fileOff > (m_lastReadOffset + getBufferSize()))
                 return LoadableStatus.LoadableOutOfSeq;
+
+            // Start, or continue, sequential data loading
+            else
+                return LoadableStatus.Loadable;
         }
 
         // Check if the required data is already loaded
@@ -404,8 +409,9 @@ public class StreamSegmentInfo extends MemorySegmentInfo {
             rdlen = readBuf.readBytes( buf, len, pos, fileOff);
 
             // Check if this buffer is an out of sequence buffer that matches the read offset and length, if so then
-            // remove the buffer from the list
-            if ( readBuf.isOutOfSequence() && readBuf.getFileOffset() == fileOff && readBuf.getUsedLength() == len) {
+            // remove the buffer from the list, keep short out of sequence reads cached
+            if ( readBuf.isOutOfSequence()  && len > getShortReadSize() &&
+                    readBuf.getFileOffset() == fileOff && readBuf.getUsedLength() == len) {
 
                 // Remove the out of sequence buffer from the list
                 m_outOfSeqBuffers.removeSegment( readBuf);
