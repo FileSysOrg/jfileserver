@@ -16,6 +16,7 @@
  */
 package org.filesys.server.filesys.loader;
 
+import com.sun.jna.Memory;
 import org.filesys.debug.Debug;
 import org.filesys.util.MemorySize;
 
@@ -103,11 +104,44 @@ public class StreamSegmentInfo extends MemorySegmentInfo {
     public synchronized final int getRxBufferCount() { return m_rxBuffers != null ? m_rxBuffers.numberOfSegments() : 0; }
 
     /**
+     * Return the count of free read memory buffer slots
+     *
+     * @return int
+     */
+    public synchronized final int getFreeRxBufferCount() {
+        return m_rxBuffers != null ? m_maxBuffers - m_rxBuffers.numberOfSegments() : 0;
+    }
+
+    /**
+     * Return the base buffered read data file offset
+     *
+     * @return long
+     */
+    protected synchronized final long getRxBaseBufferOffset() {
+        if ( m_rxBuffers != null && m_rxBuffers.numberOfSegments() > 0) {
+            MemoryBuffer firstBuf = m_rxBuffers.getSegmentAt( 0);
+            if ( firstBuf != null)
+                return firstBuf.getFileOffset();
+        }
+
+        return 0L;
+    }
+
+    /**
      * Return the count of write memory buffers
      *
      * @return int
      */
     public synchronized final int getTxBufferCount() { return m_txBuffers != null ? m_txBuffers.numberOfSegments() : 0; }
+
+    /**
+     * Return the count of free write memory buffer slots
+     *
+     * @return int
+     */
+    public synchronized final int getFreeTxBufferCount() {
+        return m_txBuffers != null ? m_maxBuffers - m_txBuffers.numberOfSegments() : 0;
+    }
 
     /**
      * Return the read buffer list
@@ -222,7 +256,11 @@ public class StreamSegmentInfo extends MemorySegmentInfo {
 
         // DEBUG
         if ( hasDebug())
-            Debug.println("StreamSegmentInfo: hasDataFor fileOff=" + fileOff + ", len=" + len);
+            Debug.println("StreamSegmentInfo: hasDataFor fileOff=" + fileOff + ", len=" + len +
+                    " (lastRxOff=" + m_lastReadOffset + ", fileLen=" + m_fileLen + ")");
+
+        // Calculate the sequential load file offset for the current set of read buffers
+        long seqReadEndOff = getRxBaseBufferOffset() + ( getBufferSize() * m_maxBuffers);
 
         // Check if there are any sections loaded
         if ( m_rxBuffers.numberOfSegments() == 0 && m_fileLen > 0L) {
@@ -230,11 +268,11 @@ public class StreamSegmentInfo extends MemorySegmentInfo {
             // Check if this is a sequential read of the file or out of sequence
             //
             // Large read at the start of the file
-            if (fileOff == 0L && len > getShortReadSize())
+            if (fileOff == 0L)
                 return LoadableStatus.Loadable;
 
             // Short read or read passed the end of the next buffer to be loaded
-            else if (len <= getShortReadSize() || fileOff > (m_lastReadOffset + getBufferSize()))
+            else if (len <= getShortReadSize() || fileOff > seqReadEndOff)
                 return LoadableStatus.LoadableOutOfSeq;
 
             // Start, or continue, sequential data loading
@@ -246,31 +284,39 @@ public class StreamSegmentInfo extends MemorySegmentInfo {
         LoadableStatus dataSts = LoadableStatus.NotAvailable;
         int idx = 0;
 
-        while ( idx < m_rxBuffers.numberOfSegments() && dataSts != LoadableStatus.Available) {
+        // Check if the data should be within the currently loaded, or next sequential buffers to be loaded
+        if ( fileOff < seqReadEndOff) {
 
-            // Check the current memory buffer
-            MemoryBuffer curBuf = m_rxBuffers.getSegmentAt( idx);
-            MemoryBuffer.Contains contains = curBuf.containsData( fileOff, len);
+            while (idx < m_rxBuffers.numberOfSegments() && dataSts != LoadableStatus.Available) {
 
-            if ( contains == MemoryBuffer.Contains.All) {
+                // Check the current memory buffer
+                MemoryBuffer curBuf = m_rxBuffers.getSegmentAt(idx);
+                MemoryBuffer.Contains contains = curBuf.containsData(fileOff, len);
 
-                // Required data is loaded
-                dataSts = LoadableStatus.Available;
+                if (contains == MemoryBuffer.Contains.All) {
+
+                    // Required data is loaded
+                    dataSts = LoadableStatus.Available;
+                } else if (contains == MemoryBuffer.Contains.Partial) {
+
+                    // Update the file offset and length for the remaining data
+                    long newOff = curBuf.getFileOffset() + curBuf.getUsedLength();
+                    len -= (int) (newOff - fileOff);
+                    fileOff = newOff;
+
+                    // Change the status to loadable, if we do not have the remaining data in memory it will need to be
+                    // loaded
+                    dataSts = LoadableStatus.Loadable;
+                }
+
+                // Update the buffer index
+                idx++;
             }
-            else if ( contains == MemoryBuffer.Contains.Partial) {
 
-                // Update the file offset and length for the remaining data
-                long newOff = curBuf.getFileOffset() + curBuf.getUsedLength();
-                len -= (int) (newOff - fileOff);
-                fileOff = newOff;
-
-                // Change the status to loadable, if we do not have the remaining data in memory it will need to be
-                // loaded
+            // Check if the data is available, if not then it should be loadable as it is within the current buffer
+            // sequence
+            if ( dataSts == LoadableStatus.NotAvailable)
                 dataSts = LoadableStatus.Loadable;
-            }
-
-            // Update the buffer index
-            idx++;
         }
 
         // If we did not find a load segment then check if the read is within the file data range, it may be an out
@@ -297,6 +343,10 @@ public class StreamSegmentInfo extends MemorySegmentInfo {
 
                                 // Required data is loaded
                                 dataSts = LoadableStatus.Available;
+
+                                // DEBUG
+                                if( hasDebug())
+                                    Debug.println("StreamSegmentInfo: Cached out of seq data available for fileOff=" + fileOff + ", len=" + len);
                             }
 
                             // Update the out of sequence buffer index
@@ -322,8 +372,15 @@ public class StreamSegmentInfo extends MemorySegmentInfo {
         }
 
         // DEBUG
-        if ( hasDebug())
+        if ( hasDebug()) {
             Debug.println("StreamSegmentInfo: hasDataFor sts=" + dataSts.name());
+
+            // DEBUG
+            if (hasDebug()) {
+                Debug.println("  RxBuffers=" + m_rxBuffers);
+                Debug.println("  OutOfSeq =" + m_outOfSeqBuffers);
+            }
+        }
 
         // Return the status
         return dataSts;
@@ -407,19 +464,6 @@ public class StreamSegmentInfo extends MemorySegmentInfo {
 
             // Read the data from the buffer
             rdlen = readBuf.readBytes( buf, len, pos, fileOff);
-
-            // Check if this buffer is an out of sequence buffer that matches the read offset and length, if so then
-            // remove the buffer from the list, keep short out of sequence reads cached
-            if ( readBuf.isOutOfSequence()  && len > getShortReadSize() &&
-                    readBuf.getFileOffset() == fileOff && readBuf.getUsedLength() == len) {
-
-                // Remove the out of sequence buffer from the list
-                m_outOfSeqBuffers.removeSegment( readBuf);
-
-                // DEBUG
-                if ( hasDebug())
-                    Debug.println("StreamSegmentInfo: Removed out of sequence buffer=" + readBuf);
-            }
         }
         else {
 
@@ -443,11 +487,23 @@ public class StreamSegmentInfo extends MemorySegmentInfo {
             }
         }
 
-        // Save the read offset
-        m_lastReadOffset = fileOff;
+        // Save the read offset, for a sequential read
+        int segCnt = 0;
 
-        // Remove any segments that have been read
-        int segCnt = m_rxBuffers.removeSegmentsBefore( m_lastReadOffset);
+        if ( readBuf.isOutOfSequence() == false) {
+
+            // Update the last sequential read offset
+            m_lastReadOffset = fileOff;
+
+            // Remove any segments that have been read
+            segCnt = m_rxBuffers.removeSegmentsBefore(m_lastReadOffset);
+        }
+        else {
+
+            // DEBUG
+            if ( hasDebug())
+                Debug.println("StreamSegmentInfo: Read using out of sequence data - " + readBuf);
+        }
 
         // DEBUG
         if ( hasDebug())
@@ -481,6 +537,9 @@ public class StreamSegmentInfo extends MemorySegmentInfo {
 
         // Mark the file segment as closed
         setFileClosed( true);
+
+        // Remove any sequential read buffers but keep out of sequence read data
+        m_rxBuffers.clearSegments();
 
         // Check if there are any buffers that need to be saved
         return m_txBuffers.hasUpdatedBuffers();
@@ -803,12 +862,16 @@ public class StreamSegmentInfo extends MemorySegmentInfo {
 
     /**
      * Reset the segment load state
+     *
+     * @param clearOutOfSeq boolean
      */
-    public final void resetRxState() {
+    public final void resetRxState(boolean clearOutOfSeq) {
 
         // Remove any read buffers
         m_rxBuffers.clearSegments();
-        m_outOfSeqBuffers.clearSegments();
+
+        if ( clearOutOfSeq)
+            m_outOfSeqBuffers.clearSegments();
 
         // Reset the load offset
         m_lastReadOffset = 0L;
@@ -828,6 +891,12 @@ public class StreamSegmentInfo extends MemorySegmentInfo {
 
         str.append("[Stream:rxbufs=");
         str.append(m_rxBuffers);
+
+        if ( m_outOfSeqBuffers != null) {
+            str.append(",outOfSeq=");
+            str.append(m_outOfSeqBuffers);
+        }
+
         str.append(",txbufs=");
         str.append(m_txBuffers);
         str.append(",len=");
