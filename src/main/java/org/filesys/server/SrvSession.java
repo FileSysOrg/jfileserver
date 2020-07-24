@@ -662,6 +662,13 @@ public abstract class SrvSession <T extends Enum<T>> {
         str.append(",proto=");
         str.append(getProtocolName());
 
+        InetAddress addr = getRemoteAddress();
+
+        if ( addr != null) {
+            str.append(",addr=");
+            str.append(addr);
+        }
+
         if ( isPersistentSession())
             str.append(" Persistent");
         if ( isDisconnectedSession())
