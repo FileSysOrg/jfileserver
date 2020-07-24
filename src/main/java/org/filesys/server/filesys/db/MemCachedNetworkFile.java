@@ -334,6 +334,18 @@ public abstract class MemCachedNetworkFile extends CachedNetworkFile {
                 if ( hasDebug())
                     Debug.println("MemCachedNetworkFile: Out of sequence read, fileOff=" + fileOff + ", len=" + len + ", rdlen=" + rdlen);
             }
+            else {
+
+                // DEBUG
+                if ( hasDebug())
+                    Debug.println("MemCachedNetworkFile: Out of sequence read failed, path=" + getFullName() + ", fileOff=" + fileOff + ", len=" + len);
+
+                // Set a load error on the file, subsequent reads will fail quicker
+                m_memFile.setLoadError( true);
+
+                // Indicate the file is offline
+                throw new FileOfflineException("Failed to load out of sequence file data " + " for " + getFullName());
+            }
         }
         else {
 
