@@ -281,9 +281,6 @@ public class MemoryBuffer {
         // Adjust the file offset to get the buffer offset
         int bufOffset = (int) (fileOff - getFileOffset());
 
-        // TEST
-        Debug.println("MemoryBuffer.writeBytes() fileOff=" + fileOff + ", len=" + len + ", bufOffset=" + bufOffset);
-
         // Check if we can write all the required data
         if (( fileOff + len) > endOffset)
             len = (int) (endOffset - fileOff);
@@ -295,9 +292,6 @@ public class MemoryBuffer {
         int usedLen = bufOffset + len;
         if ( usedLen > m_usedLen)
             m_usedLen = usedLen;
-
-        // TEST
-        Debug.println("MemoryBuffer: write len=" + len + ", usedLen=" + m_usedLen + ", bufSize=" + m_data.length);
 
         // Indicate the buffer has been written to
         setWrittenTo( true);
