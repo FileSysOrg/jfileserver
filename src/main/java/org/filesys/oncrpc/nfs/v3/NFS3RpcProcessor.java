@@ -112,9 +112,6 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
         RpcPacket response = null;
         NFS3.ProcedureId procId = NFS3.ProcedureId.fromInt( rpc.getProcedureId());
 
-        // TEST
-        nfsSess.debugPrintln("[NFS3] Received procedure id=" + procId.name());
-
         switch ( procId) {
 
             //	Null request
