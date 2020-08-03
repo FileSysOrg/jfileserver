@@ -81,7 +81,7 @@ public class DBDeviceContext extends DiskDeviceContext implements FileStateCache
     private boolean m_trashCan;
 
     // Retention period, milliseconds to add to current date/time value, or -1 to disable
-    private long m_retentionPeriod = -1;
+    private long m_retentionPeriod = -1L;
 
     // Root directory information
     private DBFileInfo m_rootInfo;
