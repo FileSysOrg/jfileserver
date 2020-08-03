@@ -103,7 +103,8 @@ public class SMBSrvSession extends SrvSession<SMBSrvSession.Dbg> implements Runn
 		COMPOUND,	// compound request handling
 		CANCEL,		// request cancel handling
 		SIGNING,	// request/response signing
-		ENCRYPTION	// Encryption/decryption
+		ENCRYPTION,	// Encryption/decryption
+		AUDIT		// Auditing
 	}
 	
 	// Server session object factory
