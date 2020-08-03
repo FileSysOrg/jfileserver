@@ -118,8 +118,9 @@ public abstract class NetworkFile {
     // Allowed file access (can be different to granted file access if read-only access was requested)
     protected Access m_allowedAccess = Access.READ_WRITE;
 
-    // Count of write requests to the file, used to determine if the file size may have changed
+    // Count of read/write requests to the file
     protected int m_writeCount;
+    protected int m_readCount;
 
     // List of locks on this file by this session. The lock object will almost certainly be
     // referenced elsewhere depending upon the LockManager implementation used. If locking support is not
@@ -259,7 +260,7 @@ public abstract class NetworkFile {
     }
 
     /**
-     * Return the access mask, from the oopen/create request
+     * Return the access mask, from the open/create request
      *
      * @return int
      */
@@ -527,6 +528,22 @@ public abstract class NetworkFile {
      */
     public final void incrementWriteCount() {
         m_writeCount++;
+    }
+
+    /**
+     * Get the read count for the file
+     *
+     * @return int
+     */
+    public final int getReadCount() {
+        return m_readCount;
+    }
+
+    /**
+     * Increment the read count
+     */
+    public final void incrementReadCount() {
+        m_readCount++;
     }
 
     /**
