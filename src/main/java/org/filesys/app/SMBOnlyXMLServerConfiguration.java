@@ -230,12 +230,27 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 
 			// Process the drive mappings settings
 			procDriveMappingsElement(findChildNode("DriveMappings", childNodes));
+
+			// Process any extension sections that may have been added to the configuration
+			procExtensions( childNodes);
 		}
 		catch (Exception ex) {
 
 			// Rethrow the exception as a configuration exception
 			throw new InvalidConfigurationException("XML error", ex);
 		}
+	}
+
+	/**
+	 * Process any extension sections that may have been added to the configuration
+	 *
+	 * @param nodeList NodeList
+	 * @exception InvalidConfigurationException Error parsing the configuration
+	 */
+	protected void procExtensions( NodeList nodeList)
+		throws InvalidConfigurationException {
+
+		// To be overridden
 	}
 
 	/**
