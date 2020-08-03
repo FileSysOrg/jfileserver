@@ -72,7 +72,6 @@ public class LogFileDebug extends DebugInterfaceBase {
         //	Open the output file and also redirect the standard output stream to it
         FileOutputStream fout = new FileOutputStream(fname, append);
         m_out = new PrintStream(fout);
-        System.setOut(m_out);
     }
 
     /**
@@ -133,5 +132,9 @@ public class LogFileDebug extends DebugInterfaceBase {
 
         //  Open the file
         open(logFile.getValue(), append);
+
+        // Check if the standard output stream should be redirected to the log file
+        if ( params.getChild( "redirectStdOut") != null)
+            System.setOut( m_out);
     }
 }
