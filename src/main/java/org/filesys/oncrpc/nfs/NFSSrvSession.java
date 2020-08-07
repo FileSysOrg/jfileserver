@@ -57,7 +57,8 @@ public class NFSSrvSession extends SrvSession<NFSSrvSession.Dbg> {
         DIRECTORY,  // Directory commands
         SESSION,    // Session creation/deletion
         SOCKET,     // Socket handling
-        THREADPOOL  // Thread pool
+        THREADPOOL, // Thread pool
+        COMPOUND    // Compound requests
     }
 
     //	Default and maximum number of search slots
@@ -108,7 +109,7 @@ public class NFSSrvSession extends SrvSession<NFSSrvSession.Dbg> {
      * @param nfsServer NFSServer
      * @param sessId int
      * @param protocolType Rpc.ProtocolId
-     * @param remAddr SocketAddress
+     * @param remAddr InetAddress
      * @return NFSSrvSession
      */
     public static NFSSrvSession createSession(RpcPacketHandler pktHandler, NFSServer nfsServer, int sessId, Rpc.ProtocolId protocolType,
@@ -162,18 +163,23 @@ public class NFSSrvSession extends SrvSession<NFSSrvSession.Dbg> {
     /**
      * Class constructor
      *
+     * @param sessId int
      * @param srv  NetworkServer
+     * @param pktHandler RpcPacketHandler
      * @param addr InetAddress
      * @param port int
      * @param type Rpc.ProtocolId
      */
-    public NFSSrvSession(NetworkServer srv, InetAddress addr, int port, Rpc.ProtocolId type) {
-        super(-1, srv, "NFS", null, NFSSrvSession.Dbg.class);
+    public NFSSrvSession(int sessId, NetworkServer srv, RpcPacketHandler pktHandler, InetAddress addr, int port, Rpc.ProtocolId type) {
+        super(sessId, srv, "NFS", null, NFSSrvSession.Dbg.class);
 
         //	Save the remote address/port and type
         m_remAddr = addr;
         m_remPort = port;
         m_type = type;
+
+        // Save the associated  packet handler
+        m_pktHandler = pktHandler;
 
         //	Create a unique id for the session from the remote address, port and type
         StringBuilder str = new StringBuilder();
