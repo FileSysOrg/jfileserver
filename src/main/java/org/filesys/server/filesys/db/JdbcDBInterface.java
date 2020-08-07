@@ -163,8 +163,8 @@ public abstract class JdbcDBInterface implements DBInterface, DBConnectionPoolLi
         EnumSet<Feature> supFeatures = getSupportedFeatures();
 
         //	Check if there are any unsupported features requested
-        for ( Feature curFeature : supFeatures)
-            if ( featureMask.contains( curFeature) == false)
+        for ( Feature curFeature : featureMask)
+            if ( supFeatures.contains( curFeature) == false)
             throw new DBException("Unsupported feature requested (" + curFeature.name() + ")");
 
         //	Set the requested features
