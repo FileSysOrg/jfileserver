@@ -40,13 +40,14 @@ public class DefaultServerSessionFactory implements SrvSessionFactory {
      * @return NFSSrvSession
      */
     public NFSSrvSession createSession(RpcPacketHandler pktHandler, NFSServer nfsServer, int sessId, Rpc.ProtocolId protocolType,
-                                              SocketAddress remAddr) {
+                                       SocketAddress remAddr) {
 
         // Make sure the socket address is the expected type
         if ( remAddr instanceof InetSocketAddress == false)
             throw new RuntimeException( "NFS session, socket address is not an InetSocketAddress");
 
         // Create a new NFS session
-        return new NFSSrvSession( sessId, nfsServer, pktHandler, (InetSocketAddress) remAddr, protocolType);
+        InetSocketAddress sockAddr = (InetSocketAddress) remAddr;
+        return new NFSSrvSession( sessId, nfsServer, pktHandler, sockAddr.getAddress(), sockAddr.getPort(), protocolType);
     }
 }
