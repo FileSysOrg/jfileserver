@@ -581,6 +581,16 @@ public class RpcPacket {
     }
 
     /**
+     * Pack an integer value at the specified buffer offset
+     *
+     * @param pos int
+     * @param ival int
+     */
+    public final void packIntAt(int pos, int ival) {
+        DataPacker.putInt(ival, m_buffer, pos);
+    }
+
+    /**
      * Pack a long value
      *
      * @param lval long
@@ -1045,6 +1055,16 @@ public class RpcPacket {
      */
     public final void setXID(int xid) {
         DataPacker.putInt(xid, m_buffer, m_offset);
+    }
+
+    /**
+     * Set the accept status for the RPC response
+     *
+     * @param acceptSts Rpc.AcceptSts
+     */
+    public final void setAcceptStatus(Rpc.AcceptSts acceptSts) {
+        int pos = DataPacker.getInt(m_buffer, 16) + 20;
+        DataPacker.putInt(acceptSts.intValue(), m_buffer, pos);
     }
 
     /**
