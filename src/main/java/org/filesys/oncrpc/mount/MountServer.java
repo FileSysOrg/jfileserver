@@ -20,6 +20,7 @@
 package org.filesys.oncrpc.mount;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
@@ -635,7 +636,8 @@ public class MountServer extends RpcNetworkServer implements RpcProcessor {
         Object sessKey = rpcAuth.authenticateRpcClient(rpc.getCredentialsType(), rpc);
 
         //	Create an NFS session for the request
-        NFSSrvSession nfsSess = new NFSSrvSession(this, rpc.getClientAddress(), rpc.getClientPort(), rpc.getClientProtocol());
+        NFSSrvSession nfsSess = NFSSrvSession.createSession( rpc.getPacketHandler(), null, 1, rpc.getClientProtocol(),
+                new InetSocketAddress( rpc.getClientAddress(), rpc.getClientPort()));
 
         //	Set the client information for the request
         nfsSess.setClientInformation(rpcAuth.getRpcClientInformation(sessKey, rpc));
