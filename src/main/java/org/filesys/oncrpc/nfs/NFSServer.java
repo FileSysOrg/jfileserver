@@ -20,6 +20,7 @@
 package org.filesys.oncrpc.nfs;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.Enumeration;
@@ -110,6 +111,9 @@ public class NFSServer extends RpcNetworkServer implements RpcProcessor {
     // Debug flags
     private EnumSet<NFSSrvSession.Dbg> m_debug;
 
+    // Server start time
+    private long m_srvStartTime;
+
     /**
      * Class constructor
      *
@@ -181,6 +185,13 @@ public class NFSServer extends RpcNetworkServer implements RpcProcessor {
     public final RpcPacketPool getPacketPool() { return m_packetPool; }
 
     /**
+     * Return the server start time
+     *
+     * @return long
+     */
+    public final long getServerStartTime() { return m_srvStartTime; }
+
+    /**
      * Set the port to use
      *
      * @param port int
@@ -214,6 +225,9 @@ public class NFSServer extends RpcNetworkServer implements RpcProcessor {
     public void startServer() {
 
         try {
+
+            // Set the server startup time
+            m_srvStartTime = System.currentTimeMillis();
 
             // Add the NFS v3 RPC processor
             RpcProcessorFactory.addRpcProcessorClass(NFS3.ProgramId, NFS3.VersionId, NFS3RpcProcessor.class);
@@ -546,7 +560,8 @@ public class NFSServer extends RpcNetworkServer implements RpcProcessor {
         if (sess == null) {
 
             //	Create a new session for the request
-            sess = new NFSSrvSession(this, rpc.getClientAddress(), rpc.getClientPort(), rpc.getClientProtocol());
+            InetSocketAddress clientAddr = new InetSocketAddress( rpc.getClientAddress(), rpc.getClientPort());
+            sess = NFSSrvSession.createSession(rpc.getPacketHandler(), this, getNextSessionId(), rpc.getClientProtocol(), clientAddr);
             sess.setAuthIdentifier(sessKey);
 
             //	Get the client information from the RPC
@@ -595,7 +610,8 @@ public class NFSServer extends RpcNetworkServer implements RpcProcessor {
         if (sess == null) {
 
             //	Create a new session for the request
-            sess = new NFSSrvSession(this, rpc.getClientAddress(), rpc.getClientPort(), rpc.getClientProtocol());
+            InetSocketAddress clientAddr = new InetSocketAddress( rpc.getClientAddress(), rpc.getClientPort());
+            sess = NFSSrvSession.createSession(rpc.getPacketHandler(), this, getNextSessionId(), rpc.getClientProtocol(), clientAddr);
             sess.setAuthIdentifier(sessKey);
 
             //	Set the session id and debug output prefix
