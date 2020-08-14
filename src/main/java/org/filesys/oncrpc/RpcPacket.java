@@ -552,6 +552,16 @@ public class RpcPacket {
     }
 
     /**
+     * Pack a boolean
+     *
+     * @param bval boolean
+     */
+    public final void packBoolean( boolean bval) {
+        DataPacker.putInt( bval ? 1 : 0, m_buffer, m_pos);
+        m_pos += 4;
+    }
+
+    /**
      * Pack a byte value
      *
      * @param bval int
@@ -568,6 +578,16 @@ public class RpcPacket {
     public final void packNulls(int len) {
         for (int i = 0; i < len; i++)
             m_buffer[m_pos++] = (byte) 0;
+    }
+
+    /**
+     * Pack a short value
+     *
+     * @param sval int
+     */
+    public final void packShort(int sval) {
+        DataPacker.putShort( sval, m_buffer, m_pos);
+        m_pos += 2;
     }
 
     /**
@@ -688,6 +708,37 @@ public class RpcPacket {
         DataPacker.putInt(portMap.getPort(), m_buffer, m_pos + 12);
 
         m_pos += 16;
+    }
+
+    /**
+     * Unpack a boolean value
+     *
+     * @return boolean
+     */
+    public final boolean unpackBoolean() {
+        int val = DataPacker.getInt(m_buffer, m_pos);
+        m_pos += 4;
+        return val != 0 ? true : false;
+    }
+
+    /**
+     * Unpack a byte value
+     *
+     * @return int
+     */
+    public final int unpackByte() {
+        return (int) m_buffer[m_pos++];
+    }
+
+    /**
+     * Unpack a short value
+     *
+     * @return int
+     */
+    public final int unpackShort() {
+        int val = DataPacker.getShort(m_buffer, m_pos);
+        m_pos += 2;
+        return val;
     }
 
     /**
