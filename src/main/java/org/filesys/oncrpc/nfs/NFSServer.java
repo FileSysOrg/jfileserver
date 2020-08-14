@@ -81,10 +81,10 @@ public class NFSServer extends RpcNetworkServer implements RpcProcessor {
     private NFSConnectionsHandler m_nioTcpHandler;
 
     //	Share details hash
-    private ShareDetailsHash m_shareDetails;
+    protected ShareDetailsHash m_shareDetails;
 
     //	Tree connection hash
-    private TreeConnectionHash m_connections;
+    protected TreeConnectionHash m_connections;
 
     //	Session tables for the various authentication types
     private NFSSessionTable m_sessAuthNull;

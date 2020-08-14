@@ -34,6 +34,9 @@ public class ShareDetailsHash {
     //	Share name hash to share details
     private Hashtable<Integer, ShareDetails> m_details;
 
+    // Time of the last update
+    private long m_updateTime;
+
     /**
      * Class constructor
      */
@@ -42,11 +45,19 @@ public class ShareDetailsHash {
     }
 
     /**
+     * Return the time of the last update
+     *
+     * @return long
+     */
+    public final long updatedAt() { return m_updateTime; }
+
+    /**
      * Add share details to the list of available shares
      *
      * @param details ShareDetails
      */
     public final void addDetails(ShareDetails details) {
+        m_updateTime = System.currentTimeMillis();
         m_details.put(new Integer(details.getName().hashCode()), details);
     }
 
@@ -57,6 +68,7 @@ public class ShareDetailsHash {
      * @return ShareDetails
      */
     public final ShareDetails deleteDetails(String shareName) {
+        m_updateTime = System.currentTimeMillis();
         return m_details.get(new Integer(shareName.hashCode()));
     }
 
