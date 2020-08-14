@@ -503,8 +503,11 @@ public class FileServer implements ServerListener {
 	protected NetworkServer createFTPServer(ServerConfiguration config)
 		throws Exception {
 
+		// Get the FTP server class name
+		String ftpSrvClass = getFTPServerClass();
+
 		// Create the FTP server instance
-		return createServer("org.filesys.ftp.FTPServer", config);
+		return createServer(ftpSrvClass, config);
 	}
 
 	/**
@@ -517,8 +520,11 @@ public class FileServer implements ServerListener {
 	protected NetworkServer createNFSServer(ServerConfiguration config)
 		throws Exception {
 
+		// Get the NFS server class
+		String nfsSrvClass = getNFSServerClass();
+
 		// Create the NFS server instance
-		return createServer("org.filesys.oncrpc.nfs.NFSServer", config);
+		return createServer(nfsSrvClass, config);
 	}
 
 	/**
@@ -531,8 +537,11 @@ public class FileServer implements ServerListener {
 	protected NetworkServer createNFSMountServer(ServerConfiguration config)
 		throws Exception {
 
+		// Get the mount server class name
+		String mountSrvClass = getNFSMountServerClass();
+
 		// Create the mount server instance
-		return createServer("org.filesys.oncrpc.mount.MountServer", config);
+		return createServer(mountSrvClass, config);
 	}
 
 	/**
@@ -545,8 +554,11 @@ public class FileServer implements ServerListener {
 	protected NetworkServer createNFSPortMapper(ServerConfiguration config)
 		throws Exception {
 
+		// Get the portmapper class name
+		String portMapperSrvClass = getNFSPortMapperClass();
+
 		// Create the port mapper server instance
-		return createServer("org.filesys.oncrpc.portmap.PortMapperServer", config);
+		return createServer(portMapperSrvClass, config);
 	}
 
 	/**
@@ -732,5 +744,41 @@ public class FileServer implements ServerListener {
 				}
 			}
 		}
+	}
+
+	/**
+	 * Get the FTP server class name
+	 *
+	 * @return String
+	 */
+	protected String getFTPServerClass() {
+		return "org.filesys.ftp.FTPServer";
+	}
+
+	/**
+	 * Get the NFS server class name
+	 *
+	 * @return String
+	 */
+	protected String getNFSServerClass() {
+		return "org.filesys.oncrpc.nfs.NFSServer";
+	}
+
+	/**
+	 * Get the NFS mount server class name
+	 *
+	 * @return String
+	 */
+	protected String getNFSMountServerClass() {
+		return "org.filesys.oncrpc.mount.MountServer";
+	}
+
+	/**
+	 * Get the NFS portmapper server class name
+	 *
+	 * @return String
+	 */
+	protected String getNFSPortMapperClass() {
+		return "org.filesys.oncrpc.portmap.PortMapperServer";
 	}
 }
