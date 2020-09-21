@@ -27,10 +27,7 @@ import org.filesys.server.config.CoreServerConfigSection;
 import org.filesys.server.config.InvalidConfigurationException;
 import org.filesys.server.config.ServerConfiguration;
 import org.filesys.server.core.DeviceContextException;
-import org.filesys.server.filesys.DiskDeviceContext;
-import org.filesys.server.filesys.DiskSharedDevice;
-import org.filesys.server.filesys.FileAttribute;
-import org.filesys.server.filesys.FileSystem;
+import org.filesys.server.filesys.*;
 import org.filesys.server.filesys.cache.FileState;
 import org.filesys.server.filesys.cache.FileStateCacheListener;
 import org.filesys.server.filesys.cache.FileStateLockManager;
@@ -321,6 +318,7 @@ public class DBDeviceContext extends DiskDeviceContext implements FileStateCache
         m_rootInfo = new DBFileInfo("\\", "\\", 0, 0);
 
         m_rootInfo.setFileAttributes(FileAttribute.Directory);
+        m_rootInfo.setFileType(FileType.Directory);
         m_rootInfo.setMode(DBDiskDriver.DefaultNFSDirMode);
 
         m_rootInfo.setGid(0);
