@@ -58,7 +58,8 @@ public class NFSSrvSession extends SrvSession<NFSSrvSession.Dbg> {
         SESSION,    // Session creation/deletion
         SOCKET,     // Socket handling
         THREADPOOL, // Thread pool
-        COMPOUND    // Compound requests
+        COMPOUND,   // Compound requests
+        RPC         // RPC processing
     }
 
     //	Default and maximum number of search slots
