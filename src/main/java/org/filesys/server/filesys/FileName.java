@@ -30,12 +30,12 @@ import java.util.StringTokenizer;
  */
 public final class FileName {
 
-    //	DOS file name seperator
+    //	DOS file name separator
     public static final char DOS_SEPERATOR          = '\\';
     public static final String DOS_SEPERATOR_STR    = "\\";
 
-    //	NTFS Stream seperator
-    public static final String NTFSStreamSeperator = ":";
+    //	NTFS Stream separator
+    public static final String NTFSStreamseparator = ":";
 
     // Data stream names
     public static final String MainDataStreamName   = "::$DATA";
@@ -79,7 +79,7 @@ public final class FileName {
             //  Add the device name
             fullPath.append(dev);
 
-            //  Check if the device name has a file seperator
+            //  Check if the device name has a file separator
             if (dev.length() > 0 && dev.charAt(dev.length() - 1) != sep)
                 fullPath.append(sep);
         }
@@ -95,7 +95,7 @@ public final class FileName {
             else
                 fullPath.append(path);
 
-            //  Add a trailing seperator, if required
+            //  Add a trailing separator, if required
             if (path.length() > 0
                     && path.charAt(path.length() - 1) != sep
                     && filename != null)
@@ -117,34 +117,34 @@ public final class FileName {
         //  Debug
         //  Debug.println ( "BuildPath: " + fullPath.toString ());
 
-        //  Convert the file seperator characters in the path if we are not using the normal
-        //  DOS file seperator character.
+        //  Convert the file separator characters in the path if we are not using the normal
+        //  DOS file separator character.
         if (sep != DOS_SEPERATOR)
-            return convertSeperators(fullPath.toString(), sep);
+            return convertseparators(fullPath.toString(), sep);
         return fullPath.toString();
     }
 
     /**
-     * Convert the file seperators in a path to the specified path seperator character.
+     * Convert the file separators in a path to the specified path separator character.
      *
      * @param path java.lang.String
      * @param sep  char
      * @return java.lang.String
      */
-    public static String convertSeperators(String path, char sep) {
+    public static String convertseparators(String path, char sep) {
 
-        //  Check if the path contains any DOS seperators
+        //  Check if the path contains any DOS separators
         if (path.indexOf(DOS_SEPERATOR) == -1)
             return path;
 
-        //  Convert DOS path seperators to the specified seperator
+        //  Convert DOS path separators to the specified separator
         StringBuffer newPath = new StringBuffer();
         int idx = 0;
 
         while (idx < path.length()) {
 
             //  Get the current character from the path and check if it is a DOS path
-            //  seperator character.
+            //  separator character.
             char ch = path.charAt(idx++);
             if (ch == DOS_SEPERATOR)
                 newPath.append(sep);
@@ -327,12 +327,12 @@ public final class FileName {
      */
     public final static String removeFileName(String path) {
 
-        //  Find the last path seperator
+        //  Find the last path separator
         int pos = path.lastIndexOf(DOS_SEPERATOR);
         if (pos != -1)
             return path.substring(0, pos);
 
-        //  Return an empty string, no path seperators
+        //  Return an empty string, no path separators
         return "";
     }
 
@@ -344,7 +344,7 @@ public final class FileName {
      */
     public final static String getFileNamePart(String path) {
 
-        // Check if the path has a trailing path seperator
+        // Check if the path has a trailing path separator
         String fnamePart = "";
 
         if ( path.length() > 1 && path.endsWith( DOS_SEPERATOR_STR))
@@ -357,6 +357,27 @@ public final class FileName {
         return fnamePart;
     }
 
+    /**
+     * Return the parent path
+     *
+     * @param path String
+     * @return String
+     */
+    public final static String getParentPath(String path) {
+
+        // Check for a trailing separator
+        if ( path.length() > 1 && path.endsWith( DOS_SEPERATOR_STR))
+            path = path.substring( 0, path.length() - 1);
+
+        //  Find the last path separator
+        int pos = path.lastIndexOf(DOS_SEPERATOR);
+        if (pos != -1)
+            return path.substring(0, pos);
+
+        //  Return an empty string, no path separators
+        return "";
+    }
+    
     /**
      * Split the path into seperate directory path and file name strings.
      *
@@ -371,7 +392,7 @@ public final class FileName {
      * Split the path into seperate directory path and file name strings.
      *
      * @param path Full path string.
-     * @param sep  Path seperator character.
+     * @param sep  Path separator character.
      * @return String[] String[0] contains the folder String[1] contains the filename
      */
     public static String[] splitPath(String path, char sep) {
@@ -382,7 +403,7 @@ public final class FileName {
      * Split the path into seperate directory path and file name strings.
      *
      * @param path Full path string.
-     * @param sep  Path seperator character.
+     * @param sep  Path separator character.
      * @param list String list to return values in, or null to allocate
      * @return String[]
      */
@@ -396,7 +417,7 @@ public final class FileName {
         //  Check if the path is valid
         if (path != null && path.length() > 0) {
 
-            //  Check if the path has a trailing seperator, if so then there is no
+            //  Check if the path has a trailing separator, if so then there is no
             //  file name.
             int pos = path.lastIndexOf(sep);
 
@@ -471,7 +492,7 @@ public final class FileName {
             return pathStr;
 
         //	Split the file name into file and stream names
-        int pos = pathStr[1].indexOf(NTFSStreamSeperator);
+        int pos = pathStr[1].indexOf(NTFSStreamseparator);
 
         if (pos != -1) {
 
@@ -492,8 +513,8 @@ public final class FileName {
      */
     public static boolean containsStreamName(String path) {
 
-        //	Check if the path contains the stream name seperator character
-        if (path.indexOf(NTFSStreamSeperator) != -1)
+        //	Check if the path contains the stream name separator character
+        if (path.indexOf(NTFSStreamseparator) != -1)
             return true;
         return false;
     }
@@ -541,7 +562,7 @@ public final class FileName {
         //	Check if the base path is the root path
         if (basePath.length() == 0 || basePath.equals(DOS_SEPERATOR_STR)) {
 
-            //	Return the full path, strip any leading seperator
+            //	Return the full path, strip any leading separator
             if (fullPath.length() > 0 && fullPath.charAt(0) == DOS_SEPERATOR)
                 return fullPath.substring(1);
             return fullPath;
@@ -589,7 +610,7 @@ public final class FileName {
             return null;
 
         // Find the stream name within the path
-        int idx = streamPath.indexOf(NTFSStreamSeperator);
+        int idx = streamPath.indexOf(NTFSStreamseparator);
         if (idx == -1)
             return streamPath;
 
