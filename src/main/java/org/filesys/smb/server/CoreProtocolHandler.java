@@ -21,6 +21,7 @@
 package org.filesys.smb.server;
 
 import java.io.IOException;
+import java.util.EnumSet;
 
 import org.filesys.debug.Debug;
 import org.filesys.netbios.RFCNetBIOSProtocol;
@@ -2472,7 +2473,8 @@ class CoreProtocolHandler extends ProtocolHandler {
 
         // Get the file attributes
         int fattr = parser.getParameter(0);
-        int setFlags = FileInfo.SetAttributes;
+        EnumSet<FileInfo.Set> setFlags = EnumSet.noneOf( FileInfo.Set.class);
+        setFlags.add(FileInfo.Set.Attributes);
 
         FileInfo finfo = new FileInfo(fileName, 0, fattr);
 
@@ -2481,7 +2483,7 @@ class CoreProtocolHandler extends ProtocolHandler {
 
         if (fdate != 0 && ftime != 0) {
             finfo.setModifyDateTime(new SMBDate(fdate, ftime).getTime());
-            setFlags += FileInfo.SetModifyDate;
+            setFlags.add(FileInfo.Set.ModifyDate);
         }
 
         // Debug
@@ -2568,7 +2570,7 @@ class CoreProtocolHandler extends ProtocolHandler {
         }
 
         // Get the creation date/time from the request
-        int setFlags = 0;
+        EnumSet<FileInfo.Set> setFlags = EnumSet.noneOf( FileInfo.Set.class);
         FileInfo finfo = new FileInfo(netFile.getName(), 0, 0);
 
         int fdate = parser.getParameter(1);
@@ -2576,7 +2578,7 @@ class CoreProtocolHandler extends ProtocolHandler {
 
         if (fdate != 0 && ftime != 0) {
             finfo.setCreationDateTime(new SMBDate(fdate, ftime).getTime());
-            setFlags += FileInfo.SetCreationDate;
+            setFlags.add( FileInfo.Set.CreationDate);
         }
 
         // Get the last access date/time from the request
@@ -2585,7 +2587,7 @@ class CoreProtocolHandler extends ProtocolHandler {
 
         if (fdate != 0 && ftime != 0) {
             finfo.setAccessDateTime(new SMBDate(fdate, ftime).getTime());
-            setFlags += FileInfo.SetAccessDate;
+            setFlags.add( FileInfo.Set.AccessDate);
         }
 
         // Get the last write date/time from the request
@@ -2594,7 +2596,7 @@ class CoreProtocolHandler extends ProtocolHandler {
 
         if (fdate != 0 && ftime != 0) {
             finfo.setModifyDateTime(new SMBDate(fdate, ftime).getTime());
-            setFlags += FileInfo.SetModifyDate;
+            setFlags.add( FileInfo.Set.ModifyDate);
         }
 
         // Debug

@@ -1015,7 +1015,7 @@ public abstract class JdbcDBInterface implements DBInterface, DBConnectionPoolLi
 
                                 //  Create the set file information details to set the file size
                                 FileInfo fInfo = new FileInfo("", 0L, 0);
-                                fInfo.setFileInformationFlags(FileInfo.SetFileSize);
+                                fInfo.setFileInformationFlags( EnumSet.of( FileInfo.Set.FileSize));
                                 fInfo.setFileId(singleReq.getFileId());
                                 fInfo.setFileSize(tempFile.length());
 

@@ -799,7 +799,7 @@ public class JavaFileDiskDriver implements DiskInterface {
             throws IOException {
 
         //	Check if the modify date/time should be updated
-        if (info.hasSetFlag(FileInfo.SetModifyDate)) {
+        if (info.hasSetFlag(FileInfo.Set.ModifyDate)) {
 
             //	Build the path to the file
             DeviceContext ctx = tree.getContext();

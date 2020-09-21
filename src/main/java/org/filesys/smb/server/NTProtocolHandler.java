@@ -23,6 +23,7 @@ package org.filesys.smb.server;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.sql.Time;
+import java.util.EnumSet;
 import java.util.Set;
 
 import org.filesys.debug.Debug;
@@ -3882,7 +3883,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                 case FileInfoLevel.NTFileBasicInfo:
 
                     // Create the file information template
-                    int setFlags = 0;
+                    EnumSet<FileInfo.Set> setFlags = EnumSet.noneOf( FileInfo.Set.class);
                     finfo = new FileInfo(netFile.getFullName(), 0, -1);
 
                     // Set the creation date/time, if specified
@@ -3894,7 +3895,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                     if (nttim != 0L) {
                         if (nttim != -1L) {
                             finfo.setCreationDateTime(NTTime.toJavaDate(nttim));
-                            setFlags += FileInfo.SetCreationDate;
+                            setFlags.add( FileInfo.Set.CreationDate);
                         }
                         hasSetTime = true;
                     }
@@ -3905,12 +3906,11 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                     if (nttim != 0L) {
                         if (nttim != -1L) {
                             finfo.setAccessDateTime(NTTime.toJavaDate(nttim));
-                            setFlags += FileInfo.SetAccessDate;
                         }
                         else {
                             finfo.setAccessDateTime(timeNow);
-                            setFlags += FileInfo.SetAccessDate;
                         }
+                        setFlags.add( FileInfo.Set.AccessDate);
                         hasSetTime = true;
                     }
 
@@ -3920,12 +3920,11 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                     if (nttim > 0L) {
                         if (nttim != -1L) {
                             finfo.setModifyDateTime(NTTime.toJavaDate(nttim));
-                            setFlags += FileInfo.SetModifyDate;
                         }
                         else {
                             finfo.setModifyDateTime(timeNow);
-                            setFlags += FileInfo.SetModifyDate;
                         }
+                        setFlags.add( FileInfo.Set.ModifyDate);
                         hasSetTime = true;
                     }
 
@@ -3935,7 +3934,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                     if (nttim > 0L) {
                         if (nttim != -1L) {
                             finfo.setChangeDateTime(NTTime.toJavaDate(nttim));
-                            setFlags += FileInfo.SetChangeDate;
+                            setFlags.add( FileInfo.Set.ChangeDate);
                         }
                         hasSetTime = true;
                     }
@@ -3946,7 +3945,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
 
                     if (hasSetTime == false && unknown == 0) {
                         finfo.setFileAttributes(attr);
-                        setFlags += FileInfo.SetAttributes;
+                        setFlags.add( FileInfo.Set.Attributes);
                     }
 
                     // Store the associated network file in the file information object
@@ -3959,8 +3958,8 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                     // Debug
                     if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.INFO))
                         m_sess.debugPrintln("  Set Basic Info [" + treeId + "] name=" + netFile.getFullName() + ", attr=0x"
-                                + Integer.toHexString(attr) + ", setTime=" + hasSetTime + ", setFlags=0x"
-                                + Integer.toHexString(setFlags) + ", unknown=" + unknown);
+                                + Integer.toHexString(attr) + ", setTime=" + hasSetTime + ", setFlags="
+                                + setFlags + ", unknown=" + unknown);
                     break;
 
                 // Set end of file position for a file
@@ -4093,7 +4092,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                     // Call the filesystem driver set file information to see if the file can be marked for delete.
                     FileInfo delInfo = new FileInfo();
                     delInfo.setDeleteOnClose(delFlag);
-                    delInfo.setFileInformationFlags(FileInfo.SetDeleteOnClose);
+                    delInfo.setFileInformationFlags( EnumSet.of( FileInfo.Set.DeleteOnClose));
 
                     disk.setFileInformation(m_sess, conn, netFile.getFullName(), delInfo);
 
@@ -4139,11 +4138,11 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                 if (finfo != null) {
 
                     // File attributes changed
-                    if (finfo.hasSetFlag(FileInfo.SetAttributes))
+                    if (finfo.hasSetFlag(FileInfo.Set.Attributes))
                         changeHandler.notifyAttributesChanged(netFile.getFullName(), netFile.isDirectory());
 
                     // Last write time changed
-                    if (finfo.hasSetFlag(FileInfo.SetModifyDate))
+                    if (finfo.hasSetFlag(FileInfo.Set.ModifyDate))
                         changeHandler.notifyLastWriteTimeChanged(netFile.getFullName(), netFile.isDirectory());
                 }
                 else if (infoLevl == FileInfoLevel.SetAllocationInfo || infoLevl == FileInfoLevel.SetEndOfFileInfo) {
@@ -4263,7 +4262,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
             DataBuffer dataBuf = tbuf.getDataBuffer();
             FileInfo finfo = null;
 
-            int setFlags = 0;
+            EnumSet<FileInfo.Set> setFlags = EnumSet.noneOf( FileInfo.Set.class);
             int attr = 0;
 
             switch (infoLevl) {
@@ -4282,7 +4281,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
 
                     if (smbDate != 0 && smbTime != 0) {
                         finfo.setCreationDateTime(new SMBDate(smbDate, smbTime).getTime());
-                        setFlags += FileInfo.SetCreationDate;
+                        setFlags.add( FileInfo.Set.CreationDate);
                         hasSetTime = true;
                     }
 
@@ -4292,7 +4291,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
 
                     if (smbDate != 0 && smbTime != 0) {
                         finfo.setAccessDateTime(new SMBDate(smbDate, smbTime).getTime());
-                        setFlags += FileInfo.SetAccessDate;
+                        setFlags.add( FileInfo.Set.AccessDate);
                         hasSetTime = true;
                     }
 
@@ -4302,7 +4301,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
 
                     if (smbDate != 0 && smbTime != 0) {
                         finfo.setModifyDateTime(new SMBDate(smbDate, smbTime).getTime());
-                        setFlags += FileInfo.SetModifyDate;
+                        setFlags.add( FileInfo.Set.ModifyDate);
                         hasSetTime = true;
                     }
 
@@ -4310,13 +4309,13 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                     int fileSize = dataBuf.getInt();
                     if (fileSize != 0) {
                         finfo.setFileSize(fileSize);
-                        setFlags += FileInfo.SetFileSize;
+                        setFlags.add( FileInfo.Set.FileSize);
                     }
 
                     fileSize = dataBuf.getInt();
                     if (fileSize != 0) {
                         finfo.setAllocationSize(fileSize);
-                        setFlags += FileInfo.SetAllocationSize;
+                        setFlags.add( FileInfo.Set.AllocationSize);
                     }
 
                     // Set the attributes
@@ -4325,7 +4324,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
 
                     if (hasSetTime == false && eaListLen == 0) {
                         finfo.setFileAttributes(attr);
-                        setFlags += FileInfo.SetAttributes;
+                        setFlags.add( FileInfo.Set.Attributes);
                     }
 
                     // Set the file information for the specified file/directory
@@ -4335,8 +4334,8 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                     // Debug
                     if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.INFO))
                         m_sess.debugPrintln("  Set Standard Info [" + treeId + "] name=" + path + ", attr=0x"
-                                + Integer.toHexString(attr) + ", setTime=" + hasSetTime + ", setFlags=0x"
-                                + Integer.toHexString(setFlags) + ", eaListLen=" + eaListLen);
+                                + Integer.toHexString(attr) + ", setTime=" + hasSetTime + ", setFlags="
+                                + setFlags + ", eaListLen=" + eaListLen);
                     break;
 
                 // Set basic file information (dates/attributes)
@@ -4350,7 +4349,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
 
                     if (dateTime != 0L) {
                         finfo.setCreationDateTime(dateTime);
-                        setFlags += FileInfo.SetCreationDate;
+                        setFlags.add( FileInfo.Set.CreationDate);
                     }
 
                     // Set the last access date/time, if specified
@@ -4358,7 +4357,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
 
                     if (dateTime != 0L) {
                         finfo.setAccessDateTime(dateTime);
-                        setFlags += FileInfo.SetAccessDate;
+                        setFlags.add( FileInfo.Set.AccessDate);
                     }
 
                     // Set the last write date/time, if specified
@@ -4366,7 +4365,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
 
                     if (dateTime != 0L) {
                         finfo.setModifyDateTime(dateTime);
-                        setFlags += FileInfo.SetModifyDate;
+                        setFlags.add( FileInfo.Set.ModifyDate);
                     }
 
                     // Set the change write date/time, if specified
@@ -4374,7 +4373,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
 
                     if (dateTime != 0L) {
                         finfo.setChangeDateTime(dateTime);
-                        setFlags += FileInfo.SetChangeDate;
+                        setFlags.add( FileInfo.Set.ChangeDate);
                     }
 
                     // Set the attributes
@@ -4382,7 +4381,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
 
                     if (attr != 0) {
                         finfo.setFileAttributes(attr);
-                        setFlags += FileInfo.SetAttributes;
+                        setFlags.add( FileInfo.Set.Attributes);
                     }
 
                     // Set the file information for the specified file/directory
@@ -4392,7 +4391,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                     // Debug
                     if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.INFO))
                         m_sess.debugPrintln("  Set Basic Info [" + treeId + "] name=" + path + ", attr=0x"
-                                + Integer.toHexString(attr) + ", setFlags=0x" + Integer.toHexString(setFlags));
+                                + Integer.toHexString(attr) + ", setFlags=" + setFlags);
                     break;
             }
 
@@ -4430,11 +4429,11 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                     FileStatus fileSts = disk.fileExists(m_sess, conn, path);
 
                     // File attributes changed
-                    if (finfo.hasSetFlag(FileInfo.SetAttributes))
+                    if (finfo.hasSetFlag(FileInfo.Set.Attributes))
                         changeHandler.notifyAttributesChanged(path, fileSts == FileStatus.DirectoryExists ? true : false);
 
                     // Last write time changed
-                    if (finfo.hasSetFlag(FileInfo.SetModifyDate))
+                    if (finfo.hasSetFlag(FileInfo.Set.ModifyDate))
                         changeHandler.notifyLastWriteTimeChanged(path, fileSts == FileStatus.DirectoryExists ? true : false);
                 }
             }

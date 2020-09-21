@@ -20,6 +20,7 @@
 package org.filesys.server.filesys;
 
 import java.util.Date;
+import java.util.EnumSet;
 
 import org.filesys.smb.SMBDate;
 
@@ -39,23 +40,25 @@ public class FileInfo {
 
 	// Constants
 	//
-	// Set file information flags
-	public static final int SetFileSize			= 0x0001;
-	public static final int SetAllocationSize 	= 0x0002;
-	public static final int SetAttributes		= 0x0004;
-	public static final int SetModifyDate		= 0x0008;
-	public static final int SetCreationDate		= 0x0010;
-	public static final int SetAccessDate		= 0x0020;
-	public static final int SetChangeDate		= 0x0040;
-	public static final int SetGid				= 0x0080;
-	public static final int SetUid				= 0x0100;
-	public static final int SetMode				= 0x0200;
-	public static final int SetDeleteOnClose 	= 0x0400;
-
 	// State flags
 	public static final int FlagDeleteOnClose	= 0x0001;
 	public static final int FlagPseudoFile		= 0x0002;
-	
+
+	// Set information flags
+	public enum Set {
+		FileSize,
+		AllocationSize,
+		Attributes,
+		ModifyDate,
+		CreationDate,
+		AccessDate,
+		ChangeDate,
+		GID,
+		UID,
+		Mode,
+		DeleteOnClose
+	}
+
 	// File name string
 	protected String m_name;
 
@@ -109,7 +112,7 @@ public class FileInfo {
 	//
 	// Used to indicate which values in the file information object are valid and should be used to
 	// set the file information.
-	private int m_setFlags;
+	private EnumSet<Set> m_setFlags;
 
 	// Network file object, used when a set information call uses the file id/handle
 	private NetworkFile m_netFile;
@@ -879,30 +882,28 @@ public class FileInfo {
 	/**
 	 * Set the set file information flags to indicated which values are to be set
 	 *
-	 * @param setFlags int
+	 * @param setFlags EnumSet&lt;Set&gt;
 	 */
-	public final void setFileInformationFlags(int setFlags) {
+	public final void setFileInformationFlags( EnumSet<Set> setFlags) {
 		m_setFlags = setFlags;
 	}
 
 	/**
 	 * Determine if the specified set file information flags is enabled
 	 *
-	 * @param flag int
+	 * @param flag FileInfo.Set
 	 * @return boolean
 	 */
-	public final boolean hasSetFlag(int flag) {
-		if ((m_setFlags & flag) != 0)
-			return true;
-		return false;
+	public final boolean hasSetFlag(FileInfo.Set flag) {
+		return m_setFlags != null && m_setFlags.contains( flag);
 	}
 
 	/**
 	 * Return the set file information flags
 	 *
-	 * @return int
+	 * @return EnumSet&lt;Set&gt;
 	 */
-	public final int getSetFileInformationFlags() {
+	public final EnumSet<Set> getSetFileInformationFlags() {
 		return m_setFlags;
 	}
 
@@ -940,43 +941,6 @@ public class FileInfo {
 	 */
 	protected final int getFileFlags() {
 		return m_flags;
-	}
-
-	/**
-	 * Return the setter flags as a string
-	 *
-	 * @return String
-	 */
-	public final String getSetFileInformationFlagsString() {
-		StringBuilder str = new StringBuilder();
-
-		if (hasSetFlag(SetFileSize))
-			str.append("Size,");
-		if (hasSetFlag(SetAllocationSize))
-			str.append("Alloc,");
-		if (hasSetFlag(SetAttributes))
-			str.append("Attr,");
-		if (hasSetFlag(SetModifyDate))
-			str.append("Modify,");
-		if (hasSetFlag(SetCreationDate))
-			str.append("Create,");
-		if (hasSetFlag(SetAccessDate))
-			str.append("Access,");
-		if (hasSetFlag(SetChangeDate))
-			str.append("Change,");
-		if (hasSetFlag(SetGid))
-			str.append("GID,");
-		if (hasSetFlag(SetUid))
-			str.append("UID,");
-		if (hasSetFlag(SetMode))
-			str.append("Mode,");
-		if (hasSetFlag(SetDeleteOnClose))
-			str.append("Delete,");
-
-		if (str.length() > 0)
-			str.setLength(str.length() - 1);
-
-		return str.toString();
 	}
 
 	/**

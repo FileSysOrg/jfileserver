@@ -30,6 +30,7 @@ import org.filesys.util.HexDump;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.EnumSet;
 
 /**
  * NFS v3 RPC Processor Class
@@ -421,7 +422,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             FileInfo oldInfo = disk.getFileInformation(nfsSess, conn, path);
 
             //	Get the values to be set for the file/folder
-            int setFlags = 0;
+            EnumSet<FileInfo.Set> setFlags = EnumSet.noneOf( FileInfo.Set.class);
             int gid = -1;
             int uid = -1;
             int mode = -1;
@@ -432,25 +433,25 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             //	Check if the file mode has been specified
             if (rpc.unpackInt() == Rpc.True) {
                 mode = rpc.unpackInt();
-                setFlags += FileInfo.SetMode;
+                setFlags.add( FileInfo.Set.Mode);
             }
 
             //	Check if the file owner uid has been specified
             if (rpc.unpackInt() == Rpc.True) {
                 uid = rpc.unpackInt();
-                setFlags += FileInfo.SetUid;
+                setFlags.add( FileInfo.Set.UID);
             }
 
             //	Check if the file group gid has been specified
             if (rpc.unpackInt() == Rpc.True) {
                 gid = rpc.unpackInt();
-                setFlags += FileInfo.SetGid;
+                setFlags.add( FileInfo.Set.GID);
             }
 
             //	Check if a new file size has been specified
             if (rpc.unpackInt() == Rpc.True) {
                 fsize = rpc.unpackLong();
-                setFlags += FileInfo.SetFileSize;
+                setFlags.add( FileInfo.Set.FileSize);
             }
 
             //	Check if the access date/time should be set. It may be set to a client specified time
@@ -467,10 +468,10 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
                 }
                 atime *= 1000L;
                 rpc.skipBytes(4);        //	nanoseconds
-                setFlags += FileInfo.SetAccessDate;
+                setFlags.add( FileInfo.Set.AccessDate);
             } else if (setTime == NFS3.SetAttrTimestamp.TimeServer) {
                 atime = System.currentTimeMillis();
-                setFlags += FileInfo.SetAccessDate;
+                setFlags.add( FileInfo.Set.AccessDate);
             }
 
             //	Check if the modify date/time should be set. It may be set to a client specified time
@@ -488,14 +489,14 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
                 mtime = (long) rpc.unpackInt();
                 mtime *= 1000L;
                 rpc.skipBytes(4);        //	nanoseconds
-                setFlags += FileInfo.SetModifyDate;
+                setFlags.add( FileInfo.Set.ModifyDate);
             } else if (setTime == NFS3.SetAttrTimestamp.TimeServer) {
                 mtime = System.currentTimeMillis();
-                setFlags += FileInfo.SetModifyDate;
+                setFlags.add( FileInfo.Set.ModifyDate);
             }
 
             //	Check if any of the file times should be updated
-            if (setFlags != 0) {
+            if (setFlags.size() > 0) {
 
                 //	Set the file access/modify date/times
                 FileInfo finfo = new FileInfo();
@@ -1670,7 +1671,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
                 throw new AccessDeniedException();
 
             //  Get the symbolic link attributes
-            int setFlags = 0;
+            EnumSet<FileInfo.Set> setFlags = EnumSet.noneOf( FileInfo.Set.class);
             int gid = -1;
             int uid = -1;
             int mode = -1;
@@ -1681,25 +1682,25 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             //  Check if the file mode has been specified
             if (rpc.unpackInt() == Rpc.True) {
                 mode = rpc.unpackInt();
-                setFlags += FileInfo.SetMode;
+                setFlags.add( FileInfo.Set.Mode);
             }
 
             //  Check if the file owner uid has been specified
             if (rpc.unpackInt() == Rpc.True) {
                 uid = rpc.unpackInt();
-                setFlags += FileInfo.SetUid;
+                setFlags.add( FileInfo.Set.UID);
             }
 
             //  Check if the file group gid has been specified
             if (rpc.unpackInt() == Rpc.True) {
                 gid = rpc.unpackInt();
-                setFlags += FileInfo.SetGid;
+                setFlags.add( FileInfo.Set.GID);
             }
 
             //  Check if a new file size has been specified
             if (rpc.unpackInt() == Rpc.True) {
                 fsize = rpc.unpackLong();
-                setFlags += FileInfo.SetFileSize;
+                setFlags.add( FileInfo.Set.FileSize);
             }
 
             //  Check if the access date/time should be set. It may be set to a client specified time
@@ -1710,10 +1711,10 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
                 atime = (long) rpc.unpackInt();
                 atime *= 1000L;
                 rpc.skipBytes(4);   //  nanoseconds
-                setFlags += FileInfo.SetAccessDate;
+                setFlags.add( FileInfo.Set.AccessDate);
             } else if (setTime == NFS3.SetAttrTimestamp.TimeServer) {
                 atime = System.currentTimeMillis();
-                setFlags += FileInfo.SetAccessDate;
+                setFlags.add( FileInfo.Set.AccessDate);
             }
 
             //  Check if the modify date/time should be set. It may be set to a client specified time
@@ -1724,10 +1725,10 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
                 mtime = (long) rpc.unpackInt();
                 mtime *= 1000L;
                 rpc.skipBytes(4);   //  nanoseconds
-                setFlags += FileInfo.SetModifyDate;
+                setFlags.add( FileInfo.Set.ModifyDate);
             } else if (setTime == NFS3.SetAttrTimestamp.TimeServer) {
                 mtime = System.currentTimeMillis();
-                setFlags += FileInfo.SetModifyDate;
+                setFlags.add( FileInfo.Set.ModifyDate);
             }
 
             //  Get the symbolic link name

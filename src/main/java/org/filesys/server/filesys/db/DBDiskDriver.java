@@ -22,6 +22,7 @@ package org.filesys.server.filesys.db;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.EnumSet;
 
 import org.filesys.debug.Debug;
 import org.filesys.locking.LockConflictException;
@@ -272,7 +273,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
                 finfo.setFileSize(file.getFileSize());
                 finfo.setModifyDateTime(modifiedTime);
 
-                finfo.setFileInformationFlags(FileInfo.SetFileSize + FileInfo.SetModifyDate);
+                finfo.setFileInformationFlags( EnumSet.of( FileInfo.Set.FileSize,  FileInfo.Set.ModifyDate));
 
                 //  Call the database interface
                 dbCtx.getDBInterface().setFileInformation(file.getDirectoryId(), file.getFileId(), finfo);
@@ -1312,12 +1313,15 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
     public void setFileInformation(SrvSession sess, TreeConnection tree, String name, FileInfo info)
             throws IOException {
 
-        //  Debug
+        // Get the set file information flags
+        EnumSet<FileInfo.Set> setFlags = info.getSetFileInformationFlags().clone();
+
+        //  DEBUG
         if (Debug.EnableInfo && hasDebug())
-            Debug.println("DB setFileInformation() name=" + name + ", info=" + info.toString() + ", set flags=" + info.getSetFileInformationFlagsString());
+            Debug.println("DB setFileInformation() name=" + name + ", info=" + info.toString() + ", set flags=" + setFlags);
 
         // If the only flag set is the delete on close flag then return, nothing to do
-        if (info.getSetFileInformationFlags() == FileInfo.SetDeleteOnClose)
+        if ( setFlags.size() == 1 && setFlags.contains( FileInfo.Set.DeleteOnClose))
             return;
 
         //  Access the JDBC context
@@ -1360,28 +1364,27 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
             //
             //  Switch off invalid updates from being written to the database but allow them to be cached.
             //  To allow test apps such as IFSTEST to complete successfully.
-            int origFlags = info.getSetFileInformationFlags();
-            int dbFlags = origFlags;
+            EnumSet<FileInfo.Set> dbFlags = setFlags.clone();
 
-            if (info.hasSetFlag(FileInfo.SetAccessDate) && info.getAccessDateTime() > MaxTimestampValue)
-                dbFlags -= FileInfo.SetAccessDate;
+            if ( setFlags.contains( FileInfo.Set.AccessDate) && info.getAccessDateTime() > MaxTimestampValue)
+                dbFlags.remove( FileInfo.Set.AccessDate);
 
-            if (info.hasSetFlag(FileInfo.SetCreationDate) && info.getCreationDateTime() > MaxTimestampValue)
-                dbFlags -= FileInfo.SetCreationDate;
+            if ( setFlags.contains( FileInfo.Set.CreationDate) && info.getCreationDateTime() > MaxTimestampValue)
+                dbFlags.remove( FileInfo.Set.CreationDate);
 
-            if (info.hasSetFlag(FileInfo.SetModifyDate) && info.getModifyDateTime() > MaxTimestampValue)
-                dbFlags -= FileInfo.SetModifyDate;
+            if ( setFlags.contains( FileInfo.Set.ModifyDate) && info.getModifyDateTime() > MaxTimestampValue)
+                dbFlags.remove( FileInfo.Set.ModifyDate);
 
             //  Check if the inode change date/time has been set
             if (info.hasChangeDateTime() == false) {
                 info.setChangeDateTime(System.currentTimeMillis());
-                if (info.hasSetFlag(FileInfo.SetChangeDate) == false)
-                    info.setFileInformationFlags(info.getSetFileInformationFlags() + FileInfo.SetChangeDate);
-            } else if (info.hasSetFlag(FileInfo.SetChangeDate) && info.getChangeDateTime() > MaxTimestampValue)
-                dbFlags -= FileInfo.SetChangeDate;
+                if ( setFlags.contains ( FileInfo.Set.ChangeDate) == false)
+                    info.getSetFileInformationFlags().add( FileInfo.Set.ChangeDate);
+            } else if ( setFlags.contains( FileInfo.Set.ChangeDate) && info.getChangeDateTime() > MaxTimestampValue)
+                dbFlags.remove( FileInfo.Set.ChangeDate);
 
             // Check if file attributes are being set
-            if (info.hasSetFlag(FileInfo.SetAttributes)) {
+            if ( setFlags.contains( FileInfo.Set.Attributes)) {
 
                 // Check if this is a folder, make sure the Directory attribute does not get reset
                 if (dbInfo.isDirectory() && (info.getFileAttributes() & FileAttribute.Directory) == 0)
@@ -1392,41 +1395,41 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
             info.setFileInformationFlags(dbFlags);
 
             //  Update the file information
-            if (dbFlags != 0)
+            if (dbFlags.size() > 0)
                 dbCtx.getDBInterface().setFileInformation(dbInfo.getDirectoryId(), dbInfo.getFileId(), info);
 
             //  Use the original information flags when updating the cached file information details
-            info.setFileInformationFlags(origFlags);
+            info.setFileInformationFlags( setFlags);
 
             //  Copy the updated values to the file state
-            if (info.hasSetFlag(FileInfo.SetFileSize))
+            if (info.hasSetFlag(FileInfo.Set.FileSize))
                 dbInfo.setFileSize(info.getSize());
 
-            if (info.hasSetFlag(FileInfo.SetAllocationSize))
+            if (info.hasSetFlag(FileInfo.Set.AllocationSize))
                 dbInfo.setAllocationSize(info.getAllocationSize());
 
-            if (info.hasSetFlag(FileInfo.SetAccessDate))
+            if (info.hasSetFlag(FileInfo.Set.AccessDate))
                 dbInfo.setAccessDateTime(info.getAccessDateTime());
 
-            if (info.hasSetFlag(FileInfo.SetCreationDate))
+            if (info.hasSetFlag(FileInfo.Set.CreationDate))
                 dbInfo.setAccessDateTime(info.getCreationDateTime());
 
-            if (info.hasSetFlag(FileInfo.SetModifyDate))
+            if (info.hasSetFlag(FileInfo.Set.ModifyDate))
                 dbInfo.setAccessDateTime(info.getModifyDateTime());
 
-            if (info.hasSetFlag(FileInfo.SetChangeDate))
+            if (info.hasSetFlag(FileInfo.Set.ChangeDate))
                 dbInfo.setAccessDateTime(info.getChangeDateTime());
 
-            if (info.hasSetFlag(FileInfo.SetGid))
+            if (info.hasSetFlag(FileInfo.Set.GID))
                 dbInfo.setGid(info.getGid());
 
-            if (info.hasSetFlag(FileInfo.SetUid))
+            if (info.hasSetFlag(FileInfo.Set.UID))
                 dbInfo.setUid(info.getUid());
 
-            if (info.hasSetFlag(FileInfo.SetMode))
+            if (info.hasSetFlag(FileInfo.Set.Mode))
                 dbInfo.setMode(info.getMode());
 
-            if (info.hasSetFlag(FileInfo.SetAttributes))
+            if (info.hasSetFlag(FileInfo.Set.Attributes))
                 dbInfo.setFileAttributes(info.getFileAttributes());
 
             //  Update the file state
@@ -1633,7 +1636,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
                 FileInfo finfo = new FileInfo();
 
                 finfo.setChangeDateTime(System.currentTimeMillis());
-                finfo.setFileInformationFlags(FileInfo.SetChangeDate);
+                finfo.setFileInformationFlags( EnumSet.of( FileInfo.Set.ChangeDate));
 
                 //  Set the file change date/time
                 dbCtx.getDBInterface().setFileInformation(jfile.getDirectoryId(), jfile.getFileId(), finfo);
