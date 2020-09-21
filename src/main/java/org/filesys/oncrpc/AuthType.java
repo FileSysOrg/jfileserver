@@ -31,6 +31,7 @@ public enum AuthType {
     Unix(1),
     Short(2),
     DES(3),
+    RPCSEC_GSS(6),
 
     Invalid(0xFFFF);
 
@@ -71,6 +72,9 @@ public enum AuthType {
                 break;
             case 3:
                 aType = DES;
+                break;
+            case 6:
+                aType = RPCSEC_GSS;
                 break;
         }
 
