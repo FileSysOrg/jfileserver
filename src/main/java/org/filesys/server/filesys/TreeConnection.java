@@ -281,6 +281,22 @@ public class TreeConnection {
     }
 
     /**
+     * Get the disk interface for a shared filesystem, or throw an exception if this is not a filesystem
+     * connection
+     *
+     * @return DiskInterface
+     * @exception InvalidDeviceInterfaceException
+     */
+    public final DiskInterface getDiskInterface()
+        throws InvalidDeviceInterfaceException {
+
+        if ( m_shareDev == null || m_shareDev.getInterface() == null ||
+                m_shareDev.getInterface() instanceof DiskInterface == false)
+            throw new InvalidDeviceInterfaceException();
+        return (DiskInterface) m_shareDev.getInterface();
+    }
+
+    /**
      * Return the count of open files on this tree connection.
      *
      * @return int
@@ -361,16 +377,18 @@ public class TreeConnection {
      * @return String
      */
     public String toString() {
-        StringBuffer str = new StringBuffer();
+        StringBuilder str = new StringBuilder();
+
         str.append("[");
-        str.append(m_shareDev.toString());
+        str.append(m_shareDev);
         str.append(", id=");
         str.append(getId());
         str.append(", fileCnt=");
         str.append(openFileCount());
         str.append(", perm=");
-        str.append(m_permission.name());
+        str.append(m_permission);
         str.append("]");
+
         return str.toString();
     }
 }
