@@ -305,6 +305,9 @@ public class NFSServer extends RpcNetworkServer implements RpcProcessor {
 
             // Indicate the NFS server is running
             setActive(true);
+
+            // Call the post startup hook
+            postStartup();
         }
         catch (Exception ex) {
 
@@ -324,6 +327,11 @@ public class NFSServer extends RpcNetworkServer implements RpcProcessor {
 
         //  Unregister the NFS server with the portmapper
         try {
+
+            // Call the pre shutdown hook
+            preShutdown();
+
+            // Build the list of port mappings
             List<PortMapping> mappingList = new ArrayList<PortMapping>();
 
             if ( m_nfsConfig.getEnabledNFSVersions().contains( NFSConfigSection.NFSVersion.NFS3)) {
@@ -660,6 +668,17 @@ public class NFSServer extends RpcNetworkServer implements RpcProcessor {
     }
 
     /**
+     * Find the share details for the specified shared filesystem using the share name
+     *
+     * @param shareName String
+     * @param caseInsensitive boolean
+     * @return ShareDetails
+     */
+    public final ShareDetails findShareDetailsByName(String shareName, boolean caseInsensitive) {
+        return m_shareDetails.findDetails( shareName, caseInsensitive);
+    }
+
+    /**
      * Return the write verifier
      *
      * @return long
@@ -733,7 +752,7 @@ public class NFSServer extends RpcNetworkServer implements RpcProcessor {
      *
      * @return RpcAuthenticator
      */
-    protected final RpcAuthenticator getRpcAuthenticator() {
+    public final RpcAuthenticator getRpcAuthenticator() {
         return m_rpcAuthenticator;
     }
 
@@ -753,5 +772,17 @@ public class NFSServer extends RpcNetworkServer implements RpcProcessor {
      */
     protected final void fireSessionClosed(SrvSession sess) {
         fireSessionClosedEvent(sess);
+    }
+
+    /**
+     * Post startup hook method
+     */
+    protected void postStartup() {
+    }
+
+    /**
+     * Pre shutdown hook method
+     */
+    protected void preShutdown() {
     }
 }
