@@ -19,7 +19,9 @@
 
 package org.filesys.oncrpc.nfs;
 
+import java.util.Enumeration;
 import java.util.Hashtable;
+import java.util.Iterator;
 
 /**
  * Share Details Hash Class
@@ -34,7 +36,8 @@ public class ShareDetailsHash {
     //	Share name hash to share details
     private Hashtable<Integer, ShareDetails> m_details;
 
-    // Time of the last update
+    // Time of creation and last update
+    private long m_creatTime;
     private long m_updateTime;
 
     /**
@@ -42,7 +45,15 @@ public class ShareDetailsHash {
      */
     public ShareDetailsHash() {
         m_details = new Hashtable<Integer, ShareDetails>();
+        m_creatTime = System.currentTimeMillis();
     }
+
+    /**
+     * Return the time the list was created
+     *
+     * @return long
+     */
+    public final long createdAt() { return m_creatTime; }
 
     /**
      * Return the time of the last update
@@ -70,6 +81,37 @@ public class ShareDetailsHash {
     public final ShareDetails deleteDetails(String shareName) {
         m_updateTime = System.currentTimeMillis();
         return m_details.get(new Integer(shareName.hashCode()));
+    }
+
+    /**
+     * Find share details for the specified share name
+     *
+     * @param shareName String
+     * @param caseInsensitive boolean
+     * @return ShareDetails
+     */
+    public final ShareDetails findDetails(String shareName, boolean caseInsensitive) {
+
+        //	Get the share details for the associated share name
+        ShareDetails details = m_details.get(new Integer(shareName.hashCode()));
+
+        if ( details == null && caseInsensitive == true) {
+
+            // Search the share list for the specified share
+            Iterator<ShareDetails> iter = m_details.values().iterator();
+
+            while ( iter.hasNext() && details == null) {
+
+                // Get the current share details and check the name
+                ShareDetails curDetails = iter.next();
+
+                if ( curDetails.getName().equalsIgnoreCase( shareName))
+                    details = curDetails;
+            }
+        }
+
+        //	Return the share details
+        return details;
     }
 
     /**
@@ -109,5 +151,22 @@ public class ShareDetailsHash {
      */
     public final Hashtable<Integer, ShareDetails> getShareDetails() {
         return m_details;
+    }
+
+    /**
+     * Iterate the share detail keys
+     *
+     * @return Enumeration&lt;Integer&gt;
+     */
+    public final Enumeration<Integer> enumerateKeys() {
+        return m_details.keys();
+    }
+    /**
+     * Return the number of shares in the list
+     *
+     * @return int
+     */
+    public final int numberOfShares() {
+        return m_details != null ? m_details.size() : 0;
     }
 }
