@@ -278,6 +278,35 @@ public class FileOpenParams {
     }
 
     /**
+     * Class constructor for NFS open requests
+     *
+     * @param path       String
+     * @param openAction int
+     * @param accessMode int Access Mode
+     * @param sharing    SharingMode
+     * @param fileAttr   int
+     * @param pid        int
+     */
+    public FileOpenParams(String path, int openAction, int accessMode, SharingMode sharing, int fileAttr, int pid) {
+
+        //	Parse the file path, split into file name and stream if specified
+        parseFileName(path);
+
+        m_openAction   = convertToNTOpenAction(openAction);
+        m_accessMode   = convertToNTAccessMode(accessMode);
+        m_sharedAccess = sharing;
+        m_attr = fileAttr;
+        m_pid = pid;
+
+        //	Check if the diectory attribute is set
+        if (FileAttribute.isDirectory(m_attr))
+            m_createOptions = WinNT.CreateDirectory;
+
+        //	No security settings
+        m_secLevel = ImpersonationLevel.INVALID;
+    }
+
+    /**
      * Return the path to be opened/created
      *
      * @return String
@@ -865,6 +894,15 @@ public class FileOpenParams {
      */
     public final void setAllocationSize(long allocSize) {
         m_allocSize = allocSize;
+    }
+
+    /**
+     * Set the shared access mode
+     *
+     * @param sharingMode SharingMode
+     */
+    public final void setSharedAccess( SharingMode sharingMode) {
+        m_sharedAccess = sharingMode;
     }
 
     /**
