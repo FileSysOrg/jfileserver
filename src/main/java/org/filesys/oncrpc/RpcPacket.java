@@ -545,7 +545,7 @@ public class RpcPacket {
     /**
      * Align the buffer position on a longword/32bit boundary
      */
-    protected final void alignPosition() {
+    public final void alignPosition() {
 
         //	Align the buffer position on the required boundary
         m_pos = (m_pos + 3) & 0xFFFFFFFC;
@@ -559,6 +559,16 @@ public class RpcPacket {
     public final void packBoolean( boolean bval) {
         DataPacker.putInt( bval ? 1 : 0, m_buffer, m_pos);
         m_pos += 4;
+    }
+
+    /**
+     * Pack a boolean value at the specified buffer offset
+     *
+     * @param pos int
+     * @param bval boolean
+     */
+    public final void packBooleanAt(int pos, boolean bval) {
+        DataPacker.putInt(bval ? 1 : 0, m_buffer, pos);
     }
 
     /**
@@ -619,6 +629,14 @@ public class RpcPacket {
         DataPacker.putLong(lval, m_buffer, m_pos);
         m_pos += 8;
     }
+
+    /**
+     * Pack a long value at the specified buffer offset
+     *
+     * @param pos int
+     * @param lval long
+     */
+    public final void packLongAt( int pos, long lval) { DataPacker.putLong( lval, m_buffer, pos); }
 
     /**
      * Pack a byte array with a length
@@ -748,6 +766,17 @@ public class RpcPacket {
      */
     public final int unpackInt() {
         int val = DataPacker.getInt(m_buffer, m_pos);
+        m_pos += 4;
+        return val;
+    }
+
+    /**
+     * Unpack an integer value but return as a long
+     *
+     * @return long
+     */
+    public final long unpackIntAsLong() {
+        long val = ((long) DataPacker.getInt(m_buffer, m_pos)) & 0xFFFFFFFFL;
         m_pos += 4;
         return val;
     }
