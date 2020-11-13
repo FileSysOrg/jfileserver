@@ -2029,7 +2029,7 @@ public class SMBSrvSession extends SrvSession<SMBSrvSession.Dbg> implements Runn
 
 					// DEBUG
 					if (Debug.EnableInfo && hasDebug(SMBSrvSession.Dbg.NEGOTIATE))
-						debugPrintln("Close existing session sess=" + curSess + "addr=" + addrStr);
+						debugPrintln("Close existing session sess=" + curSess + " addr=" + addrStr);
 
 					// Disconnect the existing session
 					curSess.closeSession();
