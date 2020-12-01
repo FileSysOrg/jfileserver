@@ -20,6 +20,7 @@
 package org.filesys.oncrpc;
 
 import java.io.UnsupportedEncodingException;
+import java.math.BigInteger;
 import java.net.InetAddress;
 
 import org.filesys.util.DataPacker;
@@ -416,6 +417,29 @@ public class RpcPacket {
     }
 
     /**
+     * Return the credentials block including the credential type
+     *
+     * @return RpcCredentials
+     */
+    public final RpcCredentials getCredentialsData() {
+
+        // Get the credentials type
+        RpcCredentials rpcCreds = null;
+        AuthType credType = getCredentialsType();
+
+        if ( credType == AuthType.Null || credType == AuthType.Unix) {
+
+            // Get the credentials opaque data length
+            int credLen = getCredentialsLength();
+
+            // Create the simple RPC credentials details
+            rpcCreds = new RpcCredentials( credType, m_buffer, m_offset + 32, credLen);
+        }
+
+        return rpcCreds;
+    }
+
+    /**
      * Return the credentials length
      *
      * @return int
@@ -776,8 +800,12 @@ public class RpcPacket {
      * @return long
      */
     public final long unpackIntAsLong() {
-        long val = ((long) DataPacker.getInt(m_buffer, m_pos)) & 0xFFFFFFFFL;
+        byte[] longByts = new byte[8];
+        System.arraycopy( m_buffer, m_pos, longByts, 4, 4);
+
+        long val = DataPacker.getLong(longByts, 0);
         m_pos += 4;
+
         return val;
     }
 
@@ -790,6 +818,19 @@ public class RpcPacket {
         long val = DataPacker.getLong(m_buffer, m_pos);
         m_pos += 8;
         return val;
+    }
+
+    /**
+     * Unpack a long value as a BigInteger to avoid sign issues
+     *
+     * @return BigInteger
+     */
+    public final BigInteger unpackLongAsBigInteger() {
+        byte[] longByts = new byte[9];
+        System.arraycopy( m_buffer, m_pos, longByts, 1, 8);
+        m_pos += 8;
+
+        return new BigInteger( longByts);
     }
 
     /**
@@ -843,6 +884,58 @@ public class RpcPacket {
                 }
                 catch (UnsupportedEncodingException ex) {
                 }
+            } else {
+
+                // Unpack the bytes into a string
+                str = DataPacker.getString(m_buffer, m_pos, len);
+            }
+
+            // Update the buffer position
+            m_pos += len;
+            alignPosition();
+        }
+
+        return str;
+    }
+
+    /**
+     * Unpack a UTF-8 string with validation checks
+     *
+     * @return String
+     * @exception ArrayIndexOutOfBoundsException
+     * @exception UnsupportedEncodingException
+     */
+    public final String unpackAndCheckUTF8String()
+        throws ArrayIndexOutOfBoundsException, UnsupportedEncodingException {
+
+        // Get the string length
+        int len = unpackInt();
+
+        // Validate the length
+        if ( len > getAvailableLength())
+            throw new ArrayIndexOutOfBoundsException();
+
+        String str = "";
+        if (len > 0) {
+
+            // Check for any bytes with the high bit set, run the string through
+            // the UTF-8 normalizer if any are found
+            boolean utf8 = false;
+            int idx = 0;
+
+            while (utf8 == false && idx < len) {
+                if (((int) m_buffer[m_pos + idx] & 0x80) != 0)
+                    utf8 = true;
+                else
+                    idx++;
+            }
+
+            // Normalize the UTF-8 bytes
+            if (utf8 == true) {
+
+                // Create a UTF8 string and normalize
+                str = new String(m_buffer, m_pos, len, "UTF8");
+                str = _utf8Normalizer.normalize(str);
             } else {
 
                 // Unpack the bytes into a string
