@@ -1145,8 +1145,8 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
             //  Check if there are any locks on the file
             if (jfile.hasFileState() && jfile.getFileState().hasActiveLocks()) {
 
-                //  Check if this session has write access to the required section of the file
-                if (jfile.getFileState().canReadFile(pos, siz, sess.getProcessId()) == false)
+                //  Check if this session has read access to the required section of the file
+                if (jfile.getFileState().canReadFile(pos, siz, sess) == false)
                     throw new LockConflictException();
             }
 
@@ -1689,7 +1689,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
             if (jfile.hasFileState() && jfile.getFileState().hasActiveLocks()) {
 
                 //  Check if this session has write access to the required section of the file
-                if (jfile.getFileState().canWriteFile(fileoff, siz, sess.getProcessId()) == false)
+                if (jfile.getFileState().canWriteFile(fileoff, siz, sess) == false)
                     throw new LockConflictException();
             }
 
