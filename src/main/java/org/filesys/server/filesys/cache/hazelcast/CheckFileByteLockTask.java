@@ -91,11 +91,11 @@ public class CheckFileByteLockTask extends RemoteStateTask<Boolean> {
             if (m_writeCheck == true) {
 
                 // Check if the file area is writeable
-                accessOK = fState.getLockList().canWriteFile(m_lockCheck);
+                accessOK = fState.getLockList().canWriteFile(m_lockCheck, m_lockCheck.getOwner());
             } else {
 
                 // Check if the file area is readable
-                accessOK = fState.getLockList().canReadFile(m_lockCheck);
+                accessOK = fState.getLockList().canReadFile(m_lockCheck, m_lockCheck.getOwner());
             }
         }
 

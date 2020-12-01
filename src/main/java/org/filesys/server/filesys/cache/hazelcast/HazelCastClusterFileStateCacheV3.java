@@ -22,6 +22,7 @@ import com.hazelcast.map.listener.EntryAddedListener;
 import com.hazelcast.map.listener.EntryEvictedListener;
 import com.hazelcast.map.listener.EntryRemovedListener;
 import com.hazelcast.map.listener.EntryUpdatedListener;
+import org.filesys.locking.FileLock;
 import org.filesys.server.filesys.*;
 import org.filesys.server.filesys.cache.cluster.*;
 import org.filesys.smb.OpLockType;
@@ -145,7 +146,7 @@ public class HazelCastClusterFileStateCacheV3 extends HazelCastClusterFileStateC
     public ClusterFileState executeAddLock( String path, ClusterFileLock lock)
         throws InterruptedException, ExecutionException {
 
-        // Add the oplock via a remote call to the node that owns the file state
+        // Add the lock via a remote call to the node that owns the file state
         IExecutorService execService = m_hazelCastInstance.getExecutorService( ExecutorName);
         Callable<ClusterFileState> callable = new AddFileByteLockTask(getClusterName(), path, lock,
                 hasDebugLevel(DebugByteLock), hasTaskTiming());
@@ -167,7 +168,7 @@ public class HazelCastClusterFileStateCacheV3 extends HazelCastClusterFileStateC
     public ClusterFileState executeRemoveLock( String path, ClusterFileLock lock)
         throws InterruptedException, ExecutionException {
 
-        // Remove the oplock via a remote call to the node that owns the file state
+        // Remove the lock via a remote call to the node that owns the file state
         IExecutorService execService = m_hazelCastInstance.getExecutorService( ExecutorName);
         Callable<ClusterFileState> callable = new RemoveFileByteLockTask(getClusterName(), path, lock,
                 hasDebugLevel(DebugByteLock), hasTaskTiming());
@@ -175,6 +176,28 @@ public class HazelCastClusterFileStateCacheV3 extends HazelCastClusterFileStateC
         Future<ClusterFileState> removeLockTask = execService.submitToKeyOwner( callable, path);
 
         return removeLockTask.get();
+    }
+
+    /**
+     * Execute a lock test
+     *
+     * @param path String
+     * @param lock ClusterFileLock
+     * @return FileLock
+     * @exception InterruptedException Exceution interrupted
+     * @exception ExecutionException Execution error
+     */
+    public FileLock executeTestLock(String path, ClusterFileLock lock)
+            throws InterruptedException, ExecutionException {
+
+        // Test the lock via a remote call to the node that owns the file state
+        IExecutorService execService = m_hazelCastInstance.getExecutorService( ExecutorName);
+        Callable<FileLock> callable = new TestFileByteLockTask(getClusterName(), path, lock,
+                hasDebugLevel(DebugByteLock), hasTaskTiming());
+
+        Future<FileLock> testLockTask = execService.submitToKeyOwner( callable, path);
+
+        return testLockTask.get();
     }
 
     /**

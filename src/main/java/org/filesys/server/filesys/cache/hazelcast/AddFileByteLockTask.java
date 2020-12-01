@@ -99,9 +99,9 @@ public class AddFileByteLockTask extends RemoteStateTask<ClusterFileState> {
                 // Check if the lock overlaps with the new lock
                 if (curLock.hasOverlap(m_lock)) {
 
-                    // Check the if the lock owner is the same
-                    if (curLock.getProcessId() != m_lock.getProcessId() ||
-                            curLock.getOwnerNode().equalsIgnoreCase(m_lock.getOwnerNode()) == false) {
+                    // Check the if the lock owner is the same, and is on the same cluster node
+                    if ( m_lock.hasOwner() == false || m_lock.getOwner().isLockOwner( m_lock) == false ||
+                         m_lock.getOwnerNode().equalsIgnoreCase( curLock.getOwnerNode()) == false) {
 
                         // DEBUG
                         if (hasDebug())

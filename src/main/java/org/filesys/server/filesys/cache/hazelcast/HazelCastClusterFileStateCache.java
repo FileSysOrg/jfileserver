@@ -29,11 +29,9 @@ import java.util.concurrent.*;
 
 import com.hazelcast.core.*;
 import org.filesys.debug.Debug;
-import org.filesys.locking.FileLock;
-import org.filesys.locking.FileLockList;
-import org.filesys.locking.LockConflictException;
-import org.filesys.locking.NotLockedException;
+import org.filesys.locking.*;
 import org.filesys.server.RequestPostProcessor;
+import org.filesys.server.SrvSession;
 import org.filesys.server.config.CoreServerConfigSection;
 import org.filesys.server.config.InvalidConfigurationException;
 import org.filesys.server.config.ServerConfiguration;
@@ -980,13 +978,13 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
      * @param file   NetworkFile
      * @param offset long
      * @param len    long
-     * @param pid    int
+     * @param sess   SrvSession
      * @return FileLock
      */
-    public FileLock createFileLockObject(NetworkFile file, long offset, long len, int pid) {
+    public FileLock createFileLockObject(NetworkFile file, long offset, long len, SrvSession sess) {
 
         //	Create a lock object to represent the file lock
-        return new ClusterFileLock(m_localNode, offset, len, pid);
+        return new ClusterFileLock(m_localNode, offset, len, sess.getCurrentLockOwner());
     }
 
     /**
@@ -1068,7 +1066,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
         if (hasDebugLevel(DebugByteLock))
             Debug.println("Remove byte lock for state=" + fstate + ", lock=" + lock);
 
-        // Remove the oplock via a remote call to the node that owns the file state
+        // Remove the lock via a remote call to the node that owns the file state
         try {
 
             // Wait for the remote task to complete
@@ -1099,6 +1097,52 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
             // Problem executing the remote task
             throw new NotLockedException("Failed to execute remote unlock add on " + fstate.getPath(), ex2);
         }
+    }
+
+    /**
+     * Check if there is an existing lock on this file
+     *
+     * @param fstate FileState
+     * @param lock   FileLock
+     * @return FileLock
+     */
+    public FileLock testLock(FileState fstate, FileLock lock) {
+
+        // Make sure the lock is a cluster lock
+        if (lock instanceof ClusterFileLock == false)
+            throw new RuntimeException("Attempt to remove non-cluster byte lock from file state " + fstate.getPath());
+
+        // DEBUG
+        if (hasDebugLevel(DebugByteLock))
+            Debug.println("Remove byte lock for state=" + fstate + ", lock=" + lock);
+
+        // Check the lock via a remote call to the node that owns the file state
+        FileLock curLock = null;
+
+        try {
+
+            // Wait for the remote task to complete
+            curLock = executeTestLock(fstate.getPath(), (ClusterFileLock) lock);
+        }
+        catch (ExecutionException ex) {
+
+            // DEBUG
+            if (hasDebugLevel(DebugByteLock)) {
+                Debug.println("Error testing byte lock, fstate=" + fstate + ", lock=" + lock);
+                Debug.println(ex);
+            }
+        }
+        catch (InterruptedException ex2) {
+
+            // DEBUG
+            if (hasDebugLevel(DebugByteLock)) {
+                Debug.println("Error testing byte lock, fstate=" + fstate + ", lock=" + lock);
+                Debug.println(ex2);
+            }
+        }
+
+        // Return the existing lock that overlaps, or null if no lock overlaps
+        return curLock;
     }
 
     /**
@@ -1844,10 +1888,10 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
      * @param clState ClusterFileState
      * @param offset  long
      * @param len     long
-     * @param pid     int
+     * @param sess    SrvSession
      * @return boolean
      */
-    public boolean canReadFile(ClusterFileState clState, long offset, long len, int pid) {
+    public boolean canReadFile(ClusterFileState clState, long offset, long len, SrvSession sess) {
 
         // Check if the file is open by multiple users
         boolean canRead = true;
@@ -1855,7 +1899,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
         if (clState.getOpenCount() > 1) {
 
             // Need to check if the file is readable using a remote call, to synchronize the check
-            canRead = checkFileAccess(clState, offset, len, pid, false);
+            canRead = checkFileAccess(clState, offset, len, sess, false);
         } else if (hasDebugLevel(DebugByteLock))
             Debug.println("Check file readable for state=" + clState + ", fileCount=" + clState.getOpenCount());
 
@@ -1869,10 +1913,10 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
      * @param clState ClusterFileState
      * @param offset  long
      * @param len     long
-     * @param pid     int
+     * @param sess    SrvSession
      * @return boolean
      */
-    public boolean canWriteFile(ClusterFileState clState, long offset, long len, int pid) {
+    public boolean canWriteFile(ClusterFileState clState, long offset, long len, SrvSession sess) {
 
         // Check if the file is open by multiple users
         boolean canWrite = true;
@@ -1880,7 +1924,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
         if (clState.getOpenCount() > 1) {
 
             // Need to check if the file is writeable using a remote call, to synchronize the check
-            canWrite = checkFileAccess(clState, offset, len, pid, true);
+            canWrite = checkFileAccess(clState, offset, len, sess, true);
         } else if (hasDebugLevel(DebugByteLock))
             Debug.println("Check file writeable for state=" + clState + ", fileCount=" + clState.getOpenCount());
 
@@ -1894,14 +1938,18 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
      * @param clState    ClusterFileState
      * @param offset     long
      * @param len        long
-     * @param pid        int
+     * @param sess    SrvSession
      * @param writeCheck boolean
      * @return boolean
      */
-    protected boolean checkFileAccess(ClusterFileState clState, long offset, long len, int pid, boolean writeCheck) {
+    protected boolean checkFileAccess(ClusterFileState clState, long offset, long len, SrvSession sess, boolean writeCheck) {
+
+        // Get the current file lock owner details from the session, this will be used to determine which locks the
+        // current session owns
+        FileLockOwner owner = sess.getCurrentLockOwner();
 
         // Create a lock to hold the details of the area to be checked
-        ClusterFileLock checkLock = new ClusterFileLock(getLocalNode(), offset, len, pid);
+        ClusterFileLock checkLock = new ClusterFileLock(getLocalNode(), offset, len, owner);
 
         // DEBUG
         if (hasDebugLevel(DebugByteLock))
@@ -3016,6 +3064,18 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
      */
     public abstract ClusterFileState executeRemoveLock( String path, ClusterFileLock lock)
         throws InterruptedException, ExecutionException;
+
+    /**
+     * Execute a lock test
+     *
+     * @param path String
+     * @param lock ClusterFileLock
+     * @return FileLock
+     * @exception InterruptedException Exceution interrupted
+     * @exception ExecutionException Execution error
+     */
+    public abstract FileLock executeTestLock( String path, ClusterFileLock lock)
+            throws InterruptedException, ExecutionException;
 
     /**
      * Execute an oplock change type
