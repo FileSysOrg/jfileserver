@@ -62,6 +62,30 @@ public abstract class NetworkFile {
          * @return int
          */
         public final int intValue() { return accessType; }
+
+        /**
+         * Check if the access level allows read access
+         *
+         * @param acc Access
+         * @return boolean
+         */
+        public static final boolean hasReadAccess( Access acc) {
+            if ( acc == READ_ONLY || acc == READ_WRITE)
+                return true;
+            return false;
+        }
+
+        /**
+         * Check if the access level allows write access
+         *
+         * @param acc Access
+         * @return boolean
+         */
+        public static final boolean hasWriteAccess( Access acc) {
+            if ( acc == WRITE_ONLY || acc == READ_WRITE)
+                return true;
+            return false;
+        }
     }
 
     // File status flags
@@ -275,6 +299,20 @@ public abstract class NetworkFile {
     public final Access getAllowedAccess() {
         return m_allowedAccess;
     }
+
+    /**
+     * Check if read access is allowed
+     *
+     * @return boolean
+     */
+    public final boolean allowsReadAccess() { return Access.hasReadAccess( m_allowedAccess); }
+
+    /**
+     * Check if write access is allowed
+     *
+     * @return boolean
+     */
+    public final boolean allowsWriteAccess() { return Access.hasWriteAccess( m_allowedAccess); }
 
     /**
      * Return the file/directory name.
