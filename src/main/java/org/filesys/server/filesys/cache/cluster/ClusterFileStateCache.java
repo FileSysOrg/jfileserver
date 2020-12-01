@@ -20,6 +20,7 @@
 package org.filesys.server.filesys.cache.cluster;
 
 import org.filesys.debug.Debug;
+import org.filesys.server.SrvSession;
 import org.filesys.server.filesys.DiskDeviceContext;
 import org.filesys.server.filesys.DiskSharedDevice;
 import org.filesys.server.filesys.cache.FileStateCache;
@@ -81,10 +82,10 @@ public abstract class ClusterFileStateCache extends FileStateCache {
      * @param clState ClusterFileState
      * @param offset  long
      * @param len     long
-     * @param pid     int
+     * @param sess    SrvSession
      * @return boolean
      */
-    public abstract boolean canReadFile(ClusterFileState clState, long offset, long len, int pid);
+    public abstract boolean canReadFile(ClusterFileState clState, long offset, long len, SrvSession sess);
 
     /**
      * Check if the file is writeable for the specified section of the file and process id
@@ -92,10 +93,10 @@ public abstract class ClusterFileStateCache extends FileStateCache {
      * @param clState ClusterFileState
      * @param offset  long
      * @param len     long
-     * @param pid     int
+     * @param sess    SrvSession
      * @return boolean
      */
-    public abstract boolean canWriteFile(ClusterFileState clState, long offset, long len, int pid);
+    public abstract boolean canWriteFile(ClusterFileState clState, long offset, long len, SrvSession sess);
 
     /**
      * Update a file state, notify the cluster of the updates

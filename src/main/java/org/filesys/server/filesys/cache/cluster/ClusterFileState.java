@@ -23,6 +23,7 @@ package org.filesys.server.filesys.cache.cluster;
 import java.io.Serializable;
 import java.util.HashMap;
 
+import org.filesys.server.SrvSession;
 import org.filesys.server.filesys.ExistingOpLockException;
 import org.filesys.server.filesys.FileStatus;
 import org.filesys.server.filesys.cache.FileState;
@@ -352,12 +353,12 @@ public abstract class ClusterFileState extends FileState implements Serializable
      *
      * @param offset long
      * @param len    long
-     * @param pid    int
+     * @param sess   SrvSession
      * @return boolean
      */
-    public boolean canReadFile(long offset, long len, int pid) {
+    public boolean canReadFile(long offset, long len, SrvSession sess) {
         if (getStateCache() != null)
-            return getStateCache().canReadFile(this, offset, len, pid);
+            return getStateCache().canReadFile(this, offset, len, sess);
         throw new RuntimeException("State cache not set for cluster state, path=" + getPath() + " (canRead)");
     }
 
@@ -366,12 +367,12 @@ public abstract class ClusterFileState extends FileState implements Serializable
      *
      * @param offset long
      * @param len    long
-     * @param pid    int
+     * @param sess   SrvSession
      * @return boolean
      */
-    public boolean canWriteFile(long offset, long len, int pid) {
+    public boolean canWriteFile(long offset, long len, SrvSession sess) {
         if (getStateCache() != null)
-            return getStateCache().canWriteFile(this, offset, len, pid);
+            return getStateCache().canWriteFile(this, offset, len, sess);
         throw new RuntimeException("State cache not set for cluster state, path=" + getPath() + " (canWrite)");
     }
 

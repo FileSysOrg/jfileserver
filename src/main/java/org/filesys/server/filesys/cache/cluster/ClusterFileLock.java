@@ -22,6 +22,7 @@ package org.filesys.server.filesys.cache.cluster;
 import java.io.Serializable;
 
 import org.filesys.locking.FileLock;
+import org.filesys.locking.FileLockOwner;
 
 /**
  * Cluster File Lock
@@ -40,7 +41,7 @@ public class ClusterFileLock extends FileLock implements Serializable {
      * Default constructor
      */
     public ClusterFileLock() {
-        super(0, 0, -1);
+        super(0, 0, null);
     }
 
     /**
@@ -49,17 +50,12 @@ public class ClusterFileLock extends FileLock implements Serializable {
      * @param ownerNode ClusterNode
      * @param offset    long
      * @param len       long
-     * @param pid       int
+     * @param owner     FileLockOwner
      */
-    public ClusterFileLock(ClusterNode ownerNode, long offset, long len, int pid) {
-        super(offset, len, pid);
+    public ClusterFileLock(ClusterNode ownerNode, long offset, long len, FileLockOwner owner) {
+        super(offset, len, owner);
 
         m_ownerNode = ownerNode.getName();
-
-        // Use the top half of the process id to add the node id, to make the PID unique
-        // across the cluster
-        pid += ownerNode.getPriority() << 16;
-        setProcessId(pid);
     }
 
     /**
@@ -79,12 +75,10 @@ public class ClusterFileLock extends FileLock implements Serializable {
     public String toString() {
         StringBuilder str = new StringBuilder();
 
-        str.append("[Owner=");
+        str.append("[Node=");
         str.append(getOwnerNode());
-        str.append(",PID=");
-        str.append(getProcessId());
-        str.append("/");
-        str.append(getProcessId() & 0x0000FFFF);
+        str.append(",lockOwner=");
+        str.append(getOwner());
         str.append(",Offset=");
         str.append(getOffset());
         str.append(",Len=");
