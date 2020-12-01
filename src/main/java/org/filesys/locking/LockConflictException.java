@@ -32,6 +32,9 @@ public class LockConflictException extends IOException {
 
     private static final long serialVersionUID = 8287539855625316026L;
 
+    // Details of the existing lock that conflicts with the new lock
+    private FileLock m_existingLock;
+
     /**
      * Class constructor.
      */
@@ -57,4 +60,29 @@ public class LockConflictException extends IOException {
     public LockConflictException(String s, Throwable ex) {
         super(s, ex);
     }
+
+    /**
+     * Class constructor
+     *
+     * @param existingLock FileLock
+     */
+    public LockConflictException( FileLock existingLock) {
+        super();
+
+        m_existingLock = existingLock;
+    }
+
+    /**
+     * Check if the exception has the existing file lock details
+     *
+     * @return boolean
+     */
+    public final boolean hasExistingLock() { return m_existingLock != null; }
+
+    /**
+     * Return the existing file lock details
+     *
+     * @return FileLock
+     */
+    public final FileLock getExistingLock() { return m_existingLock; }
 }

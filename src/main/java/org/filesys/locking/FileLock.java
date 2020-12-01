@@ -33,6 +33,12 @@ import java.io.Serializable;
  */
 public class FileLock implements Serializable {
 
+    // Lock states
+    public enum State {
+        Locked,
+        Unlocked
+    }
+
     // Serialization id
     private static final long serialVersionUID = 1L;
 
@@ -43,8 +49,8 @@ public class FileLock implements Serializable {
     private long m_offset;
     private long m_length;
 
-    // Owner process id
-    private int m_pid;
+    // Owner details
+    private FileLockOwner m_owner;
 
     // Lock flags
     private int m_flags;
@@ -60,12 +66,12 @@ public class FileLock implements Serializable {
      *
      * @param offset long
      * @param len    long
-     * @param pid    int
+     * @param owner  FileLockOwner
      */
-    public FileLock(long offset, long len, int pid) {
+    public FileLock(long offset, long len, FileLockOwner owner) {
         setOffset(offset);
         setLength(len);
-        setProcessId(pid);
+        setOwner(owner);
     }
 
     /**
@@ -77,7 +83,7 @@ public class FileLock implements Serializable {
         setOffset( params.getOffset());
         setLength( params.getLength());
 
-        setProcessId( params.getOwner());
+        setOwner( params.getOwner());
         setFlags( params.getFlags());
     }
 
@@ -121,12 +127,19 @@ public class FileLock implements Serializable {
     }
 
     /**
-     * Get the owner process id for the lock
+     * Check if the file lock has an owner
      *
-     * @return int
+     * @return boolean
      */
-    public final int getProcessId() {
-        return m_pid;
+    public final boolean hasOwner() { return m_owner != null; }
+
+    /**
+     * Get the lock owner details
+     *
+     * @return FileLockOwner
+     */
+    public final FileLockOwner getOwner() {
+        return m_owner;
     }
 
     /**
@@ -148,12 +161,17 @@ public class FileLock implements Serializable {
     }
 
     /**
-     * Set the process id of the owner of this lock
+     * Set the lock owner
      *
-     * @param pid int
+     * @param owner FileLockOwner
      */
-    public final void setProcessId(int pid) {
-        m_pid = pid;
+    public final void setOwner(FileLockOwner owner) {
+
+        // Make sure the lock owner is valid
+        if ( owner == null)
+            throw new RuntimeException( "Lock owner is null");
+
+        m_owner = owner;
     }
 
     /**
@@ -173,6 +191,19 @@ public class FileLock implements Serializable {
      */
     public final boolean hasOverlap(FileLock lock) {
         return hasOverlap(lock.getOffset(), lock.getLength());
+    }
+
+    /**
+     * Check if the lock equals the specified lock offset and length
+     *
+     * @param offset long
+     * @param len long
+     * @return boolean
+     */
+    public final boolean isEqualTo( long offset, long len) {
+        if ( getOffset() == offset && getLength() == len)
+            return true;
+        return false;
     }
 
     /**
@@ -212,13 +243,17 @@ public class FileLock implements Serializable {
         StringBuilder str = new StringBuilder();
 
         str.append("[Owner=");
-        str.append(getProcessId());
+        str.append(getOwner());
         str.append(",Offset=");
         str.append(getOffset());
         str.append(",Len=");
         str.append(getLength());
-        str.append(",flags=0x");
-        str.append(Integer.toHexString( getFlags()));
+
+        if ( getFlags() != 0) {
+            str.append(",flags=0x");
+            str.append(Integer.toHexString(getFlags()));
+        }
+
         str.append("]");
 
         return str.toString();

@@ -19,6 +19,8 @@
 
 package org.filesys.locking;
 
+import org.filesys.server.SrvSession;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 
@@ -60,7 +62,7 @@ public class FileLockList implements Serializable {
      * @return FileLock
      */
     public final FileLock findLock(FileLock lock) {
-        return findLock(lock.getOffset(), lock.getLength(), lock.getProcessId());
+        return findLock(lock.getOffset(), lock.getLength());
     }
 
     /**
@@ -68,10 +70,9 @@ public class FileLockList implements Serializable {
      *
      * @param offset long
      * @param len    long
-     * @param pid    int
      * @return FileLock
      */
-    public final FileLock findLock(long offset, long len, int pid) {
+    public final FileLock findLock(long offset, long len) {
 
         // Check if there are any locks in the list
         if (numberOfLocks() == 0)
@@ -102,7 +103,18 @@ public class FileLockList implements Serializable {
      * @return FileLock
      */
     public final FileLock removeLock(FileLock lock) {
-        return removeLock(lock.getOffset(), lock.getLength(), lock.getProcessId());
+        return removeLock(lock.getOffset(), lock.getLength(), null);
+    }
+
+    /**
+     * Remove a lock from the list
+     *
+     * @param lock FileLock
+     * @param owner FileLockOwner
+     * @return FileLock
+     */
+    public final FileLock removeLock(FileLock lock, FileLockOwner owner) {
+        return removeLock(lock.getOffset(), lock.getLength(), owner);
     }
 
     /**
@@ -110,10 +122,10 @@ public class FileLockList implements Serializable {
      *
      * @param offset Starting offset of the lock
      * @param len    Locked section length
-     * @param pid    Owner process id
+     * @param owner  FileLockOwner
      * @return FileLock
      */
-    public final FileLock removeLock(long offset, long len, int pid) {
+    public final FileLock removeLock(long offset, long len, FileLockOwner owner) {
 
         // Check if there are any locks in the list
         if (numberOfLocks() == 0)
@@ -124,11 +136,16 @@ public class FileLockList implements Serializable {
 
             // Get the current lock details
             FileLock curLock = getLockAt(i);
+
             if (curLock.getOffset() == offset && curLock.getLength() == len) {
 
-                // Remove the lock from the list
-                m_lockList.remove(i);
-                return curLock;
+                // If the lock owner has been specified then check the owner matches
+                if ( owner == null || owner.isLockOwner( curLock)) {
+
+                    // Remove the lock from the list
+                    m_lockList.remove(i);
+                    return curLock;
+                }
             }
         }
 
@@ -171,13 +188,14 @@ public class FileLockList implements Serializable {
      * Check if the new lock should be allowed by comparing with the locks in the list.
      *
      * @param lock FileLock
-     * @return boolean true if the lock can be granted, else false.
+     * @return FileLock null if the lock can be granted, else the details of the existing lock that
+     *          conflicts with the new lock
      */
-    public final boolean allowsLock(FileLock lock) {
+    public final FileLock allowsLock(FileLock lock) {
 
         // If the list is empty we can allow the lock request
         if (numberOfLocks() == 0)
-            return true;
+            return null;
 
         // Search for any overlapping locks
         for (int i = 0; i < numberOfLocks(); i++) {
@@ -185,32 +203,33 @@ public class FileLockList implements Serializable {
             // Get the current lock details
             FileLock curLock = getLockAt(i);
             if (curLock.hasOverlap(lock))
-                return false;
+                return curLock;
         }
 
         // The lock does not overlap with any existing locks
-        return true;
+        return null;
     }
 
     /**
-     * Check if the file is readable for the specified section of the file and process id
+     * Check if the file is readable for the section of the file by the specified session
      *
-     * @param lock FileLock
+     * @param lock  FileLock
+     * @param owner FileLockOwner
      * @return boolean
      */
-    public final boolean canReadFile(FileLock lock) {
-        return canReadFile(lock.getOffset(), lock.getLength(), lock.getProcessId());
+    public final boolean canReadFile(FileLock lock, FileLockOwner owner) {
+        return canReadFile(lock.getOffset(), lock.getLength(), owner);
     }
 
     /**
-     * Check if the file is readable for the specified section of the file and process id
+     * Check if the file is readable for the section of the file by the specified session
      *
      * @param offset long
      * @param len    long
-     * @param pid    int
+     * @param owner  FileLockOwner
      * @return boolean
      */
-    public final boolean canReadFile(long offset, long len, int pid) {
+    public final boolean canReadFile(long offset, long len, FileLockOwner owner) {
 
         // If the list is empty we can allow the read request
         if (numberOfLocks() == 0)
@@ -223,7 +242,7 @@ public class FileLockList implements Serializable {
             FileLock curLock = getLockAt(i);
 
             // Check if the process owns the lock, if not then check if there is an overlap
-            if (curLock.getProcessId() != pid) {
+            if ( owner == null || owner.isLockOwner( curLock) == false) {
 
                 // Check if the read overlaps with the locked area
                 if (curLock.hasOverlap(offset, len) == true)
@@ -236,24 +255,25 @@ public class FileLockList implements Serializable {
     }
 
     /**
-     * Check if the file is writeable for the specified section of the file and process id
+     * Check if the file is writeable for the section of the file by the specified session
      *
-     * @param lock FileLock
+     * @param lock  FileLock
+     * @param owner FileLockOwner
      * @return boolean
      */
-    public final boolean canWriteFile(FileLock lock) {
-        return canWriteFile(lock.getOffset(), lock.getLength(), lock.getProcessId());
+    public final boolean canWriteFile(FileLock lock, FileLockOwner owner) {
+        return canWriteFile(lock.getOffset(), lock.getLength(), owner);
     }
 
     /**
-     * Check if the file is writeable for the specified section of the file and process id
+     * Check if the file is writeable for the section of the file by the specified session
      *
      * @param offset long
      * @param len    long
-     * @param pid    int
+     * @param owner  FileLockOwner
      * @return boolean
      */
-    public final boolean canWriteFile(long offset, long len, int pid) {
+    public final boolean canWriteFile(long offset, long len, FileLockOwner owner) {
 
         // If the list is empty we can allow the read request
         if (numberOfLocks() == 0)
@@ -266,7 +286,7 @@ public class FileLockList implements Serializable {
             FileLock curLock = getLockAt(i);
 
             // Check if the process owns the lock, if not then check if there is an overlap
-            if (curLock.getProcessId() != pid) {
+            if ( owner == null || owner.isLockOwner( curLock) == false) {
 
                 // Check if the read overlaps with the locked area
                 if (curLock.hasOverlap(offset, len) == true)
