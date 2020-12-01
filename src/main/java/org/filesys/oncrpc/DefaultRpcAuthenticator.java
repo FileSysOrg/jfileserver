@@ -54,12 +54,18 @@ public class DefaultRpcAuthenticator implements RpcAuthenticator {
 
         //	Create a unique session key depending on the authentication type
         Object sessKey = null;
+        StringBuilder keyStr = new StringBuilder();
+
+        // Use the client address and port as the first part of the session key
+        keyStr.append ( rpc.getClientAddress());
+        keyStr.append ( ":");
+        keyStr.append( rpc.getClientPort());
 
         switch (authType) {
 
             //	Null authentication
             case Null:
-                sessKey = new Integer(rpc.getClientAddress().hashCode());
+                sessKey = keyStr.toString();
                 break;
 
             //	Unix authentication
@@ -74,8 +80,13 @@ public class DefaultRpcAuthenticator implements RpcAuthenticator {
                 int uid = rpc.unpackInt();
                 int gid = rpc.unpackInt();
 
-                //	Check if the Unix authentication session table is valid
-                sessKey = new Long((((long) rpc.getClientAddress().hashCode()) << 32) + (gid << 16) + uid);
+                //	Build the Unix authentication session key
+                keyStr.append ( "-");
+                keyStr.append ( gid);
+                keyStr.append( ":");
+                keyStr.append( uid);
+
+                sessKey = keyStr.toString();
                 break;
         }
 
