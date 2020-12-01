@@ -23,6 +23,7 @@ import java.net.InetAddress;
 import java.util.EnumSet;
 
 import org.filesys.debug.Debug;
+import org.filesys.locking.FileLockOwner;
 import org.filesys.server.auth.AuthContext;
 import org.filesys.server.auth.ClientInfo;
 import org.filesys.server.core.SharedDevice;
@@ -645,6 +646,17 @@ public abstract class SrvSession <T extends Enum<T>> {
      */
     public void setDriverState(Object driverState) {
         this.driverState = driverState;
+    }
+
+    /**
+     * Return the current lock owner details, used when checking byte range locks
+     *
+     * @return FileLockOwner
+     */
+    public FileLockOwner getCurrentLockOwner() {
+
+        // Default to no lock owner
+        return null;
     }
 
     /**
