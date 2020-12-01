@@ -200,6 +200,28 @@ public class RpcProcessorFactory {
     }
 
     /**
+     * Remove an RPC processor class for a particular program id and version
+     *
+     * @param progId int
+     * @param verId int
+     */
+    public static Class removeRpcProcessorClass( int progId, int verId) {
+
+        // Check that the RPC processor map is valid
+        if ( _processorMap == null)
+            return null;
+
+        // Check if the program id has an entry
+        HashMap<Integer, Class> versionMap = _processorMap.get( progId);
+
+        if ( versionMap != null)
+            return versionMap.remove( verId);
+
+        // No entry for the specified program id/version id
+        return null;
+    }
+
+    /**
      * Static initializer
      */
     static {
