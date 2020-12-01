@@ -1656,7 +1656,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                     }
 
                     // Create the lock/unlock details
-                    FileLock fLock = lockMgr.createLockObject(m_sess, conn, netFile, new LockParams(offset, length, pid));
+                    FileLock fLock = lockMgr.createLockObject(m_sess, conn, netFile, new LockParams(offset, length, m_sess.getCurrentLockOwner()));
                     boolean isLock = lockIdx++ < lockCnt;
 
                     // Debug

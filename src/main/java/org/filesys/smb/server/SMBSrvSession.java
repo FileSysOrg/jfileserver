@@ -27,6 +27,7 @@ import java.net.SocketTimeoutException;
 import java.util.*;
 
 import org.filesys.debug.Debug;
+import org.filesys.locking.FileLockOwner;
 import org.filesys.netbios.NetBIOSException;
 import org.filesys.netbios.NetBIOSName;
 import org.filesys.netbios.NetBIOSSession;
@@ -2096,5 +2097,17 @@ public class SMBSrvSession extends SrvSession<SMBSrvSession.Dbg> implements Runn
         }
         else
             debugPrintln("No session keys");
+	}
+
+	@Override
+	public FileLockOwner getCurrentLockOwner() {
+
+		// Create an SMB lock owner
+		int version = 0;
+
+		if ( getProtocolHandler() != null)
+			version = Dialect.getMajorSMBVersion( getProtocolHandler().getDialect());
+
+		return new SMBFileLockOwner( this, version);
 	}
 }
