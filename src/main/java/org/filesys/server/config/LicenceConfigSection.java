@@ -46,6 +46,9 @@ public class LicenceConfigSection extends ConfigSection {
                     "32cdd4444e1122fa625703RSA4102413SHA512withRSA8b861357437b318" +
                     "64a70085232410832f47159a0b05d7ff71baf4b8258246ef70203010001";
 
+    // Licence announcement has been output
+    private boolean m_licAnnounce;
+
     /**
      * Class constructor
      *
@@ -79,6 +82,13 @@ public class LicenceConfigSection extends ConfigSection {
     public final String getPublicKey() { return m_publicKey; }
 
     /**
+     * Check if the licence announcement has been output during startup
+     *
+     * @return boolean
+     */
+    public final boolean doneAnnouncement() { return m_licAnnounce; }
+
+    /**
      * Set the licence key
      *
      * @param licKey String
@@ -100,4 +110,9 @@ public class LicenceConfigSection extends ConfigSection {
      * @param pubKey String
      */
     public final void setPublicKey(String pubKey) { m_publicKey = pubKey; }
+
+    /**
+     * Set the licence announcement has been output flag
+     */
+    public final void setAnnouncementDone() { m_licAnnounce = true; }
 }
