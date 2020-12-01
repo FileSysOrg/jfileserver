@@ -152,6 +152,31 @@ public class FileStateLockManager implements LockManager, OpLockManager, Runnabl
     }
 
     /**
+     * Check if the specified lock conflicts with an existing lock on the file
+     *
+     * @param sess SrvSession
+     * @param tree TreeConnection
+     * @param path String
+     * @param lock FileLock
+     * @return FileLock
+     */
+    public FileLock testFileLock(SrvSession sess, TreeConnection tree, String path, FileLock lock)
+        throws IOException {
+
+        //	Get the file state for the file path
+        FileState fstate = m_stateCache.findFileState( path);
+
+        if ( fstate == null) {
+
+            // Path does not have an associated file state, so the file has not been opened
+            return null;
+        }
+
+        // Return the lock that overlaps the new lock, or null if there is no overlapping lock
+        return fstate.testLock( lock);
+    }
+
+    /**
      * Unlock a byte range within a file, or the whole file
      *
      * @param sess SrvSession

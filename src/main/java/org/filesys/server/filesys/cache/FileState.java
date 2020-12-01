@@ -29,6 +29,7 @@ import org.filesys.locking.FileLock;
 import org.filesys.locking.FileLockList;
 import org.filesys.locking.LockConflictException;
 import org.filesys.locking.NotLockedException;
+import org.filesys.server.SrvSession;
 import org.filesys.server.filesys.ExistingOpLockException;
 import org.filesys.server.filesys.FileName;
 import org.filesys.server.filesys.FileOpenParams;
@@ -577,12 +578,14 @@ public abstract class FileState implements Serializable {
         synchronized (m_lockList) {
 
             //	Check if the new lock overlaps with any existing locks
-            if (m_lockList.allowsLock(lock)) {
+            FileLock existingLock = m_lockList.allowsLock(lock);
+
+            if ( existingLock == null) {
 
                 //	Add the new lock to the list
                 m_lockList.addLock(lock);
             } else
-                throw new LockConflictException();
+                throw new LockConflictException( existingLock);
         }
     }
 
@@ -609,14 +612,36 @@ public abstract class FileState implements Serializable {
     }
 
     /**
+     * Test if a lock exists on this file
+     *
+     * @param lock FileLock
+     * @return FileLock
+     */
+    public FileLock testLock(FileLock lock) {
+
+        // Check if there are any locks on the file
+        if ( m_lockList == null)
+            return null;
+
+        // Check if the lock overlaps with any existing locks
+        FileLock curLock = null;
+
+        synchronized ( m_lockList) {
+            curLock = m_lockList.allowsLock( lock);
+        }
+
+        return curLock;
+    }
+
+    /**
      * Check if the file is readable for the specified section of the file and process id
      *
      * @param offset long
      * @param len    long
-     * @param pid    int
+     * @param sess   SrvSession
      * @return boolean
      */
-    public boolean canReadFile(long offset, long len, int pid) {
+    public boolean canReadFile(long offset, long len, SrvSession sess) {
 
         //	Check if the lock list is valid
         if (m_lockList == null)
@@ -628,7 +653,7 @@ public abstract class FileState implements Serializable {
         synchronized (m_lockList) {
 
             //	Check if the file section is readable
-            readOK = m_lockList.canReadFile(offset, len, pid);
+            readOK = m_lockList.canReadFile(offset, len, sess.getCurrentLockOwner());
         }
 
         //	Return the read status
@@ -640,10 +665,10 @@ public abstract class FileState implements Serializable {
      *
      * @param offset long
      * @param len    long
-     * @param pid    int
+     * @param sess   SrvSession
      * @return boolean
      */
-    public boolean canWriteFile(long offset, long len, int pid) {
+    public boolean canWriteFile(long offset, long len, SrvSession sess) {
 
         //	Check if the lock list is valid
         if (m_lockList == null)
@@ -655,7 +680,7 @@ public abstract class FileState implements Serializable {
         synchronized (m_lockList) {
 
             //	Check if the file section is writeable
-            writeOK = m_lockList.canWriteFile(offset, len, pid);
+            writeOK = m_lockList.canWriteFile(offset, len, sess.getCurrentLockOwner());
         }
 
         //	Return the write status

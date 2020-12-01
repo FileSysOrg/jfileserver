@@ -487,6 +487,19 @@ public abstract class FileStateCache {
     }
 
     /**
+     * Check if there is an existing lock on this file
+     *
+     * @param fstate FileState
+     * @param lock   FileLock
+     * @return FileLock
+     */
+    public FileLock testLock(FileState fstate, FileLock lock) {
+
+        // Test if the file is locked
+        return fstate.testLock( lock);
+    }
+
+    /**
      * Initialize the file state cache
      *
      * @param config    ConfigElement
