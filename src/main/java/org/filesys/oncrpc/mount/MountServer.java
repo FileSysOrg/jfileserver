@@ -31,6 +31,7 @@ import org.filesys.oncrpc.nfs.NFSConfigSection;
 import org.filesys.oncrpc.nfs.NFSHandle;
 import org.filesys.oncrpc.nfs.NFSSrvSession;
 import org.filesys.server.ServerListener;
+import org.filesys.server.SessionLimitException;
 import org.filesys.server.Version;
 import org.filesys.server.auth.acl.AccessControl;
 import org.filesys.server.auth.acl.AccessControlManager;
@@ -283,6 +284,12 @@ public class MountServer extends RpcNetworkServer implements RpcProcessor {
 
                 //	Failed to authenticate the RPC client
                 rpc.buildAuthFailResponse(ex.getAuthenticationErrorCode());
+                return rpc;
+            }
+            catch (SessionLimitException ex) {
+
+                //	No more sessions available
+                rpc.buildAuthFailResponse(Rpc.AuthSts.RejectCred);
                 return rpc;
             }
         }
@@ -627,9 +634,10 @@ public class MountServer extends RpcNetworkServer implements RpcProcessor {
      * @param rpc RpcPacket
      * @return NFSSrvSession
      * @exception RpcAuthenticationException Authentication error
+     * @exception SessionLimitException
      */
     private final NFSSrvSession createTemporarySession(RpcPacket rpc)
-            throws RpcAuthenticationException {
+            throws RpcAuthenticationException, SessionLimitException {
 
         //	Authenticate the request
         RpcAuthenticator rpcAuth = getNFSConfiguration().getRpcAuthenticator();

@@ -25,6 +25,7 @@ import org.filesys.oncrpc.nfs.NFSServer;
 import org.filesys.oncrpc.nfs.NFSSrvSession;
 import org.filesys.server.ChannelSessionHandler;
 import org.filesys.server.SessionHandlerList;
+import org.filesys.server.SessionLimitException;
 import org.filesys.server.config.InvalidConfigurationException;
 
 import java.io.IOException;
@@ -360,13 +361,15 @@ public class NFSConnectionsHandler implements Runnable, NFSRequestHandlerListene
 
                 // Get the current selection key and check if there is an incoming connection
                 SelectionKey selKey = keysIter.next();
+                SocketChannel sockChannel = null;
+
                 if (selKey.isAcceptable()) {
 
                     try {
 
                         // Get the listening server socket, accept the new client connection
                         ServerSocketChannel srvChannel = (ServerSocketChannel) selKey.channel();
-                        SocketChannel sockChannel = srvChannel.accept();
+                        sockChannel = srvChannel.accept();
 
                         // Create a packet handler for the new connection
                         RpcChannelSessionHandler channelHandler = (RpcChannelSessionHandler) selKey.attachment();
@@ -385,6 +388,20 @@ public class NFSConnectionsHandler implements Runnable, NFSRequestHandlerListene
 
                         // Add the new session to a request handler thread
                         queueSessionToHandler(sess);
+                    }
+                    catch ( SessionLimitException ex) {
+
+                        // Log the error
+                        Debug.println("[NFS] Session limit reached - " + ex.getMessage());
+
+                        // Close the new socket connection
+                        if ( sockChannel != null) {
+                            try {
+                                sockChannel.close();
+                            }
+                            catch (IOException ex2) {
+                            }
+                        }
                     }
                     catch (IOException ex) {
 
