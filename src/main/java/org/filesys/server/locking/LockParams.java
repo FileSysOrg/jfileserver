@@ -17,6 +17,8 @@
 
 package org.filesys.server.locking;
 
+import org.filesys.locking.FileLockOwner;
+
 /**
  * Lock Parameters Class
  *
@@ -28,8 +30,8 @@ public class LockParams {
     private long m_offset;
     private long m_length;
 
-    // Lock owner
-    private int m_owner;
+    // Lock owner details
+    private FileLockOwner m_owner;
 
     // Lock flags
     private int m_flags;
@@ -39,9 +41,9 @@ public class LockParams {
      *
      * @param offset long
      * @param len long
-     * @param owner int
+     * @param owner FileLockOwner
      */
-    public LockParams(long offset, long len, int owner) {
+    public LockParams(long offset, long len, FileLockOwner owner) {
         m_offset = offset;
         m_length = len;
 
@@ -53,10 +55,10 @@ public class LockParams {
      *
      * @param offset long
      * @param len long
-     * @param owner int
+     * @param owner FileLockOwner
      * @param flags int
      */
-    public LockParams(long offset, long len, int owner, int flags) {
+    public LockParams(long offset, long len, FileLockOwner owner, int flags) {
         m_offset = offset;
         m_length = len;
 
@@ -83,11 +85,11 @@ public class LockParams {
     }
 
     /**
-     * Return the lock owner id
+     * Return the lock owner
      *
-     * @return int
+     * @return FileLockOwner
      */
-    public final int getOwner() {
+    public final FileLockOwner getOwner() {
         return m_owner;
     }
 
@@ -106,16 +108,20 @@ public class LockParams {
      * @return String
      */
     public String toString() {
-        StringBuffer str = new StringBuffer();
+        StringBuilder str = new StringBuilder();
 
         str.append("[Lock offset=");
         str.append(getOffset());
         str.append(", len=");
         str.append(getLength());
-        str.append(", owner=0x");
-        str.append(Integer.toHexString( getOwner()));
-        str.append(", flags=0x");
-        str.append(Integer.toHexString( getFlags()));
+        str.append(", owner=");
+        str.append(getOwner());
+
+        if ( getFlags() != 0) {
+            str.append(", flags=0x");
+            str.append(Integer.toHexString(getFlags()));
+        }
+
         str.append("]");
 
         return str.toString();

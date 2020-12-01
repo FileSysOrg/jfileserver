@@ -65,6 +65,19 @@ public interface LockManager {
             throws NotLockedException, IOException;
 
     /**
+     * Check if the specified lock conflicts with an existing lock on the file
+     *
+     * @param sess SrvSession
+     * @param tree TreeConnection
+     * @param path String
+     * @param lock FileLock
+     * @return FileLock
+     * @throws IOException I/O error
+     */
+    public FileLock testFileLock(SrvSession sess, TreeConnection tree, String path, FileLock lock)
+        throws IOException;
+
+    /**
      * Create a lock object, allows the FileLock object to be extended
      *
      * @param sess   SrvSession
