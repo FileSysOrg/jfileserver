@@ -32,6 +32,7 @@ import org.filesys.oncrpc.nfs.nio.NFSConnectionsHandler;
 import org.filesys.oncrpc.nfs.v3.NFS3;
 import org.filesys.oncrpc.nfs.v3.NFS3RpcProcessor;
 import org.filesys.server.ServerListener;
+import org.filesys.server.SessionLimitException;
 import org.filesys.server.SrvSession;
 import org.filesys.server.Version;
 import org.filesys.server.config.CoreServerConfigSection;
@@ -523,10 +524,17 @@ public class NFSServer extends RpcNetworkServer implements RpcProcessor {
                     Debug.println("[NFS] Found session " + sess + ", client=" + sess.getClientInformation());
             }
         }
-        catch (Throwable ex) {
+        catch (SessionLimitException ex) {
+
             // DEBUG
             if (Debug.EnableError && hasDebug(NFSSrvSession.Dbg.ERROR))
-                Debug.println("[NFS] RPC Authencation Exception: " + ex.toString());
+                Debug.println("[NFS] Session limit exception: " + ex.toString());
+        }
+        catch (Throwable ex) {
+
+            // DEBUG
+            if (Debug.EnableError && hasDebug(NFSSrvSession.Dbg.ERROR))
+                Debug.println("[NFS] RPC Authentication Exception: " + ex.toString());
         }
 
         // Check if the session is valid
@@ -548,8 +556,10 @@ public class NFSServer extends RpcNetworkServer implements RpcProcessor {
      * @param rpc     RpcPacket
      * @param sessKey Object
      * @return NFSSrvSession
+     * @exception SessionLimitException
      */
-    private final NFSSrvSession findAuthNullSession(RpcPacket rpc, Object sessKey) {
+    private final NFSSrvSession findAuthNullSession(RpcPacket rpc, Object sessKey)
+        throws SessionLimitException {
 
         //	Check if the null authentication session table is valid
         NFSSrvSession sess = null;
@@ -570,7 +580,7 @@ public class NFSServer extends RpcNetworkServer implements RpcProcessor {
             //	Create a new session for the request
             InetSocketAddress clientAddr = new InetSocketAddress( rpc.getClientAddress(), rpc.getClientPort());
             sess = NFSSrvSession.createSession(rpc.getPacketHandler(), this, getNextSessionId(), rpc.getClientProtocol(), clientAddr);
-            sess.setAuthIdentifier(sessKey);
+            sess.setAuthIdentifier( AuthType.Null, sessKey);
 
             //	Get the client information from the RPC
             sess.setClientInformation(getRpcAuthenticator().getRpcClientInformation(sessKey, rpc));
@@ -598,8 +608,10 @@ public class NFSServer extends RpcNetworkServer implements RpcProcessor {
      * @param rpc     RpcPacket
      * @param sessKey Object
      * @return NFSSrvSession
+     * @exception SessionLimitException
      */
-    private final NFSSrvSession findAuthUnixSession(RpcPacket rpc, Object sessKey) {
+    private final NFSSrvSession findAuthUnixSession(RpcPacket rpc, Object sessKey)
+        throws SessionLimitException {
 
         //	Check if the Unix authentication session table is valid
         NFSSrvSession sess = null;
@@ -620,7 +632,7 @@ public class NFSServer extends RpcNetworkServer implements RpcProcessor {
             //	Create a new session for the request
             InetSocketAddress clientAddr = new InetSocketAddress( rpc.getClientAddress(), rpc.getClientPort());
             sess = NFSSrvSession.createSession(rpc.getPacketHandler(), this, getNextSessionId(), rpc.getClientProtocol(), clientAddr);
-            sess.setAuthIdentifier(sessKey);
+            sess.setAuthIdentifier( AuthType.Unix, sessKey);
 
             //	Set the session id and debug output prefix
             sess.setUniqueId("" + sessKey.hashCode());
@@ -645,6 +657,87 @@ public class NFSServer extends RpcNetworkServer implements RpcProcessor {
 
         //	Return the session
         return sess;
+    }
+
+    /**
+     * Remove one or more sessions with a matching client address/port
+     *
+     * @param sess NFSSrvSession
+     * @return int
+     */
+    public final int removeSessions( NFSSrvSession sess) {
+
+        // Check if the session is in the Unix authentication table
+        int remCnt = 0;
+
+        if ( m_sessAuthUnix != null) {
+
+            // Search for the session in the Unix authentication table
+            remCnt += m_sessAuthUnix.removeSessionsByAddress( sess);
+
+            //	DEBUG
+            if (remCnt > 0 && Debug.EnableInfo && hasDebug(NFSSrvSession.Dbg.SESSION))
+                Debug.println("[NFS] Removed Unix sessions=" + remCnt + " matching address=" + sess.getRemoteSocketAddress());
+        }
+
+        // Check the null authentication table
+        if ( remCnt == 0 && m_sessAuthNull != null) {
+
+            // Search for the session in the null authentication table
+            remCnt += m_sessAuthNull.removeSessionsByAddress( sess);
+
+            //	DEBUG
+            if (remCnt > 0 && Debug.EnableInfo && hasDebug(NFSSrvSession.Dbg.SESSION))
+                Debug.println("[NFS] Removed null sessions=" + remCnt + " matching address=" + sess.getRemoteSocketAddress());
+        }
+
+        // TEST
+        if (hasDebug(NFSSrvSession.Dbg.SESSION)) {
+            if ( m_sessAuthUnix != null) {
+                Debug.println("[NFS] Auth Unix session=" + m_sessAuthUnix.numberOfSessions());
+                if ( m_sessAuthUnix.numberOfSessions() > 0) {
+                    Enumeration<Object> authEnum = m_sessAuthUnix.enumerate();
+
+                    while ( authEnum.hasMoreElements()) {
+                        NFSSrvSession authSess = m_sessAuthUnix.findSession(authEnum.nextElement());
+
+                        Debug.println("  Unix sess: " + authSess + ", authIdent=" + authSess.getAuthIdentifier());
+                    }
+                }
+            }
+
+            if ( m_sessAuthNull != null) {
+                Debug.println("[NFS] Auth Null session=" + m_sessAuthNull.numberOfSessions());
+                if ( m_sessAuthNull.numberOfSessions() > 0) {
+                    Enumeration<Object> authEnum = m_sessAuthNull.enumerate();
+
+                    while ( authEnum.hasMoreElements())
+                        Debug.println("  Null sess: " + m_sessAuthNull.findSession( authEnum.nextElement()));
+                }
+            }
+        }
+
+        // Return the removed session count
+        return remCnt;
+    }
+
+    /**
+     * Return the count of active sessions
+     *
+     * @return int
+     */
+    public final int numberOfActiveSessions() {
+
+        // Count the number of sessions
+        int sessCnt = 0;
+
+        if ( m_sessAuthNull != null)
+            sessCnt += m_sessAuthNull.numberOfSessions();
+
+        if ( m_sessAuthUnix != null)
+            sessCnt += m_sessAuthUnix.numberOfSessions();
+
+        return sessCnt;
     }
 
     /**
@@ -771,6 +864,32 @@ public class NFSServer extends RpcNetworkServer implements RpcProcessor {
      * @param sess SrvSession
      */
     protected final void fireSessionClosed(SrvSession sess) {
+
+        // Remove the session from the appropriate session table
+        if ( sess instanceof NFSSrvSession) {
+            NFSSrvSession nfsSess = (NFSSrvSession) sess;
+            NFSSrvSession remSess = null;
+
+            switch ( nfsSess.isAuthType()) {
+
+                // Null authentication
+                case Null:
+                    if ( m_sessAuthNull != null)
+                        remSess =m_sessAuthNull.removeSession(nfsSess);
+                    break;
+
+                case Unix:
+                    if ( m_sessAuthUnix != null)
+                        remSess = m_sessAuthUnix.removeSession(nfsSess);
+                    break;
+            }
+
+            // DEBUG
+            if ( remSess != null && nfsSess.hasDebug(NFSSrvSession.Dbg.SESSION))
+                nfsSess.debugPrintln("Removed session id=" + nfsSess.getAuthIdentifier() + ", type=" + nfsSess.isAuthType());
+        }
+
+        // Inform listeners of the session close
         fireSessionClosedEvent(sess);
     }
 

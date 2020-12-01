@@ -18,6 +18,7 @@ package org.filesys.oncrpc.nfs;
 
 import org.filesys.oncrpc.Rpc;
 import org.filesys.oncrpc.RpcPacketHandler;
+import org.filesys.server.SessionLimitException;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -29,18 +30,10 @@ import java.net.SocketAddress;
  */
 public class DefaultServerSessionFactory implements SrvSessionFactory {
 
-    /**
-     * Create a new NFS session
-     *
-     * @param pktHandler RpcPacketHandler
-     * @param nfsServer NFSServer
-     * @param sessId int
-     * @param protocolType Rpc.ProtocolId
-     * @param remAddr SocketAddress
-     * @return NFSSrvSession
-     */
+    @Override
     public NFSSrvSession createSession(RpcPacketHandler pktHandler, NFSServer nfsServer, int sessId, Rpc.ProtocolId protocolType,
-                                       SocketAddress remAddr) {
+                                       SocketAddress remAddr)
+        throws SessionLimitException {
 
         // Make sure the socket address is the expected type
         if ( remAddr instanceof InetSocketAddress == false)

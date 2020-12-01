@@ -94,11 +94,72 @@ public class NFSSessionTable {
     }
 
     /**
+     * Remove a session from the list using the unique session id
+     *
+     * @param sess NFSSrvSession
+     * @return NFSSrvSession
+     */
+    public final NFSSrvSession removeSessionById(NFSSrvSession sess) {
+
+        Enumeration<Object> enumSess = m_sessions.keys();
+
+        while ( enumSess.hasMoreElements()) {
+
+            // Get the current session and check for a matching session id
+            Object curKey = enumSess.nextElement();
+            NFSSrvSession curSess = m_sessions.get( curKey);
+
+            if ( curSess.getSessionId() == sess.getSessionId()) {
+
+                // Remove the session
+                m_sessions.remove( curKey);
+
+                // Return the removed session
+                return curSess;
+            }
+        }
+
+        // Session not found
+        return null;
+    }
+
+    /**
+     * Remove one ro more sessions from the list using the client address
+     *
+     * @param sess NFSSrvSession
+     * @return int
+     */
+    public final int removeSessionsByAddress(NFSSrvSession sess) {
+
+        int remCnt = 0;
+        Enumeration<Object> enumSess = m_sessions.keys();
+
+        while ( enumSess.hasMoreElements()) {
+
+            // Get the current session and check for a matching client address
+            Object curKey = enumSess.nextElement();
+            NFSSrvSession curSess = m_sessions.get( curKey);
+
+            if ( curSess.getRemoteSocketAddress().equals( sess.getRemoteSocketAddress())) {
+
+                // Remove the session
+                m_sessions.remove( curKey);
+
+                // Update the count of removed sessions
+                remCnt++;
+            }
+        }
+
+        // Return the count of sessions removed
+        return remCnt;
+    }
+
+    /**
      * Enumerate the session ids
      *
-     * @return Enumeration
+     * @return Enumeration&lt;Object&gt;
      */
-    public final Enumeration enumerate() {
+    public final Enumeration<Object> enumerate() {
         return m_sessions.keys();
     }
 }

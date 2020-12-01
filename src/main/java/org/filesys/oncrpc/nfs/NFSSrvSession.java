@@ -26,9 +26,11 @@ import java.util.EnumSet;
 import java.util.Enumeration;
 
 import org.filesys.debug.Debug;
+import org.filesys.oncrpc.AuthType;
 import org.filesys.oncrpc.Rpc;
 import org.filesys.oncrpc.RpcPacketHandler;
 import org.filesys.server.NetworkServer;
+import org.filesys.server.SessionLimitException;
 import org.filesys.server.SrvSession;
 import org.filesys.server.auth.ClientInfo;
 import org.filesys.server.core.DeviceInterface;
@@ -59,7 +61,10 @@ public class NFSSrvSession extends SrvSession<NFSSrvSession.Dbg> {
         SOCKET,     // Socket handling
         THREADPOOL, // Thread pool
         COMPOUND,   // Compound requests
-        RPC         // RPC processing
+        RPC,        // RPC processing
+        ATTRIBUTE,  // Attribute checking
+        LEASE,      // Leasing
+        LOCKING     // Byte range file locks
     }
 
     //	Default and maximum number of search slots
@@ -79,6 +84,7 @@ public class NFSSrvSession extends SrvSession<NFSSrvSession.Dbg> {
     //	Authentication identifier
     //
     //	Identifies this session uniquely within the authentication type being used by the client
+    private AuthType m_authType = AuthType.Invalid;
     private Object m_authIdentifier;
 
     //	Active tree connections
@@ -112,9 +118,11 @@ public class NFSSrvSession extends SrvSession<NFSSrvSession.Dbg> {
      * @param protocolType Rpc.ProtocolId
      * @param remAddr InetAddress
      * @return NFSSrvSession
+     * @exception SessionLimitException
      */
     public static NFSSrvSession createSession(RpcPacketHandler pktHandler, NFSServer nfsServer, int sessId, Rpc.ProtocolId protocolType,
-                                              SocketAddress remAddr) {
+                                              SocketAddress remAddr)
+        throws SessionLimitException {
 
         // Handoff to the session factory
         return _sessFactory.createSession( pktHandler, nfsServer, sessId, protocolType, remAddr);
@@ -256,6 +264,15 @@ public class NFSSrvSession extends SrvSession<NFSSrvSession.Dbg> {
     }
 
     /**
+     * Return the authentication type used by this session
+     *
+     * @return AuthType
+     */
+    public final AuthType isAuthType() {
+        return m_authType;
+    }
+
+    /**
      * Determine if the session has an authentication identifier
      *
      * @return boolean
@@ -289,6 +306,17 @@ public class NFSSrvSession extends SrvSession<NFSSrvSession.Dbg> {
      */
     public final int getRemotePort() {
         return m_remPort;
+    }
+
+    /**
+     * Return the client remote address and port
+     *
+     * @return InetSocketAddress
+     */
+    public final InetSocketAddress getRemoteSocketAddress() {
+        if ( m_remAddr != null)
+            return new InetSocketAddress( m_remAddr, m_remPort);
+        return null;
     }
 
     /**
@@ -382,9 +410,11 @@ public class NFSSrvSession extends SrvSession<NFSSrvSession.Dbg> {
     /**
      * Set the authentication identifier
      *
+     * @param authType AuthType
      * @param authIdent Object
      */
-    public final void setAuthIdentifier(Object authIdent) {
+    public final void setAuthIdentifier(AuthType authType, Object authIdent) {
+        m_authType = authType;
         m_authIdentifier = authIdent;
     }
 
@@ -582,6 +612,9 @@ public class NFSSrvSession extends SrvSession<NFSSrvSession.Dbg> {
                 m_connections = null;
             }
         }
+
+        // Remove the session from the authentication table
+        getNFSServer().removeSessions( this);
     }
 
     /**
