@@ -15,7 +15,7 @@
  * along with JFileServer. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.filesys.smb.server.disk;
+package org.filesys.server.filesys.disk;
 
 import org.filesys.debug.Debug;
 import org.filesys.server.core.DeviceContextException;
@@ -25,8 +25,6 @@ import org.filesys.util.MemorySize;
 import org.springframework.extensions.config.ConfigElement;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.*;
 
 /**
  * Java NIO Filesystem Device Context Class

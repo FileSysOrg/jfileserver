@@ -18,7 +18,7 @@
  * along with Alfresco. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.filesys.smb.server.disk;
+package org.filesys.server.filesys.disk;
 
 import java.io.IOException;
 import java.nio.file.*;

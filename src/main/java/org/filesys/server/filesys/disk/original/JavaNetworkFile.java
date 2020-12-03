@@ -1,6 +1,5 @@
 /*
  * Copyright (C) 2006-2010 Alfresco Software Limited.
- * Copyright (C) 2018 GK Spencer
  *
  * This file is part of Alfresco
  *
@@ -18,36 +17,30 @@
  * along with Alfresco. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.filesys.smb.server.disk;
+package org.filesys.server.filesys.disk.original;
 
-import org.filesys.debug.Debug;
+import org.filesys.server.filesys.AccessMode;
 import org.filesys.server.filesys.DiskFullException;
 import org.filesys.server.filesys.NetworkFile;
 import org.filesys.smb.SeekType;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
-import java.nio.file.attribute.FileTime;
-import java.util.EnumSet;
-import java.util.Set;
+import java.io.RandomAccessFile;
 
 /**
  * Network file implementation that uses the java.io.File class.
  *
  * @author gkspencer
  */
-public class JavaNIONetworkFile extends NetworkFile {
+public class JavaNetworkFile extends NetworkFile {
 
-    //	File path
-    protected Path m_path;
+    //	File details
+    protected File m_file;
 
-    //	File channel used to read/write the actual file
-    protected FileChannel m_io;
+    //	Random access file used to read/write the actual file
+    protected RandomAccessFile m_io;
 
     //	End of file flag
     protected boolean m_eof;
@@ -55,24 +48,22 @@ public class JavaNIONetworkFile extends NetworkFile {
     /**
      * Class constructor.
      *
-     * @param path    Path
+     * @param file    File
      * @param netPath String
-     * @exception IOException I/O error
      */
-    public JavaNIONetworkFile(Path path, String netPath)
-            throws IOException {
-        super( path.getFileName().toString());
+    public JavaNetworkFile(File file, String netPath) {
+        super(file.getName());
 
-        //  Set the file path
-        m_path = path;
+        //  Set the file using the existing file object
+        m_file = file;
 
         //  Set the file size
-        setFileSize(Files.size( m_path));
+        setFileSize(m_file.length());
         m_eof = false;
 
         //	Set the modification date/time, if available. Fake the creation date/time as it's not
         //	available from the File class
-        long modDate = Files.getLastModifiedTime( m_path).toMillis();
+        long modDate = m_file.lastModified();
         setModifyDate(modDate);
         setCreationDate(modDate);
 
@@ -85,34 +76,111 @@ public class JavaNIONetworkFile extends NetworkFile {
      *
      * @param name    String
      * @param netPath String
-     * @exception IOException I/O error
      */
-    public JavaNIONetworkFile(String name, String netPath)
-            throws IOException {
+    public JavaNetworkFile(String name, String netPath) {
         super(name);
 
-        //  Create the path
-        m_path = Paths.get( name);
+        //  Create the file object
+        File newFile = new File(name);
 
         //  Check if the file exists
-        if ( Files.exists( m_path) == false) {
+        if (newFile.exists()) {
 
-            // Create the file
-            Files.createFile( m_path);
+            //  Set the file object
+            m_file = newFile;
+        }
+        else {
+
+            //  Convert the file name to lowercase and try again
+            String lowerName = name.toLowerCase();
+            File newFile2 = new File(lowerName);
+
+            if (newFile2.exists()) {
+
+                //  Set the file
+                m_file = newFile2;
+            }
+            else {
+
+                //  Set the file to be the original file name
+                m_file = newFile;
+
+                //  Create the file
+                try {
+                    FileOutputStream outFile = new FileOutputStream(newFile);
+                    outFile.close();
+                }
+                catch (Exception ex) {
+                }
+            }
         }
 
         //  Set the file size
-        setFileSize(Files.size( m_path));
+        setFileSize(m_file.length());
         m_eof = false;
 
         //	Set the modification date/time, if available. Fake the creation date/time as it's not
         //	available from the File class
-        long modDate = Files.getLastModifiedTime( m_path).toMillis();
+        long modDate = m_file.lastModified();
         setModifyDate(modDate);
         setCreationDate(modDate);
 
         //	Set the file id
         setFileId(netPath.hashCode());
+    }
+
+    /**
+     * Class constructor.
+     *
+     * @param name File name/path
+     * @param mode File access mode
+     */
+    public JavaNetworkFile(String name, int mode) {
+        super(name);
+
+        //  Create the file object
+        File newFile = new File(name);
+
+        //  Check if the file exists
+        if (newFile.exists() == false) {
+
+            //  Convert the file name to lowercase and try again
+            String lowerName = name.toLowerCase();
+            File newFile2 = new File(lowerName);
+
+            if (newFile2.exists()) {
+
+                //  Set the file
+                m_file = newFile2;
+            }
+            else {
+
+                //  Set the file to be the original file name
+                m_file = newFile;
+
+                //  Create the file, if not opening the file read-only
+                if (AccessMode.getAccessMode(mode) != AccessMode.ReadOnly) {
+
+                    //  Create a new file
+                    try {
+                        FileOutputStream outFile = new FileOutputStream(newFile);
+                        outFile.close();
+                    }
+                    catch (Exception ex) {
+                    }
+                }
+            }
+        }
+
+        //  Set the file size
+        setFileSize(m_file.length());
+        m_eof = false;
+
+        //	Set the modification date/time, if available. Fake the creation date/time as it's not
+        //	available from the File class
+        long modDate = m_file.lastModified();
+        setModifyDate(modDate);
+        setCreationDate(modDate);
     }
 
     /**
@@ -131,7 +199,7 @@ public class JavaNIONetworkFile extends NetworkFile {
 
             //	Set the last modified date/time for the file
             if (this.getWriteCount() > 0)
-                Files.setLastModifiedTime(m_path, FileTime.fromMillis( System.currentTimeMillis()));
+                m_file.setLastModified(System.currentTimeMillis());
 
             //	Indicate that the file is closed
             setClosed(true);
@@ -148,11 +216,10 @@ public class JavaNIONetworkFile extends NetworkFile {
         //  Check if the file is open
         try {
             if (m_io != null)
-                return m_io.position();
+                return m_io.getFilePointer();
         }
         catch (Exception ex) {
         }
-
         return 0;
     }
 
@@ -166,7 +233,7 @@ public class JavaNIONetworkFile extends NetworkFile {
 
         //	Flush all buffered data
         if (m_io != null)
-            m_io.force( false);
+            m_io.getFD().sync();
     }
 
     /**
@@ -178,7 +245,7 @@ public class JavaNIONetworkFile extends NetworkFile {
     public boolean isEndOfFile() throws IOException {
 
         //  Check if we reached end of file
-        if (m_io != null && m_io.position() == m_io.size())
+        if (m_io != null && m_io.getFilePointer() == m_io.length())
             return true;
         return false;
     }
@@ -192,18 +259,13 @@ public class JavaNIONetworkFile extends NetworkFile {
     public void openFile(boolean createFlag)
             throws IOException {
 
-        synchronized (m_path) {
+        synchronized (m_file) {
 
             //	Check if the file is open
             if (m_io == null) {
 
                 //  Open the file
-                Set<StandardOpenOption> openOptions = null;
-                if ( getGrantedAccess() == Access.READ_WRITE)
-                    openOptions = EnumSet.of( StandardOpenOption.READ, StandardOpenOption.WRITE);
-                else
-                    openOptions = EnumSet.of( StandardOpenOption.READ);
-                m_io = FileChannel.open( m_path, openOptions);
+                m_io = new RandomAccessFile(m_file, getGrantedAccess() == Access.READ_WRITE ? "rw" : "r");
 
                 //	Indicate that the file is open
                 setClosed(false);
@@ -233,8 +295,7 @@ public class JavaNIONetworkFile extends NetworkFile {
             seekFile(fileOff, SeekType.StartOfFile);
 
         //  Read from the file
-        ByteBuffer bytBuf = ByteBuffer.wrap( buf, pos, len);
-        int rdlen = m_io.read( bytBuf);
+        int rdlen = m_io.read(buf, pos, len);
 
         //	Return the actual length of data read
         return rdlen;
@@ -260,18 +321,18 @@ public class JavaNIONetworkFile extends NetworkFile {
             //  From start of file
             case SeekType.StartOfFile:
                 if (currentPosition() != pos)
-                    m_io.position( pos);
+                    m_io.seek(pos);
                 break;
 
             //  From current position
             case SeekType.CurrentPos:
-                m_io.position( m_io.position() + pos);
+                m_io.seek(currentPosition() + pos);
                 break;
 
             //  From end of file
             case SeekType.EndOfFile: {
-                long newPos = m_io.size() + pos;
-                m_io.position(newPos);
+                long newPos = m_io.length() + pos;
+                m_io.seek(newPos);
             }
             break;
         }
@@ -293,16 +354,14 @@ public class JavaNIONetworkFile extends NetworkFile {
         if (m_io == null)
             openFile(true);
         else
-            m_io.force( false);
+            m_io.getFD().sync();
 
         //	Check if the file length is being truncated or extended
         boolean extendFile = siz > getFileSize() ? true : false;
 
         //  Set the file length
         try {
-
-            // Set the file to the required length
-            m_io.truncate(siz);
+            m_io.setLength(siz);
 
             //	Update the file size
             setFileSize(siz);
@@ -336,16 +395,10 @@ public class JavaNIONetworkFile extends NetworkFile {
             openFile(true);
 
         //  Write to the file
-        ByteBuffer bytBuf = ByteBuffer.wrap( buf, pos, len);
-
-        while ( bytBuf.hasRemaining())
-            m_io.write(bytBuf);
+        m_io.write(buf, pos, len);
 
         //	Update the write count for the file
         incrementWriteCount();
-
-        // Update the new file length
-        setFileSize( m_io.size());
     }
 
     /**
@@ -366,12 +419,12 @@ public class JavaNIONetworkFile extends NetworkFile {
 
         //	We need to seek to the write position. If the write position is off the end of the file
         //	we must null out the area between the current end of file and the write position.
-        long fileLen = m_io.size();
+        long fileLen = m_io.length();
 
         if (offset > fileLen) {
 
             //	Extend the file
-            m_io.truncate(offset + len);
+            m_io.setLength(offset + len);
         }
 
         //	Check for a zero length write
@@ -379,21 +432,12 @@ public class JavaNIONetworkFile extends NetworkFile {
             return;
 
         //	Seek to the write position
-        m_io.position(offset);
+        m_io.seek(offset);
 
         //  Write to the file
-        ByteBuffer bytBuf = ByteBuffer.wrap( buf, pos, len);
-
-        while( bytBuf.hasRemaining())
-            m_io.write(bytBuf);
+        m_io.write(buf, pos, len);
 
         //	Update the write count for the file
         incrementWriteCount();
-
-        // Update the current file size if we have written passed the current end of file
-        long newLen = offset + len;
-
-        if ( newLen > getFileSize())
-            setFileSize( newLen);
     }
 }

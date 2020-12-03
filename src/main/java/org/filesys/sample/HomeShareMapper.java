@@ -39,7 +39,7 @@ import org.filesys.server.filesys.DiskDeviceContext;
 import org.filesys.server.filesys.DiskInterface;
 import org.filesys.server.filesys.DiskSharedDevice;
 import org.filesys.server.filesys.FilesystemsConfigSection;
-import org.filesys.smb.server.disk.JavaNIODiskDriver;
+import org.filesys.server.filesys.disk.JavaNIODiskDriver;
 import org.springframework.extensions.config.ConfigElement;
 
 /**

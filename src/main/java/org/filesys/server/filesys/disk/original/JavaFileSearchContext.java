@@ -17,13 +17,13 @@
  * along with Alfresco. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.filesys.smb.server.disk.original;
+package org.filesys.server.filesys.disk.original;
 
 import org.filesys.server.filesys.FileAttribute;
 import org.filesys.server.filesys.FileInfo;
 import org.filesys.server.filesys.FileName;
 import org.filesys.server.filesys.SearchContext;
-import org.filesys.smb.server.disk.JavaNIODiskDriver;
+import org.filesys.server.filesys.disk.JavaNIODiskDriver;
 import org.filesys.util.WildCard;
 
 import java.io.File;

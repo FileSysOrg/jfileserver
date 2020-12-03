@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2006-2010 Alfresco Software Limited.
+ * Copyright (C) 2018 GK Spencer
  *
  * This file is part of Alfresco
  *
@@ -17,21 +18,37 @@
  * along with Alfresco. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.filesys.smb.server.disk.original;
+package org.filesys.server.filesys.disk;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.nio.file.*;
+import java.nio.file.attribute.FileTime;
+import java.util.Random;
+import java.util.StringTokenizer;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import org.filesys.debug.Debug;
 import org.filesys.server.SrvSession;
 import org.filesys.server.core.DeviceContext;
 import org.filesys.server.core.DeviceContextException;
-import org.filesys.server.filesys.*;
+import org.filesys.server.filesys.AccessDeniedException;
+import org.filesys.server.filesys.DiskInterface;
+import org.filesys.server.filesys.FileAttribute;
+import org.filesys.server.filesys.FileExistsException;
+import org.filesys.server.filesys.FileInfo;
+import org.filesys.server.filesys.FileName;
+import org.filesys.server.filesys.FileOpenParams;
+import org.filesys.server.filesys.FileStatus;
+import org.filesys.server.filesys.NetworkFile;
+import org.filesys.server.filesys.PathNotFoundException;
+import org.filesys.server.filesys.SearchContext;
+import org.filesys.server.filesys.TreeConnection;
 import org.filesys.smb.server.SMBSrvSession;
+import org.filesys.util.WildCard;
 import org.springframework.extensions.config.ConfigElement;
-
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.StringTokenizer;
 
 
 /**
@@ -39,18 +56,24 @@ import java.util.StringTokenizer;
  *
  * @author gkspencer
  */
-public class JavaFileDiskDriver implements DiskInterface {
-
-    //	DOS file seperator character
-    private static final String DOS_SEPERATOR = "\\";
+public class JavaNIODiskDriver implements DiskInterface {
 
     //	SMB date used as the creation date/time for all files
     protected static long _globalCreateDate = System.currentTimeMillis();
 
+    // Background thread used for long running actions such as large file delete
+    protected ExecutorService m_fileActionsExecutor = Executors.newSingleThreadExecutor();
+
+    // Trashcan filename prefix
+    protected static final String TRASHCAN_NAME_PREFIX = "trash_";
+
+    // Random number generator for trashcan file names
+    private static Random _trashCanIdGenerator = new Random();
+
     /**
      * Class constructor
      */
-    public JavaFileDiskDriver() {
+    public JavaNIODiskDriver() {
         super();
     }
 
@@ -64,92 +87,86 @@ public class JavaFileDiskDriver implements DiskInterface {
     protected FileInfo buildFileInformation(String path, String relPath) {
 
         //  Now split the path up again !
-        String[] pathStr = FileName.splitPath(path, File.separatorChar);
+        String[] pathStr = FileName.splitPath(path, java.io.File.separatorChar);
+        FileInfo finfo = null;
 
-        //  Create a Java file to get the file/directory information
-        if (pathStr[1] != null) {
+        try {
 
-            //  Create a file object
-            File file = new File(pathStr[0], pathStr[1]);
-            if (file.exists() == true && file.isFile()) {
+            // Build the path
+            Path curPath = null;
 
-                //  Fill in a file information object for this file/directory
-                long flen = file.length();
-                long alloc = (flen + 512L) & 0xFFFFFFFFFFFFFE00L;
-                int fattr = 0;
+            if ( pathStr[1] != null)
+                curPath = Paths.get( pathStr[0], pathStr[1]);
+            else
+                curPath = Paths.get( pathStr[0]);
 
-                if (file.isDirectory())
-                    fattr = FileAttribute.Directory;
+            //  Get the file/directory information
+            if ( curPath != null) {
 
-                if (file.canWrite() == false)
-                    fattr += FileAttribute.ReadOnly;
+                if (Files.exists(curPath, LinkOption.NOFOLLOW_LINKS)) {
 
-                //	Check for common hidden files
-                if (pathStr[1].equalsIgnoreCase("Desktop.ini") ||
-                        pathStr[1].equalsIgnoreCase("Thumbs.db") ||
-                        pathStr[1].charAt(0) == '.')
-                    fattr += FileAttribute.Hidden;
-
-                //	Create the file information
-                FileInfo finfo = new FileInfo(pathStr[1], flen, fattr);
-                long fdate = file.lastModified();
-                finfo.setModifyDateTime(fdate);
-                finfo.setAllocationSize(alloc);
-                finfo.setFileId(relPath.hashCode());
-
-                finfo.setCreationDateTime(getGlobalCreateDateTime() > fdate ? fdate : getGlobalCreateDateTime());
-                finfo.setChangeDateTime(fdate);
-
-                return finfo;
-            }
-            else {
-
-                //  Rebuild the path, looks like it is a directory
-                File dir = new File(FileName.buildPath(pathStr[0], pathStr[1], null, File.separatorChar));
-                if (dir.exists() == true) {
-
-                    //  Fill in a file information object for this directory
+                    //  Create a file information object for the file
                     int fattr = 0;
-                    if (dir.isDirectory())
+                    long falloc = 0L;
+                    long flen = 0L;
+
+                    String fname = curPath.getFileName().toString();
+
+                    if (Files.isDirectory(curPath, LinkOption.NOFOLLOW_LINKS)) {
+
+                        // Set the directory attribute
                         fattr = FileAttribute.Directory;
 
-                    FileInfo finfo = new FileInfo(pathStr[1] != null ? pathStr[1] : "", 0, fattr);
-                    long fdate = file.lastModified();
-                    finfo.setModifyDateTime(fdate);
-                    finfo.setFileId(relPath.hashCode());
+                        // Check if the diretory should be hidden
+                        if (Files.isHidden(curPath))
+                            fattr += FileAttribute.Hidden;
+                    }
+                    else {
 
-                    finfo.setCreationDateTime(getGlobalCreateDateTime() > fdate ? fdate : getGlobalCreateDateTime());
-                    finfo.setChangeDateTime(fdate);
+                        //	Set the file length
+                        flen = Files.size(curPath);
+                        falloc = (flen + 512L) & 0xFFFFFFFFFFFFFE00L;
 
-                    return finfo;
+                        //	Check if the file/folder is read-only
+                        if (Files.isWritable(curPath) == false)
+                            fattr += FileAttribute.ReadOnly;
+
+                        //	Check for common hidden files
+                        if (Files.isHidden(curPath))
+                            fattr += FileAttribute.Hidden;
+                        else if (fname.equalsIgnoreCase("Desktop.ini") ||
+                                fname.equalsIgnoreCase("Thumbs.db") ||
+                                fname.startsWith("."))
+                            fattr += FileAttribute.Hidden;
+                    }
+
+                    //  Create the file information object
+                    finfo = new FileInfo(pathStr[1], flen, fattr);
+                    finfo.setAllocationSize(falloc);
+
+                    // Generate the file id from the relative path
+                    finfo.setFileId(relPath.toString().hashCode());
+
+                    // Set the file timestamps
+                    FileTime modifyDate = Files.getLastModifiedTime(curPath, LinkOption.NOFOLLOW_LINKS);
+                    long modifyDateMs = modifyDate.toMillis();
+
+                    finfo.setModifyDateTime(modifyDateMs);
+                    finfo.setChangeDateTime(modifyDateMs);
+
+                    long dummyCreate = getGlobalCreateDateTime();
+
+                    if (dummyCreate > modifyDateMs)
+                        dummyCreate = modifyDateMs;
+                    finfo.setCreationDateTime(dummyCreate);
                 }
             }
         }
-        else {
-
-            //  Get file information for a directory
-            File dir = new File(pathStr[0]);
-            if (dir.exists() == true) {
-
-                //  Fill in a file information object for this directory
-                int fattr = 0;
-                if (dir.isDirectory())
-                    fattr = FileAttribute.Directory;
-
-                FileInfo finfo = new FileInfo(pathStr[1] != null ? pathStr[1] : "", 0, fattr);
-                long fdate = dir.lastModified();
-                finfo.setModifyDateTime(fdate);
-                finfo.setFileId(relPath.hashCode());
-
-                finfo.setCreationDateTime(getGlobalCreateDateTime() > fdate ? fdate : getGlobalCreateDateTime());
-                finfo.setChangeDateTime(fdate);
-
-                return finfo;
-            }
+        catch ( Exception ex) {
         }
 
-        //  Bad path
-        return null;
+        // Return the file information, or null if the path does not exist
+        return finfo;
     }
 
     /**
@@ -161,7 +178,7 @@ public class JavaFileDiskDriver implements DiskInterface {
      * @exception IOException I/O error
      */
     public void closeFile(SrvSession sess, TreeConnection tree, NetworkFile file)
-            throws IOException {
+            throws java.io.IOException {
 
         //	Close the file
         file.closeFile();
@@ -186,10 +203,10 @@ public class JavaFileDiskDriver implements DiskInterface {
      * @exception IOException I/O error
      */
     public void createDirectory(SrvSession sess, TreeConnection tree, FileOpenParams params)
-            throws IOException {
+            throws java.io.IOException {
 
         //  Get the full path for the new directory
-        String dirname = FileName.buildPath(tree.getContext().getDeviceName(), params.getPath(), null, File.separatorChar);
+        String dirname = FileName.buildPath(tree.getContext().getDeviceName(), params.getPath(), null, java.io.File.separatorChar);
 
         //  Create the new directory
         File newDir = new File(dirname);
@@ -207,24 +224,22 @@ public class JavaFileDiskDriver implements DiskInterface {
      * @exception IOException I/O error
      */
     public NetworkFile createFile(SrvSession sess, TreeConnection tree, FileOpenParams params)
-            throws IOException {
+            throws java.io.IOException {
 
         //  Get the full path for the new file
         DeviceContext ctx = tree.getContext();
-        String fname = FileName.buildPath(ctx.getDeviceName(), params.getPath(), null, File.separatorChar);
+        Path newPath = Paths.get( mapPath( ctx.getDeviceName(), params.getPath()));
 
         //  Check if the file already exists
-        File file = new File(fname);
-        if (file.exists())
+        if ( Files.exists( newPath, LinkOption.NOFOLLOW_LINKS))
             throw new FileExistsException();
 
         //  Create the new file
-        FileWriter newFile = new FileWriter(fname, false);
-        newFile.close();
+        Files.createFile( newPath);
 
         //  Create a Java network file
-        file = new File(fname);
-        JavaNetworkFile netFile = new JavaNetworkFile(file, params.getPath());
+        JavaNIONetworkFile netFile = new JavaNIONetworkFile( newPath, params.getPath());
+
         netFile.setGrantedAccess(NetworkFile.Access.READ_WRITE);
         netFile.setFullName(params.getPath());
 
@@ -241,43 +256,44 @@ public class JavaFileDiskDriver implements DiskInterface {
      * @exception IOException I/O error
      */
     public void deleteDirectory(SrvSession sess, TreeConnection tree, String dir)
-            throws IOException {
+            throws java.io.IOException {
 
         //  Get the full path for the directory
         DeviceContext ctx = tree.getContext();
-        String dirname = FileName.buildPath(ctx.getDeviceName(), dir, null, File.separatorChar);
+        Path dirPath = Paths.get( FileName.buildPath(ctx.getDeviceName(), dir, null, java.io.File.separatorChar));
 
         //  Check if the directory exists, and it is a directory
-        File delDir = new File(dirname);
-        if (delDir.exists() && delDir.isDirectory()) {
-
-            //	Check if the directory contains any files
-            String[] fileList = delDir.list();
-            if (fileList != null && fileList.length > 0)
-                throw new AccessDeniedException("Directory not empty");
+        if ( Files.exists( dirPath) && Files.isDirectory( dirPath)) {
 
             //	Delete the directory
-            delDir.delete();
+            try {
+                Files.delete(dirPath);
+            }
+            catch ( java.nio.file.DirectoryNotEmptyException ex) {
+                throw new org.filesys.server.filesys.DirectoryNotEmptyException( "Directory not empty");
+            }
         }
 
         //  If the path does not exist then try and map it to a real path, there may be case differences
-        else if (delDir.exists() == false) {
+        else if ( Files.exists( dirPath) == false) {
 
             //  Map the path to a real path
             String mappedPath = mapPath(ctx.getDeviceName(), dir);
+
             if (mappedPath != null) {
 
                 //  Check if the path is a directory
-                delDir = new File(mappedPath);
-                if (delDir.isDirectory()) {
+                dirPath = Paths.get( mappedPath);
 
-                    //	Check if the directory contains any files
-                    String[] fileList = delDir.list();
-                    if (fileList != null && fileList.length > 0)
-                        throw new AccessDeniedException("Directory not empty");
+                if ( Files.isDirectory( dirPath)) {
 
                     //	Delete the directory
-                    delDir.delete();
+                    try {
+                        Files.delete(dirPath);
+                    }
+                    catch ( java.nio.file.DirectoryNotEmptyException ex) {
+                        throw new org.filesys.server.filesys.DirectoryNotEmptyException( "Directory not empty");
+                    }
                 }
             }
         }
@@ -292,28 +308,65 @@ public class JavaFileDiskDriver implements DiskInterface {
      * @exception IOException I/O error
      */
     public void deleteFile(SrvSession sess, TreeConnection tree, String name)
-            throws IOException {
+            throws java.io.IOException {
 
         //  Get the full path for the file
-        DeviceContext ctx = tree.getContext();
-        String fullname = FileName.buildPath(ctx.getDeviceName(), name, null, File.separatorChar);
+        JavaNIODeviceContext ctx = (JavaNIODeviceContext) tree.getContext();
+        Path filePath = Paths.get( FileName.buildPath(ctx.getDeviceName(), name, null, java.io.File.separatorChar));
 
         //  Check if the file exists, and it is a file
-        File delFile = new File(fullname);
-        if (delFile.exists() && delFile.isFile())
-            delFile.delete();
+        if ( Files.exists( filePath) && Files.isDirectory( filePath) == false) {
 
-            //  If the path does not exist then try and map it to a real path, there may be case differences
-        else if (delFile.exists() == false) {
+            // If the file size is below the large file threshold then delete the file
+            if ( Files.size( filePath) < ctx.getLargeFileSize()) {
 
-            //  Map the path to a real path
-            String mappedPath = mapPath(ctx.getDeviceName(), name);
-            if (mappedPath != null) {
+                // Delete the file
+                Files.delete( filePath);
+            }
+            else {
 
-                //  Check if the path is a file and exists
-                delFile = new File(mappedPath);
-                if (delFile.exists() && delFile.isFile())
-                    delFile.delete();
+                // Get the file name from the path
+                String[] paths = FileName.splitPath( name);
+                String fileName = null;
+
+                if ( paths[1] != null)
+                    fileName = paths[1];
+
+                // Create a unique name for the file in the trashcan folder
+                StringBuilder trashName = new StringBuilder();
+                trashName.append( ctx.getTrashFolder().getAbsolutePath());
+                trashName.append( File.separatorChar);
+                trashName.append( TRASHCAN_NAME_PREFIX);
+                trashName.append( sess.getSessionId());
+                trashName.append( "_");
+                trashName.append( _trashCanIdGenerator.nextLong());
+
+                final Path trashPath = Paths.get( trashName.toString());
+
+                // DEBUG
+                if ( ctx.hasDebug())
+                    Debug.println("Delete file " + name + " via trashcan");
+
+                try {
+                    // Rename the file into the trashcan folder
+                    Files.move( filePath, trashPath, StandardCopyOption.ATOMIC_MOVE);
+
+                    // Queue a delete to the background thread
+                    m_fileActionsExecutor.execute( new Runnable() {
+                        public void run() {
+                            try {
+                                Files.delete(trashPath);
+                            }
+                            catch ( Exception ex) {
+                            }
+                        }
+                    });
+                }
+                catch ( Exception ex) {
+
+                    // Failed to move the file to the trashcan folder, just delete it where it is
+                    Files.delete( filePath);
+                }
             }
         }
     }
@@ -330,41 +383,35 @@ public class JavaFileDiskDriver implements DiskInterface {
 
         //  Get the full path for the file
         DeviceContext ctx = tree.getContext();
-        String filename = FileName.buildPath(ctx.getDeviceName(), name, null, File.separatorChar);
+        Path filePath = Paths.get( FileName.buildPath(ctx.getDeviceName(), name, null, java.io.File.separatorChar));
 
-        //  Check if the file exists, and it is a file
-        File chkFile = new File(filename);
-        if (chkFile.exists()) {
+        if ( Files.exists( filePath, LinkOption.NOFOLLOW_LINKS)) {
 
             //	Check if the path is a file or directory
-            if (chkFile.isFile())
-                return FileStatus.FileExists;
-            else
+            if ( Files.isDirectory( filePath, LinkOption.NOFOLLOW_LINKS))
                 return FileStatus.DirectoryExists;
+            else
+                return FileStatus.FileExists;
         }
 
-        //  If the path does not exist then try and map it to a real path, there may be case differences
-        if (chkFile.exists() == false) {
+        // Map the path, and re-check
+        try {
+            String mappedPath = mapPath(ctx.getDeviceName(), name);
 
-            //  Map the path to a real path
-            try {
-                String mappedPath = mapPath(ctx.getDeviceName(), name);
-                if (mappedPath != null) {
+            if ( mappedPath != null) {
+                filePath = Paths.get( mappedPath);
 
-                    //  Check if the path is a file
-                    chkFile = new File(mappedPath);
-                    if (chkFile.exists()) {
-                        if (chkFile.isFile())
-                            return FileStatus.FileExists;
-                        else
-                            return FileStatus.DirectoryExists;
-                    }
+                if ( Files.exists( filePath, LinkOption.NOFOLLOW_LINKS)) {
+
+                    //	Check if the path is a file or directory
+                    if ( Files.isDirectory( filePath, LinkOption.NOFOLLOW_LINKS))
+                        return FileStatus.DirectoryExists;
+                    else
+                        return FileStatus.FileExists;
                 }
             }
-            catch (FileNotFoundException ex) {
-            }
-            catch (PathNotFoundException ex) {
-            }
+        }
+        catch ( Exception ex) {
         }
 
         //  Path does not exist or is not a file
@@ -380,7 +427,7 @@ public class JavaFileDiskDriver implements DiskInterface {
      * @exception IOException I/O error
      */
     public void flushFile(SrvSession sess, TreeConnection tree, NetworkFile file)
-            throws IOException {
+            throws java.io.IOException {
 
         //	Flush the file
         file.flushFile();
@@ -396,11 +443,11 @@ public class JavaFileDiskDriver implements DiskInterface {
      * @exception IOException I/O error
      */
     public FileInfo getFileInformation(SrvSession sess, TreeConnection tree, String name)
-            throws IOException {
+            throws java.io.IOException {
 
         //  Get the full path for the file/directory
         DeviceContext ctx = tree.getContext();
-        String path = FileName.buildPath(ctx.getDeviceName(), name, null, File.separatorChar);
+        String path = FileName.buildPath(ctx.getDeviceName(), name, null, java.io.File.separatorChar);
 
         //  Build the file information for the file/directory
         FileInfo info = buildFileInformation(path, name);
@@ -423,51 +470,19 @@ public class JavaFileDiskDriver implements DiskInterface {
      * @param sess Session details
      * @param ctx  Device context
      * @return true if the device is read-only, else false
-     * @throws IOException If an error occurs.
+     * @exception IOException I/O error
      */
     public boolean isReadOnly(SrvSession sess, DeviceContext ctx)
-            throws IOException {
+            throws java.io.IOException {
 
         //  Check if the directory exists, and it is a directory
-        File rootDir = new File(ctx.getDeviceName());
-        if (rootDir.exists() == false || rootDir.isDirectory() == false)
+        Path rootPath = Paths.get( ctx.getDeviceName());
+
+        if ( Files.exists( rootPath) == false || Files.isDirectory( rootPath) == false)
             throw new FileNotFoundException(ctx.getDeviceName());
 
-        //  Create a temporary file in the root directory, this will test if we have write access
-        //  to the shared directory.
-        boolean readOnly = true;
-
-        try {
-
-            //  Create a temporary file
-            File tempFile = null;
-            boolean fileOK = false;
-
-            while (fileOK == false) {
-
-                //  Create a temporary file name
-                tempFile = new File(rootDir, "_JSRV" + (System.currentTimeMillis() & 0x0FFF) + ".TMP");
-                if (tempFile.exists() == false)
-                    fileOK = true;
-            }
-
-            //  Create a temporary file
-            FileWriter outFile = new FileWriter(tempFile);
-            outFile.close();
-
-            //  Delete the temporary file
-            tempFile.delete();
-
-            //  Shared directory appears to be writeable by the JVM
-            readOnly = false;
-        }
-        catch (IllegalArgumentException ex) {
-        }
-        catch (IOException ex) {
-        }
-
-        //  Return the shared directory read-onyl status
-        return readOnly;
+        // Check if the root path is writable
+        return ! Files.isWritable( rootPath);
     }
 
     /**
@@ -480,7 +495,7 @@ public class JavaFileDiskDriver implements DiskInterface {
      * @exception PathNotFoundException Part of the path is not valid
      */
     protected final String mapPath(String path)
-            throws FileNotFoundException, PathNotFoundException {
+            throws java.io.FileNotFoundException, PathNotFoundException {
         return mapPath("", path);
     }
 
@@ -495,11 +510,11 @@ public class JavaFileDiskDriver implements DiskInterface {
      * @exception PathNotFoundException Part of the path is not valid
      */
     protected final String mapPath(String base, String path)
-            throws FileNotFoundException, PathNotFoundException {
+            throws java.io.FileNotFoundException, PathNotFoundException {
 
         //  Split the path string into seperate directory components
         String pathCopy = path;
-        if (pathCopy.length() > 0 && pathCopy.startsWith(DOS_SEPERATOR))
+        if (pathCopy.length() > 0 && pathCopy.startsWith( FileName.DOS_SEPERATOR_STR))
             pathCopy = pathCopy.substring(1);
 
         StringTokenizer token = new StringTokenizer(pathCopy, "\\/");
@@ -521,7 +536,7 @@ public class JavaFileDiskDriver implements DiskInterface {
             //  Check if the path ends with a directory or file name, ie. has a trailing '\' or not
             int maxDir = dirs.length;
 
-            if (path.endsWith(DOS_SEPERATOR) == false) {
+            if (path.endsWith( FileName.DOS_SEPERATOR_STR) == false) {
 
                 //  Ignore the last token as it is a file name
                 maxDir--;
@@ -529,8 +544,8 @@ public class JavaFileDiskDriver implements DiskInterface {
 
             //  Build up the path string and validate that the path exists at each stage.
             StringBuffer pathStr = new StringBuffer(base);
-            if (base.endsWith(File.separator) == false)
-                pathStr.append(File.separator);
+            if (base.endsWith(java.io.File.separator) == false)
+                pathStr.append(java.io.File.separator);
 
             int lastPos = pathStr.length();
             idx = 0;
@@ -543,7 +558,7 @@ public class JavaFileDiskDriver implements DiskInterface {
 
                 //  Append the current directory to the path
                 pathStr.append(dirs[idx]);
-                pathStr.append(File.separator);
+                pathStr.append(java.io.File.separator);
 
                 //  Check if the current path exists
                 curDir = new File(pathStr.toString());
@@ -570,7 +585,7 @@ public class JavaFileDiskDriver implements DiskInterface {
                             //  Use the current directory name
                             pathStr.setLength(lastPos);
                             pathStr.append(fileList[fidx]);
-                            pathStr.append(File.separator);
+                            pathStr.append(java.io.File.separator);
 
                             //  Check if the path is valid
                             curDir = new File(pathStr.toString());
@@ -600,7 +615,7 @@ public class JavaFileDiskDriver implements DiskInterface {
             }
 
             //  Check if there is a file name to be added to the mapped path
-            if (path.endsWith(DOS_SEPERATOR) == false) {
+            if (path.endsWith( FileName.DOS_SEPERATOR_STR) == false) {
 
                 //  Map the file name
                 String[] fileList = lastDir.list();
@@ -645,7 +660,7 @@ public class JavaFileDiskDriver implements DiskInterface {
             mappedPath = pathStr.toString();
 
             // Check for a Netware style path and remove the leading slash
-            if (File.separator.equals(DOS_SEPERATOR) && mappedPath.startsWith(DOS_SEPERATOR) && mappedPath.indexOf(':') > 1)
+            if (File.separator.equals( FileName.DOS_SEPERATOR_STR) && mappedPath.startsWith( FileName.DOS_SEPERATOR_STR) && mappedPath.indexOf(':') > 1)
                 mappedPath = mappedPath.substring(1);
         }
 
@@ -663,41 +678,46 @@ public class JavaFileDiskDriver implements DiskInterface {
      * @exception IOException I/O error
      */
     public NetworkFile openFile(SrvSession sess, TreeConnection tree, FileOpenParams params)
-            throws IOException {
+            throws java.io.IOException {
 
         //  Create a Java network file
         DeviceContext ctx = tree.getContext();
-        String fname = FileName.buildPath(ctx.getDeviceName(), params.getPath(), null, File.separatorChar);
-        File file = new File(fname);
-        if (file.exists() == false) {
+        Path filePath = Paths.get( FileName.buildPath(ctx.getDeviceName(), params.getPath(), null, java.io.File.separatorChar));
+
+        if ( Files.exists( filePath) == false) {
 
             //  Try and map the file name string to a local path
             String mappedPath = mapPath(ctx.getDeviceName(), params.getPath());
             if (mappedPath == null)
-                throw new FileNotFoundException(fname);
+                throw new java.io.FileNotFoundException(filePath.toString());
 
             //  Create the file object for the mapped file and check if the file exists
-            file = new File(mappedPath);
-            if (file.exists() == false)
-                throw new FileNotFoundException(fname);
+            filePath = Paths.get( mappedPath);
+
+            if ( Files.exists( filePath) == false)
+                throw new FileNotFoundException(filePath.toString());
         }
 
         //	Check if the file is read-only and write access has been requested
-        if (file.canWrite() == false && (params.isReadWriteAccess() || params.isWriteOnlyAccess()))
-            throw new AccessDeniedException("File " + fname + " is read-only");
+        if ( Files.isWritable( filePath) == false && (params.isReadWriteAccess() || params.isWriteOnlyAccess()))
+            throw new AccessDeniedException("File " + filePath.toString() + " is read-only");
 
         //	Create the network file object for the opened file/folder
-        NetworkFile netFile = new JavaNetworkFile(file, params.getPath());
+        NetworkFile netFile = new JavaNIONetworkFile(filePath, params.getPath());
 
         if (params.isReadOnlyAccess())
             netFile.setGrantedAccess(NetworkFile.Access.READ_ONLY);
         else
             netFile.setGrantedAccess(NetworkFile.Access.READ_WRITE);
 
+        // Save the original access mask from the request
+        netFile.setAccessMask( params.getAccessMode());
+
+        // Set the share relative path
         netFile.setFullName(params.getPath());
 
         //  Check if the file is actually a directory
-        if (file.isDirectory() || file.list() != null)
+        if ( Files.isDirectory( filePath))
             netFile.setAttributes(FileAttribute.Directory);
 
         //  Return the network file
@@ -718,7 +738,7 @@ public class JavaFileDiskDriver implements DiskInterface {
      * @exception IOException I/O error
      */
     public int readFile(SrvSession sess, TreeConnection tree, NetworkFile file, byte[] buf, int bufPos, int siz, long filePos)
-            throws IOException {
+            throws java.io.IOException {
 
         //	Check if the file is a directory
         if (file.isDirectory())
@@ -745,27 +765,29 @@ public class JavaFileDiskDriver implements DiskInterface {
      * @exception IOException I/O error
      */
     public void renameFile(SrvSession sess, TreeConnection tree, String oldName, String newName)
-            throws IOException {
+            throws java.io.IOException {
 
         //  Get the full path for the existing file and the new file name
         DeviceContext ctx = tree.getContext();
-        String oldPath = FileName.buildPath(ctx.getDeviceName(), oldName, null, File.separatorChar);
-        String newPath = FileName.buildPath(ctx.getDeviceName(), newName, null, File.separatorChar);
+
+        Path oldPath = Paths.get( FileName.buildPath(ctx.getDeviceName(), oldName, null, java.io.File.separatorChar));
+        Path newPath = Paths.get( FileName.buildPath(ctx.getDeviceName(), newName, null, java.io.File.separatorChar));
 
         //	Check if the current file/directory exists
-        if (fileExists(sess, tree, oldName) == FileStatus.NotExist)
+        if ( Files.exists( oldPath) == false)
             throw new FileNotFoundException("Rename file, does not exist " + oldName);
 
         //	Check if the new file/directory exists
-        if (fileExists(sess, tree, newName) != FileStatus.NotExist)
+        if ( Files.exists(newPath))
             throw new FileExistsException("Rename file, path exists " + newName);
 
         //  Rename the file
-        File oldFile = new File(oldPath);
-        File newFile = new File(newPath);
-
-        if (oldFile.renameTo(newFile) == false)
+        try {
+            Files.move( oldPath, newPath, StandardCopyOption.REPLACE_EXISTING);
+        }
+        catch ( Exception ex) {
             throw new IOException("Rename " + oldPath + " to " + newPath + " failed");
+        }
     }
 
     /**
@@ -780,7 +802,7 @@ public class JavaFileDiskDriver implements DiskInterface {
      * @exception IOException I/O error
      */
     public long seekFile(SrvSession sess, TreeConnection tree, NetworkFile file, long pos, int typ)
-            throws IOException {
+            throws java.io.IOException {
 
         //  Check that the network file is our type
         return file.seekFile(pos, typ);
@@ -796,18 +818,17 @@ public class JavaFileDiskDriver implements DiskInterface {
      * @exception IOException I/O error
      */
     public void setFileInformation(SrvSession sess, TreeConnection tree, String name, FileInfo info)
-            throws IOException {
+            throws java.io.IOException {
 
         //	Check if the modify date/time should be updated
         if (info.hasSetFlag(FileInfo.Set.ModifyDate)) {
 
             //	Build the path to the file
             DeviceContext ctx = tree.getContext();
-            String fname = FileName.buildPath(ctx.getDeviceName(), name, null, File.separatorChar);
+            Path filePath = Paths.get( mapPath( ctx.getDeviceName(), name));
 
             //	Update the file/folder modify date/time
-            File file = new File(fname);
-            file.setLastModified(info.getModifyDateTime());
+            Files.setLastModifiedTime( filePath, FileTime.fromMillis( info.getModifyDateTime()));
         }
     }
 
@@ -822,13 +843,11 @@ public class JavaFileDiskDriver implements DiskInterface {
      * @throws FileNotFoundException File not found
      */
     public SearchContext startSearch(SrvSession sess, TreeConnection tree, String searchPath, int attrib)
-            throws FileNotFoundException {
-
-        //  Create a context for the new search
-        JavaFileSearchContext srch = new JavaFileSearchContext();
+            throws java.io.FileNotFoundException {
 
         //  Create the full search path string
         String path = FileName.buildPath(tree.getContext().getDeviceName(), null, searchPath, File.separatorChar);
+        JavaNIOSearchContext ctx = null;
 
         try {
 
@@ -836,21 +855,68 @@ public class JavaFileDiskDriver implements DiskInterface {
             path = mapPath(path);
 
             // Split the search path to get the share relative path
-            String[] paths = FileName.splitPath(searchPath);
+            String[] paths = FileName.splitPath(path, File.separatorChar);
 
             //	DEBUG
             if (Debug.EnableInfo && sess != null && sess.hasDebug(SMBSrvSession.Dbg.SEARCH))
                 sess.debugPrintln("  Start search path=" + path + ", relPath=" + paths[0]);
 
-            //  Initialize the search
-            srch.initSearch(path, attrib);
-            srch.setRelativePath(paths[0]);
+            if (paths[1] != null && WildCard.containsWildcards(paths[1]) == false) {
 
-            return srch;
+                //  Path may be a file
+                Path singlePath = Paths.get(paths[0], paths[1]);
+
+                if (Files.exists( singlePath, LinkOption.NOFOLLOW_LINKS) == false)
+                    throw new java.io.FileNotFoundException( singlePath.toString());
+
+                // Create a search context for a single file/folder search
+                ctx = new JavaNIOSearchContext();
+                ctx.initSinglePathSearch( singlePath);
+            }
+            else {
+
+                //  Wildcard search of a directory
+                String root = paths[0];
+
+                if (root.endsWith(":"))
+                    root = root + FileName.DOS_SEPERATOR;
+
+                Path rootPath = Paths.get( root);
+
+                if ( Files.isDirectory( rootPath, LinkOption.NOFOLLOW_LINKS)) {
+
+                    //  Check if there is a file spec, if not then the search is for the directory only
+                    if (paths[1] == null) {
+
+                        // Create a search context for a single file/folder search
+                        ctx = new JavaNIOSearchContext();
+                        ctx.initSinglePathSearch( rootPath);
+                    }
+                    else {
+
+                        // Create a wildcard folder search
+                        ctx = new JavaNIOSearchContext();
+
+                        try {
+                            ctx.initWildcardSearch(rootPath, attrib, new WildCard(paths[1], false));
+                        }
+                        catch ( IOException ex) {
+                            throw new FileNotFoundException( rootPath.toString());
+                        }
+                    }
+                }
+            }
+
+            // Set the relative path for the search
+            if ( ctx != null)
+                ctx.setRelativePath(paths[0]);
         }
         catch (PathNotFoundException ex) {
             throw new FileNotFoundException();
         }
+
+        // Return the search context
+        return ctx;
     }
 
     /**
@@ -864,6 +930,30 @@ public class JavaFileDiskDriver implements DiskInterface {
      */
     public void truncateFile(SrvSession sess, TreeConnection tree, NetworkFile file, long siz)
             throws IOException {
+
+        // Check for a truncate to zero length of a large file
+        if ( siz == 0) {
+
+            // Access the device context
+            JavaNIODeviceContext ctx = (JavaNIODeviceContext) tree.getContext();
+
+            if ( file.getFileSize() >= ctx.getLargeFileSize()) {
+
+                // DEBUG
+                if ( ctx.hasDebug())
+                    Debug.println("Truncate large file via delete - " + file.getFullName());
+
+                // Close the existing file
+                file.closeFile();
+
+                // Delete the existing file by moving to the trashcan folder and deleting via a background thread
+                deleteFile( sess, tree, file.getFullName());
+
+                // Create a new zero length file with the original name
+                file.openFile( true);
+                return;
+            }
+        }
 
         //	Truncate or extend the file
         file.truncateFile(siz);
@@ -883,7 +973,7 @@ public class JavaFileDiskDriver implements DiskInterface {
      * @exception IOException I/O error
      */
     public int writeFile(SrvSession sess, TreeConnection tree, NetworkFile file, byte[] buf, int bufoff, int siz, long fileoff)
-            throws IOException {
+            throws java.io.IOException {
 
         //	Check if the file is a directory
         if (file.isDirectory())
@@ -902,39 +992,48 @@ public class JavaFileDiskDriver implements DiskInterface {
      * @param shareName String
      * @param args      ConfigElement
      * @return DeviceContext
-     * @throws DeviceContextException Error creating device context
+     * @throws DeviceContextException Error creating the device context
      */
     public DeviceContext createContext(String shareName, ConfigElement args)
             throws DeviceContextException {
 
-        //	Get the device name argument
-        ConfigElement path = args.getChild("LocalPath");
-        DiskDeviceContext ctx = null;
+        // Parse the configuration and return the device context for this share
+        JavaNIODeviceContext ctx = new JavaNIODeviceContext( shareName, args);
 
-        if (path != null) {
+        // If the trashcan folder is configured then check if there are any trash files left over from a previous
+        // server run
+        if ( ctx.hasTrashFolder()) {
 
-            //	Validate the path and convert to an absolute path
-            File rootDir = new File(path.getValue());
+            // Get the trashcan folder
+            Path trashPath = Paths.get( ctx.getTrashFolder().getAbsolutePath());
 
-            //	Create a device context using the absolute path
-            ctx = new DiskDeviceContext(rootDir.getAbsolutePath());
+            // Search for any trash files
+            try (DirectoryStream<Path> trashStream = Files.newDirectoryStream( trashPath, JavaNIODiskDriver.TRASHCAN_NAME_PREFIX + "*")) {
 
-            //	Set filesystem flags
-            ctx.setFilesystemAttributes(FileSystem.CasePreservedNames + FileSystem.UnicodeOnDisk);
+                // Queue trash files for delete
+                for (final Path trashFile : trashStream) {
 
-            //	If the path is not valid then set the filesystem as unavailable
-            if (rootDir.exists() == false || rootDir.isDirectory() == false || rootDir.list() == null) {
+                    // DEBUG
+                    if ( ctx.hasDebug())
+                        Debug.println("Queue trash file for delete - " + trashFile.getFileName());
 
-                //	Mark the filesystem as unavailable
-                ctx.setAvailable(false);
+                    // Queue a delete to the background thread
+                    m_fileActionsExecutor.execute(new Runnable() {
+                        public void run() {
+                        try {
+                            Files.delete(trashFile);
+                        }
+                        catch (Exception ex) {
+                        }
+                        }
+                    });
+                }
+            } catch (IOException ex) {
             }
-
-            //	Return the context
-            return ctx;
         }
 
-        //	Required parameters not specified
-        throw new DeviceContextException("LocalPath parameter not specified");
+        // Return the device context
+        return ctx;
     }
 
     /**
