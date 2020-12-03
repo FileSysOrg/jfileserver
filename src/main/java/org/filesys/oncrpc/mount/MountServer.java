@@ -29,6 +29,7 @@ import org.filesys.debug.Debug;
 import org.filesys.oncrpc.*;
 import org.filesys.oncrpc.nfs.NFSConfigSection;
 import org.filesys.oncrpc.nfs.NFSHandle;
+import org.filesys.oncrpc.nfs.NFSServer;
 import org.filesys.oncrpc.nfs.NFSSrvSession;
 import org.filesys.server.ServerListener;
 import org.filesys.server.SessionLimitException;
@@ -643,8 +644,11 @@ public class MountServer extends RpcNetworkServer implements RpcProcessor {
         RpcAuthenticator rpcAuth = getNFSConfiguration().getRpcAuthenticator();
         Object sessKey = rpcAuth.authenticateRpcClient(rpc.getCredentialsType(), rpc);
 
+        // Get the associated NFS server
+        NFSServer nfsServer = (NFSServer) getConfiguration().findServer( "NFS");
+
         //	Create an NFS session for the request
-        NFSSrvSession nfsSess = NFSSrvSession.createSession( rpc.getPacketHandler(), null, 1, rpc.getClientProtocol(),
+        NFSSrvSession nfsSess = NFSSrvSession.createSession( rpc.getPacketHandler(), nfsServer, 1, rpc.getClientProtocol(),
                 new InetSocketAddress( rpc.getClientAddress(), rpc.getClientPort()));
 
         //	Set the client information for the request
