@@ -38,7 +38,7 @@ public interface SrvSessionFactory {
      * @param protocolType Rpc.ProtocolId
      * @param remAddr SocketAddress
      * @return NFSSrvSession
-     * @exception SessionLimitException
+     * @exception SessionLimitException Session limit exceeded
      */
     public NFSSrvSession createSession(RpcPacketHandler pktHandler, NFSServer nfsServer, int sessId, Rpc.ProtocolId protocolType,
                                        SocketAddress remAddr)

@@ -902,8 +902,8 @@ public class RpcPacket {
      * Unpack a UTF-8 string with validation checks
      *
      * @return String
-     * @exception ArrayIndexOutOfBoundsException
-     * @exception UnsupportedEncodingException
+     * @exception ArrayIndexOutOfBoundsException Buffer overrun
+     * @exception UnsupportedEncodingException Invalid UTF8 bytes
      */
     public final String unpackAndCheckUTF8String()
         throws ArrayIndexOutOfBoundsException, UnsupportedEncodingException {

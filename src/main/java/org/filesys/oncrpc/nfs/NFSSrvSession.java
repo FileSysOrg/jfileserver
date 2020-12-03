@@ -118,7 +118,7 @@ public class NFSSrvSession extends SrvSession<NFSSrvSession.Dbg> {
      * @param protocolType Rpc.ProtocolId
      * @param remAddr InetAddress
      * @return NFSSrvSession
-     * @exception SessionLimitException
+     * @exception SessionLimitException Session limit exceeded
      */
     public static NFSSrvSession createSession(RpcPacketHandler pktHandler, NFSServer nfsServer, int sessId, Rpc.ProtocolId protocolType,
                                               SocketAddress remAddr)

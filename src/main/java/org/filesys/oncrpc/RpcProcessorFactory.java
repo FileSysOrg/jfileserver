@@ -204,6 +204,7 @@ public class RpcProcessorFactory {
      *
      * @param progId int
      * @param verId int
+     * @return Class
      */
     public static Class removeRpcProcessorClass( int progId, int verId) {
 
