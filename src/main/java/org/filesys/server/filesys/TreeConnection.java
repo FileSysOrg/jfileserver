@@ -285,7 +285,7 @@ public class TreeConnection {
      * connection
      *
      * @return DiskInterface
-     * @exception InvalidDeviceInterfaceException
+     * @exception InvalidDeviceInterfaceException Device is not a disk interface
      */
     public final DiskInterface getDiskInterface()
         throws InvalidDeviceInterfaceException {
