@@ -103,7 +103,7 @@ public class FileInfo {
 	private int m_mode = -1;
 
 	// File type
-	private FileType m_fileType;
+	private FileType m_fileType = FileType.RegularFile;
 
 	// File flags
 	private int m_flags;
