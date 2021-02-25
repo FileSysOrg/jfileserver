@@ -120,6 +120,11 @@ public class FindInfoPacker {
             case InfoMacHfsInfo:
                 packInfoMacHfs(info, buf, uni);
                 break;
+
+            // Pack full file information with file id
+            case InfoFullDirectoryId:
+                packInfoFullDirectoryId(info, buf, uni, false);
+                break;
         }
 
         //  Check if we packed any data
