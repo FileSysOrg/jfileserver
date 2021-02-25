@@ -516,35 +516,8 @@ public class SMBServer extends NetworkFileServer implements Runnable, Configurat
         if (Debug.EnableInfo && hasDebug()) {
             Debug.println("[SMB] SMB Server shutting down ...");
 
-            // Dump the active sessions
-            Debug.println("[SMB] Open sessions: " + m_sessions.numberOfSessions());
-
-            if ( m_sessions.numberOfSessions() > 0) {
-                Enumeration<SrvSession> sessEnum = m_sessions.enumerateSessions();
-
-                while ( sessEnum.hasMoreElements()) {
-                    SrvSession curSess = sessEnum.nextElement();
-
-                    if ( curSess != null)
-                        Debug.println("[SMB]  Open session: " + curSess.toString());
-                }
-            }
-
-            // Dump the disconnected sessions
-            if ( m_disconnectedSessList != null) {
-                Debug.println("[SMB] Disconnected sessions: " + m_disconnectedSessList.numberOfSessions());
-
-                if ( m_disconnectedSessList.numberOfSessions() > 0) {
-                    Enumeration<SrvSession> sessEnum = m_disconnectedSessList.enumerateSessions();
-
-                    while ( sessEnum.hasMoreElements()) {
-                        SrvSession curSess = sessEnum.nextElement();
-
-                        if ( curSess != null)
-                            Debug.println("[SMB]  Disconnected session: " + curSess.toString());
-                    }
-                }
-            }
+            // Dump the session lists
+            dumpSessionLists();
         }
 
         // Close the host announcer and session handlers
@@ -696,6 +669,40 @@ public class SMBServer extends NetworkFileServer implements Runnable, Configurat
         m_srvThread.setName("SMB Server");
 
         m_srvThread.start();
+    }
+
+    @Override
+    public void dumpSessionLists() {
+
+        // Dump the active sessions
+        Debug.println("[SMB] Open sessions: " + m_sessions.numberOfSessions());
+
+        if ( m_sessions.numberOfSessions() > 0) {
+            Enumeration<SrvSession> sessEnum = m_sessions.enumerateSessions();
+
+            while ( sessEnum.hasMoreElements()) {
+                SrvSession curSess = sessEnum.nextElement();
+
+                if ( curSess != null)
+                    Debug.println("[SMB]  Open session: " + curSess.toString());
+            }
+        }
+
+        // Dump the disconnected sessions
+        if ( m_disconnectedSessList != null) {
+            Debug.println("[SMB] Disconnected sessions: " + m_disconnectedSessList.numberOfSessions());
+
+            if ( m_disconnectedSessList.numberOfSessions() > 0) {
+                Enumeration<SrvSession> sessEnum = m_disconnectedSessList.enumerateSessions();
+
+                while ( sessEnum.hasMoreElements()) {
+                    SrvSession curSess = sessEnum.nextElement();
+
+                    if ( curSess != null)
+                        Debug.println("[SMB]  Disconnected session: " + curSess.toString());
+                }
+            }
+        }
     }
 
     /**
