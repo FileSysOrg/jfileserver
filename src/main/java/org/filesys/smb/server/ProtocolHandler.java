@@ -22,8 +22,10 @@ package org.filesys.smb.server;
 
 import java.io.IOException;
 
+import org.filesys.audit.AuditType;
 import org.filesys.server.RequestPostProcessor;
 import org.filesys.server.SrvSession;
+import org.filesys.server.auth.ClientInfo;
 import org.filesys.server.auth.ISMBAuthenticator;
 import org.filesys.server.core.NoPooledMemoryException;
 import org.filesys.server.filesys.*;
@@ -42,7 +44,7 @@ import org.filesys.smb.server.notify.NotifyRequest;
 public abstract class ProtocolHandler {
 
     // Negotiate response packet size
-    private static final int NegotiateResponseLength    = 4096;
+    private static final int NegotiateResponseLength = 4096;
 
     // Server session that this protocol handler is associated with.
     protected SMBSrvSession m_sess;
@@ -71,13 +73,13 @@ public abstract class ProtocolHandler {
     /**
      * Initialize the protocol handler
      *
-     * @param smbServer SMBServer
+     * @param smbServer  SMBServer
      * @param smbSession SMBSrvSession
-     * @param dialect int
+     * @param dialect    int
      */
-    public void initialize( SMBServer smbServer, SMBSrvSession smbSession, int dialect) {
-        setSession( smbSession);
-        setDialect( dialect);
+    public void initialize(SMBServer smbServer, SMBSrvSession smbSession, int dialect) {
+        setSession(smbSession);
+        setDialect(dialect);
     }
 
     /**
@@ -92,9 +94,9 @@ public abstract class ProtocolHandler {
      *
      * @param smbPkt SMBSrvPacket
      * @return boolean
-     * @exception IOException I/O error
-     * @exception SMBSrvException SMB error
-     * @exception TooManyConnectionsException No more connections available
+     * @throws IOException                 I/O error
+     * @throws SMBSrvException             SMB error
+     * @throws TooManyConnectionsException No more connections available
      */
     public abstract boolean runProtocol(SMBSrvPacket smbPkt)
             throws IOException, SMBSrvException, TooManyConnectionsException;
@@ -131,7 +133,7 @@ public abstract class ProtocolHandler {
      *
      * @param dialect int
      */
-    protected final void setDialect( int dialect) {
+    protected final void setDialect(int dialect) {
         m_dialect = dialect;
     }
 
@@ -170,7 +172,7 @@ public abstract class ProtocolHandler {
      *
      * @param srvCapab int
      */
-    protected final void setServerCapabilities( int srvCapab) {
+    protected final void setServerCapabilities(int srvCapab) {
         m_srvCapabilites = srvCapab;
     }
 
@@ -180,21 +182,22 @@ public abstract class ProtocolHandler {
      * @param smbPkt SMBSrvPacket
      * @param negCtx NegotiateContext
      * @return SMBSrvPacket
-     * @exception SMBSrvException SMB error
+     * @throws SMBSrvException SMB error
      */
     public SMBSrvPacket postProcessNegotiate(SMBSrvPacket smbPkt, NegotiateContext negCtx)
-        throws SMBSrvException {
+            throws SMBSrvException {
 
         SMBSrvPacket respPkt = smbPkt;
 
-        if ( respPkt.getBufferLength() < NegotiateResponseLength) {
+        if (respPkt.getBufferLength() < NegotiateResponseLength) {
 
             try {
 
                 // Allocate a larger packet for the negotiate response
-                respPkt = m_sess.getPacketPool().allocatePacket( NegotiateResponseLength, smbPkt);
+                respPkt = m_sess.getPacketPool().allocatePacket(NegotiateResponseLength, smbPkt);
 
-            } catch (NoPooledMemoryException ex) {
+            }
+            catch (NoPooledMemoryException ex) {
 
             }
         }
@@ -296,7 +299,7 @@ public abstract class ProtocolHandler {
 
         ISMBAuthenticator.ShareStatus sharePerm = ISMBAuthenticator.ShareStatus.NO_ACCESS;
 
-        switch ( aclPerm) {
+        switch (aclPerm) {
             case FileAccess.ReadOnly:
                 sharePerm = ISMBAuthenticator.ShareStatus.READ_ONLY;
                 break;
@@ -311,10 +314,18 @@ public abstract class ProtocolHandler {
     /**
      * Hangup session callback from the session
      *
-     * @param sess SMBSrvSession
+     * @param sess   SMBSrvSession
      * @param reason String
      */
-    public void hangupSession( SMBSrvSession sess, String reason) {
+    public void hangupSession(SMBSrvSession sess, String reason) {
+    }
+
+    /**
+     * Socket closed callback from the session
+     *
+     * @param sess   SMBSrvSession
+     */
+    public void socketClosed(SMBSrvSession sess) {
     }
 
     /**
@@ -323,9 +334,19 @@ public abstract class ProtocolHandler {
      * @param maxVC int
      * @return VirtualCircuitList
      */
-    public VirtualCircuitList createVirtualCircuitList( int maxVC) {
+    public VirtualCircuitList createVirtualCircuitList(int maxVC) {
 
         // Default is to return an SMB v1 virtual circuit list
-        return new SMBV1VirtualCircuitList( maxVC);
+        return new SMBV1VirtualCircuitList(maxVC);
+    }
+
+    /**
+     * Output an audit log record to the audit log
+     *
+     * @param auditTyp AuditType
+     * @param client   ClientInfo
+     * @param detail   String
+     */
+    public void auditPrintln(AuditType auditTyp, ClientInfo client, String detail) {
     }
 }
