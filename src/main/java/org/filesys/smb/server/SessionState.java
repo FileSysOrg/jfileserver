@@ -29,5 +29,5 @@ public enum SessionState {
     SMB_SESSSETUP,
     SMB_SESSION,
     SMB_CLOSED,
-    NETBIOS_HANGUP;
+    SESS_HANGUP;
 }
