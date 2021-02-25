@@ -429,6 +429,11 @@ public abstract class NetworkServer {
     public abstract void shutdownServer(boolean immediate);
 
     /**
+     * Dump the session list(s) for this server to the debug device
+     */
+    public void dumpSessionLists() {}
+
+    /**
      * Trigger a closed session event to all registered session listeners.
      *
      * @param sess SrvSession
