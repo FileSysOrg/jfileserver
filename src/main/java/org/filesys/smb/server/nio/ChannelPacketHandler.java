@@ -136,9 +136,12 @@ public abstract class ChannelPacketHandler extends PacketHandler {
             throws IOException {
     }
 
-    /**
-     * Close the protocol handler
-     */
+    @Override
+    public boolean isClosed() {
+        return m_sockChannel == null;
+    }
+
+    @Override
     public void closeHandler() {
 
         // Close the socket channel
