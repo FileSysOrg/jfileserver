@@ -126,9 +126,12 @@ public abstract class SocketPacketHandler extends PacketHandler {
             m_out.flush();
     }
 
-    /**
-     * Close the protocol handler
-     */
+    @Override
+    public boolean isClosed() {
+        return m_socket == null;
+    }
+
+    @Override
     public void closeHandler() {
 
         //  Close the input stream

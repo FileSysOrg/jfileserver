@@ -255,7 +255,14 @@ public abstract class PacketHandler {
             throws IOException;
 
     /**
-     * Close the protocol handler
+     * Check if the packet handler has been closed
+     *
+     * @return boolean
+     */
+    public abstract boolean isClosed();
+
+    /**
+     * Close the packet handler
      */
     public void closeHandler() {
     }
