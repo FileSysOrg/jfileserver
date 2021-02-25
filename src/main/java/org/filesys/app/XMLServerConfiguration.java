@@ -94,6 +94,9 @@ public class XMLServerConfiguration extends SMBOnlyXMLServerConfiguration {
 			// Process the debug settings element
 			procDebugElement(findChildNode("debug", childNodes));
 
+			// Process the audit configuration section, if available
+			procAuditElement( findChildNode( "audit", childNodes));
+
 			// Process the main server enable element
 			procServersElement(findChildNode("servers", childNodes));
 

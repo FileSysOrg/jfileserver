@@ -35,6 +35,9 @@ import java.util.regex.Pattern;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
+import org.filesys.audit.Audit;
+import org.filesys.audit.AuditConfigSection;
+import org.filesys.audit.AuditGroup;
 import org.filesys.debug.Debug;
 import org.filesys.debug.DebugConfigSection;
 import org.filesys.netbios.server.LANAMapper;
@@ -212,6 +215,9 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 
 			// Process the debug settings element
 			procDebugElement(findChildNode("debug", childNodes));
+
+			// Process the audit configuration section, if available
+			procAuditElement( findChildNode( "audit", childNodes));
 
 			// Process the core server configuration settings
 			procServerCoreElement(findChildNode("server-core", childNodes));
@@ -1751,6 +1757,104 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
             smbConfig.setEnabledDialects(diaSel);
         }
     }
+
+	/**
+	 * Process the audit configuration section
+	 *
+	 * @param auditElem Element
+	 * @exception InvalidConfigurationException Error during parsing of the audit section
+	 */
+	protected final void procAuditElement( Element auditElem)
+			throws InvalidConfigurationException {
+
+		// Check if the audit section has been specified
+		if ( auditElem == null)
+			return;
+
+		// Create the audit configuration section
+		AuditConfigSection auditConfig = new AuditConfigSection(this);
+
+		// Get the audit output class and parameters
+		Element elem = findChildNode("output", auditElem.getChildNodes());
+		if ( elem == null)
+			throw new InvalidConfigurationException("Output class must be specified to enable audit output");
+
+		// Check if the output type has been specified
+		String outType = getAttributeWithEnvVars(elem, "type");
+		String auditClass = null;
+
+		if ( outType != null) {
+
+			// Check for a valid audit output type
+			if ( outType.equalsIgnoreCase( "console"))
+				auditClass = "org.filesys.debug.ConsoleDebug";
+			else if ( outType.equalsIgnoreCase( "file"))
+				auditClass = "org.filesys.debug.LogFileDebug";
+			else if ( outType.equalsIgnoreCase( "jdk"))
+				auditClass = "org.filesys.debug.JdkLoggingDebug";
+			else
+				throw new InvalidConfigurationException("Invalid audit output type '" + outType + "'");
+		}
+
+		// If the audit class has not been set then check for the original class setting
+		if ( auditClass == null) {
+
+			// Get the audit output class
+			Element auditClassElem = findChildNode("class", elem.getChildNodes());
+			if ( auditClassElem == null)
+				throw new InvalidConfigurationException("Class must be specified for audit output");
+
+			// Get the audit class
+			auditClass = getTextWithEnvVars( auditClassElem);
+		}
+
+		// Get the parameters for the audit class
+		ConfigElement params = buildConfigElement(elem);
+		auditConfig.setAudit( auditClass, params);
+
+		// Check if the enabled audit groups list has been specified
+		elem = findChildNode( "groups", auditElem.getChildNodes());
+
+		if ( elem != null) {
+
+			// Get the list of audit groups to enable
+			String groups = getAttributeWithEnvVars( elem, "enable");
+
+			EnumSet<AuditGroup> auditGroups = EnumSet.noneOf( AuditGroup.class);
+
+			if ( groups != null && groups.length() > 0) {
+
+				if ( groups.equals( "*")) {
+					auditGroups = EnumSet.allOf( AuditGroup.class);
+				}
+				else {
+
+					// Parse the groups list
+					groups = groups.toUpperCase();
+					StringTokenizer token = new StringTokenizer(groups, ",");
+
+					while (token.hasMoreTokens()) {
+
+						// Get the current audit group name
+						String groupName = token.nextToken().trim();
+
+						// Convert the group name to an enum value
+						try {
+							auditGroups.add(AuditGroup.valueOf(groupName));
+						}
+						catch (IllegalArgumentException ex) {
+							throw new InvalidConfigurationException("Invalid audit group name, " + groupName);
+						}
+					}
+				}
+
+				// Set the enabled audit groups
+				Audit.setAuditGroups( auditGroups);
+			}
+			else
+				throw new InvalidConfigurationException("Empty audit groups enable list");
+		}
+	}
 
 	/**
      * Add a user
