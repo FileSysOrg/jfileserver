@@ -265,6 +265,8 @@ public class SMBFileServer implements ServerListener {
 						m_shutdown = true;
 					else if ( inChar == 'r' || inChar == 'R')
 						m_restart = true;
+					else if ( inChar == 's' || inChar == 'S')
+						dumpSessions();
 					else if ( inChar == -1) {
 						
 						// Sleep for a short while
@@ -560,6 +562,23 @@ public class SMBFileServer implements ServerListener {
 			}
 			// else if (( event & 0xFF) == SMBServer.CIFSNetBIOSNamesAdded)
 			// Debug.println("NetBIOS name added event, lana=" + ( event >> 16));
+		}
+	}
+
+	/**
+	 * Dump the session lists for the active servers
+	 */
+	protected void dumpSessions() {
+
+		Debug.println("Dump the active server sessions lists:");
+
+		for ( int idx = 0; idx < m_srvConfig.numberOfServers(); idx++) {
+
+			// Get the current server
+			NetworkServer curServer = m_srvConfig.getServer( idx);
+
+			if ( curServer != null && curServer.isActive())
+				curServer.dumpSessionLists();
 		}
 	}
 }

@@ -335,6 +335,8 @@ public class FileServer implements ServerListener {
 						m_shutdown = true;
 					else if ( inChar == 'r' || inChar == 'R')
 						m_restart = true;
+					else if ( inChar == 's' || inChar == 'S')
+						dumpSessions();
 					else if ( inChar == 'g' || inChar == 'G') {
 						Debug.println( "Running garbage collection ...");
 						System.gc();
@@ -731,6 +733,23 @@ public class FileServer implements ServerListener {
 								+ driveMap.getRemotePath() + ", status = " + SMBErrorText.ErrorString(SMBStatus.Win32Err, sts));
 				}
 			}
+		}
+	}
+
+	/**
+	 * Dump the session lists for the active servers
+	 */
+	protected void dumpSessions() {
+
+		Debug.println("Dump the active server sessions lists:");
+
+		for ( int idx = 0; idx < m_srvConfig.numberOfServers(); idx++) {
+
+			// Get the current server
+			NetworkServer curServer = m_srvConfig.getServer( idx);
+
+			if ( curServer != null && curServer.isActive())
+				curServer.dumpSessionLists();
 		}
 	}
 }
