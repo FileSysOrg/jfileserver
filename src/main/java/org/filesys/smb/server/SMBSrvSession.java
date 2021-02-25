@@ -381,6 +381,11 @@ public class SMBSrvSession extends SrvSession<SMBSrvSession.Dbg> implements Runn
 
 		// Close the packet handler
 		try {
+
+			// Inform the protocol handler that the socket has been closed
+			if ( getProtocolHandler() != null && m_pktHandler.isClosed() == false)
+				getProtocolHandler().socketClosed( this);
+
 			m_pktHandler.closeHandler();
 			if (Debug.EnableInfo && hasDebug(SMBSrvSession.Dbg.STATE))
 				debugPrintln("Closed packet handler for client: " + m_pktHandler.getClientName());
@@ -403,6 +408,9 @@ public class SMBSrvSession extends SrvSession<SMBSrvSession.Dbg> implements Runn
 
 			// Call the base class
 			super.closeSession();
+
+			// Notify the server that the session has closed
+			getSMBServer().sessionClosed(this);
 		}
 		else {
 
@@ -425,7 +433,7 @@ public class SMBSrvSession extends SrvSession<SMBSrvSession.Dbg> implements Runn
 		try {
 
 			// Set the session into a hangup state
-			setState(SessionState.NETBIOS_HANGUP);
+			setState(SessionState.SESS_HANGUP);
 
 			// Close the socket
 			closeSocket();
@@ -699,7 +707,7 @@ public class SMBSrvSession extends SrvSession<SMBSrvSession.Dbg> implements Runn
 			getProtocolHandler().hangupSession( this, reason);
 
 		// Set the session into a NetBIOS hangup state
-		setState(SessionState.NETBIOS_HANGUP);
+		setState(SessionState.SESS_HANGUP);
 	}
 
 	/**
@@ -1033,7 +1041,7 @@ public class SMBSrvSession extends SrvSession<SMBSrvSession.Dbg> implements Runn
 			else {
 
 				// Failed to get a parser for the received packet, drop the connection
-				setState(SessionState.NETBIOS_HANGUP);
+				setState(SessionState.SESS_HANGUP);
 
 				// Debug
 				if (Debug.EnableInfo && hasDebug(SMBSrvSession.Dbg.NEGOTIATE))
@@ -1047,7 +1055,7 @@ public class SMBSrvSession extends SrvSession<SMBSrvSession.Dbg> implements Runn
 
             // Error parsing the negotiate request
             sendErrorResponseSMB(smbPkt, ex.getNTErrorCode(), ex.getErrorCode(), ex.getErrorClass());
-            setState(SessionState.NETBIOS_HANGUP);
+            setState(SessionState.SESS_HANGUP);
             return;
         }
 
@@ -1116,7 +1124,7 @@ public class SMBSrvSession extends SrvSession<SMBSrvSession.Dbg> implements Runn
 				sendErrorResponseSMB(smbPkt, SMBStatus.NTInvalidParameter, SMBStatus.SRVNotSupported, SMBStatus.ErrSrv);
 
 				// Drop the session
-				setState( SessionState.NETBIOS_HANGUP);
+				setState( SessionState.SESS_HANGUP);
 				return;
 
 			}
@@ -1129,7 +1137,7 @@ public class SMBSrvSession extends SrvSession<SMBSrvSession.Dbg> implements Runn
 
             // Check if the negotiated SMB dialect supports the session setup command, if not then bypass the session setup phase
             if ( diaIdx == -1)
-                setState(SessionState.NETBIOS_HANGUP);
+                setState(SessionState.SESS_HANGUP);
             else
             	setState( respPkt.getParser().nextStateForDialect( diaIdx));
 
@@ -1144,7 +1152,7 @@ public class SMBSrvSession extends SrvSession<SMBSrvSession.Dbg> implements Runn
                 debugPrintln("Negotiate error - " + ex.getMessage());
 
             // Close the session
-            setState(SessionState.NETBIOS_HANGUP);
+            setState(SessionState.SESS_HANGUP);
         }
         catch ( SMBSrvException ex) {
 
@@ -1169,7 +1177,7 @@ public class SMBSrvSession extends SrvSession<SMBSrvSession.Dbg> implements Runn
 				debugPrintln("Server session started");
 
 			// The server session loops until the NetBIOS hangup state is set.
-			while (m_state != SessionState.NETBIOS_HANGUP) {
+			while (m_state != SessionState.SESS_HANGUP) {
 
 				try {
 
@@ -1449,20 +1457,14 @@ public class SMBSrvSession extends SrvSession<SMBSrvSession.Dbg> implements Runn
 		}
 
 		// Check if the session has been closed, either cleanly or due to an exception
-		if (m_state == SessionState.NETBIOS_HANGUP && isPersistentSession() == false) {
+		if (m_state == SessionState.SESS_HANGUP) {
 
-			// Cleanup the session, make sure all resources are released
-			cleanupSession();
+			// Close the session
+			closeSession();
 
 			// Debug
 			if (Debug.EnableInfo && hasDebug(SMBSrvSession.Dbg.STATE))
 				debugPrintln("Server session closed");
-
-			// Close the session
-			closeSocket();
-
-			// Notify the server that the session has closed
-			getSMBServer().sessionClosed(this);
 		}
 
 		// Clear any user context
