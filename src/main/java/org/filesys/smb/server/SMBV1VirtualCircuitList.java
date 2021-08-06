@@ -21,6 +21,7 @@ import org.filesys.server.SrvSession;
 import org.filesys.server.auth.ClientInfo;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 /**
@@ -218,6 +219,15 @@ public class SMBV1VirtualCircuitList implements VirtualCircuitList {
             // Clear the virtual circuit list
             m_vcircuits.clear();
         }
+    }
+
+    /**
+     * Iterate the virtual circuits
+     *
+     * @return Iterator&lt;VirtualCircuit&gt;
+     */
+    public Iterator<VirtualCircuit> iterator() {
+        return m_vcircuits.values().iterator();
     }
 
     /**

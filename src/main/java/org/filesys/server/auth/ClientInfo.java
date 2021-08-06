@@ -212,6 +212,15 @@ public class ClientInfo {
     }
 
     /**
+     * Determine if the client is an authenticated user logon
+     *
+     * @return boolean
+     */
+    public final boolean isAuthenticatedLogon() {
+        return m_logonType == LogonType.Normal || m_logonType == LogonType.Administrator;
+    }
+
+    /**
      * Determine if the client network address has been set
      *
      * @return boolean
@@ -452,21 +461,25 @@ public class ClientInfo {
     public String toString() {
 
         StringBuffer str = new StringBuffer();
-        str.append("[");
+        str.append("[Client user=");
         str.append(getUserName());
-        str.append(":");
-        str.append(getPassword());
-        str.append(",");
-        str.append(getDomain());
-        str.append(",");
-        str.append(getOperatingSystem());
+
+        if ( getDomain() != null) {
+            str.append(",domain=");
+            str.append(getDomain());
+        }
+
+        if ( getOperatingSystem() != null) {
+            str.append(",os=");
+            str.append(getOperatingSystem());
+        }
 
         if (hasClientAddress()) {
-            str.append(",");
+            str.append(",addr=");
             str.append(getClientAddress());
         }
 
-        str.append(",");
+        str.append(",logon=");
         str.append(getLogonTypeString());
 
         if (isGuest())

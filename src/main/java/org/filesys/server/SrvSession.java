@@ -517,7 +517,7 @@ public abstract class SrvSession <T extends Enum<T>> {
     }
 
     /**
-     * Set the time of hte last I/O on this session
+     * Set the time of the last I/O on this session
      *
      * @param ioTime long
      */
@@ -648,13 +648,11 @@ public abstract class SrvSession <T extends Enum<T>> {
     }
 
     /**
-     * Return the session details as a string
+     * Add the base session details to debug string
      *
-     * @return String
+     * @param str StringBuilder
      */
-    public String toString() {
-        StringBuilder str = new StringBuilder();
-
+    protected void addBaseDetails(StringBuilder str) {
         str.append("[Session id=");
         str.append(getSessionId());
         str.append(",unique=");
@@ -673,7 +671,16 @@ public abstract class SrvSession <T extends Enum<T>> {
             str.append(" Persistent");
         if ( isDisconnectedSession())
             str.append(" Disconnected");
+    }
 
+    /**
+     * Return the session details as a string
+     *
+     * @return String
+     */
+    public String toString() {
+        StringBuilder str = new StringBuilder();
+        addBaseDetails( str);
         str.append("]");
 
         return str.toString();

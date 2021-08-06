@@ -38,6 +38,8 @@ import org.filesys.server.thread.ThreadRequest;
 import org.filesys.server.thread.ThreadRequestPool;
 import org.filesys.smb.server.SMBSrvSession;
 import org.filesys.smb.server.SessionState;
+import org.filesys.smb.server.VirtualCircuit;
+import org.filesys.smb.server.VirtualCircuitList;
 
 /**
  * SMB Request Handler Class
@@ -571,19 +573,78 @@ public class SMBRequestHandler extends RequestHandler implements Runnable {
                 SelectionKey curKey = selKeys.next();
                 SMBSrvSession sess = (SMBSrvSession) curKey.attachment();
 
-                // Check the time of the last I/O request on this session
-                if (sess != null && sess.getLastIOTime() < checkTime) {
+                // Check if the session or any virtual circuits have been idle for longer than the check interval
+                if (sess != null) {
 
-                    // DEBUG
-                    if (Debug.EnableInfo && hasDebug())
-                        Debug.println("[SMB] Closing idle session, " + sess.getUniqueId() + ", addr=" + sess.getRemoteAddressString());
+                    // Check the time of the last I/O request on this session
+                    if (sess.getLastIOTime() < checkTime || sess.numberOfVirtualCircuits() == 0) {
 
-                    // Close the session
-                    sess.closeSession();
-                    sess.processPacket(null);
+                        // DEBUG
+                        if (Debug.EnableInfo && hasDebug())
+                            Debug.println("[SMB] Closing idle session, " + sess.getUniqueId() + ", addr=" + sess.getRemoteAddressString());
 
-                    // Update the idle session count
-                    idleCnt++;
+                        // Close the session
+                        sess.closeSession();
+                        sess.processPacket(null);
+
+                        // Update the idle session count
+                        idleCnt++;
+                    }
+                    else {
+
+                        // Check for any idle virtual circuits
+                        VirtualCircuitList vcList = sess.getVirtualCircuitList();
+                        Iterator<VirtualCircuit> vcIter = vcList.iterator();
+                        List<Integer> remList = null;
+
+                        while ( vcIter.hasNext()) {
+
+                            // Get the current virtual circuit and check if has been idle too long
+                            VirtualCircuit curVC = vcIter.next();
+
+                            if ( curVC.getLastIOTime() < checkTime) {
+
+                                // Add the virtual circuit id to the list of virtual circuits to be removed
+                                //
+                                // Cannot remove now as we are iterating the list
+                                if ( remList == null)
+                                    remList = new ArrayList<Integer>();
+                                remList.add( curVC.getId());
+                            }
+                        }
+
+                        // Check if there are any virtual circuits to be removed
+                        if ( remList != null) {
+
+                            for ( Integer vcId : remList) {
+
+                                // Get the virtual circuit details
+                                VirtualCircuit curVC = sess.findVirtualCircuit( vcId);
+
+                                // DEBUG
+                                if (Debug.EnableInfo && hasDebug())
+                                    Debug.println("[SMB] Closing idle virtual circuit, sess=" + sess.getUniqueId() + ", VC=" + curVC.getId() + ", client=" + curVC.getClientInformation());
+
+                                // Remove and close the virtual circuit
+                                vcList.removeCircuit( curVC.getId(), sess);
+                            }
+                        }
+
+                        // Check if there are no remaining virtual circuits on the session
+                        if ( sess.numberOfVirtualCircuits() == 0) {
+
+                            // DEBUG
+                            if (Debug.EnableInfo && hasDebug())
+                                Debug.println("[SMB] Closing empty session, " + sess.getUniqueId() + ", addr=" + sess.getRemoteAddressString());
+
+                            // Close the session
+                            sess.closeSession();
+                            sess.processPacket(null);
+
+                            // Update the idle session count
+                            idleCnt++;
+                        }
+                    }
                 }
             }
 

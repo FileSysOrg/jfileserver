@@ -341,6 +341,35 @@ public class SMBServer extends NetworkFileServer implements Runnable, Configurat
     }
 
     /**
+     * Return the current session count
+     *
+     * @return int
+     */
+    public int getCurrentSessionCount() {
+        return m_sessions.numberOfSessions();
+    }
+
+    /**
+     * Return the count of disconnected sessions
+     *
+     * @return int
+     */
+    public int getDisconnectedSessionCount() {
+        if ( m_disconnectedSessList != null)
+            return m_disconnectedSessList.numberOfSessions();
+        return 0;
+    }
+
+    /**
+     * Return the maximum number of sessions allowed, zero equals no limit
+     *
+     * @return int
+     */
+    public int getMaximumSessionCount() {
+        return 0;
+    }
+
+    /**
      * Return the SMB packet pool
      *
      * @return SMBPacketPool
@@ -683,8 +712,10 @@ public class SMBServer extends NetworkFileServer implements Runnable, Configurat
             while ( sessEnum.hasMoreElements()) {
                 SrvSession curSess = sessEnum.nextElement();
 
-                if ( curSess != null)
-                    Debug.println("[SMB]  Open session: " + curSess.toString());
+                if ( curSess != null && curSess instanceof SMBSrvSession) {
+                    SMBSrvSession smbSess = (SMBSrvSession) curSess;
+                    Debug.println("[SMB]  Open session: " + smbSess.toString());
+                }
             }
         }
 
@@ -885,7 +916,7 @@ public class SMBServer extends NetworkFileServer implements Runnable, Configurat
      * @param sessId int
      * @return SMBSrvSession
      */
-    public final synchronized SMBSrvSession findDisconnectedSession(int sessId) {
+    public final synchronized SMBSrvSession restoreDisconnectedSession(int sessId) {
 
         // Check if there are any disconnected sessions
         if ( m_disconnectedSessList == null)
@@ -939,6 +970,9 @@ public class SMBServer extends NetworkFileServer implements Runnable, Configurat
 
         // Add the disconnected session
         m_disconnectedSessList.addSession( sess);
+
+        // Callback to notify of session disconnection
+        sess.sessionDisconnected();
     }
 
     /**
@@ -971,7 +1005,7 @@ public class SMBServer extends NetworkFileServer implements Runnable, Configurat
 
                         // DEBUG
                         if ( getSessionDebug().contains( SMBSrvSession.Dbg.SOCKET))
-                            Debug.println("[SMB] Disconnected session expired, sess=" + curSess);
+                            Debug.println("[SMB] Disconnected session expired, sess=" + curSess + ", vcircuits=" + curSess.numberOfVirtualCircuits());
 
                         // Cleanup the disconnected session
                         curSess.setPersistentSession( false);

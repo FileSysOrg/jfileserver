@@ -329,6 +329,31 @@ public abstract class ProtocolHandler {
     }
 
     /**
+     * Virtual circuit closed callback from the session
+     *
+     * @param vc VirtualCircuit
+     * @param sess SMBSrvSession
+     */
+    public void virtualCircuitClosed( VirtualCircuit vc, SMBSrvSession sess) {
+    }
+
+    /**
+     * Session moved to the disconnected session list
+     *
+     * @param sess SMBSrvSession
+     */
+    public void sessionDisconnected(SMBSrvSession sess) {
+    }
+
+    /**
+     * Session reconnected, moved from the disconnected session list
+     *
+     * @param sess SMBSrvSession
+     */
+    public void sessionReconnected(SMBSrvSession sess) {
+    }
+
+    /**
      * Get a virtual circuit list
      *
      * @param maxVC int
