@@ -314,7 +314,7 @@ public class SMBSrvSession extends SrvSession<SMBSrvSession.Dbg> implements Runn
 	 *
 	 * @return VirtualCircuitList
 	 */
-	protected final VirtualCircuitList getVirtualCircuitList() {
+	public final VirtualCircuitList getVirtualCircuitList() {
 		return m_vcircuits;
 	}
 
@@ -393,6 +393,38 @@ public class SMBSrvSession extends SrvSession<SMBSrvSession.Dbg> implements Runn
 		catch (Exception ex) {
 //			Debug.println(ex);
 		}
+	}
+
+	/**
+	 * Close a virtual circuit
+	 *
+	 * @param vc VirtualCircuit
+	 */
+	protected final void closeVirtualCircuit(VirtualCircuit vc) {
+
+		// Inform the protocol handler that a virtual circuit has been closed
+		if ( getProtocolHandler() != null)
+			getProtocolHandler().virtualCircuitClosed(vc, this);
+	}
+
+	/**
+	 * Session is moving to the disconnected session list
+	 */
+	protected final void sessionDisconnected() {
+
+		// Inform the protocol handler that a virtual circuit has been closed
+		if ( getProtocolHandler() != null)
+			getProtocolHandler().sessionDisconnected( this);
+	}
+
+	/**
+	 * Session reconnected from the disconnected list
+	 */
+	protected final void sessionReconnected() {
+
+		// Inform the protocol handler that a virtual circuit has been closed
+		if ( getProtocolHandler() != null)
+			getProtocolHandler().sessionReconnected( this);
 	}
 
 	/**
@@ -1656,7 +1688,7 @@ public class SMBSrvSession extends SrvSession<SMBSrvSession.Dbg> implements Runn
 
 		// Debug
 		if (Debug.EnableInfo && hasDebug(SMBSrvSession.Dbg.ERROR))
-			debugPrintln("Error : Cmd = " + smbPkt.getParser().toShortString() + " - " + SMBErrorText.ErrorString( SMBStatus.NTErr, ntErrCode));
+			debugPrintln("Error : Cmd = " + smbPkt.getParser().toShortString() + " - " + SMBErrorText.ErrorString(SMBStatus.NTErr, ntErrCode));
 	}
 
 	/**
@@ -2053,6 +2085,9 @@ public class SMBSrvSession extends SrvSession<SMBSrvSession.Dbg> implements Runn
 	 */
 	public final void transferSession( SMBSrvSession otherSess) {
 
+		// Callback to indicate a session is about to be reconnected
+		otherSess.sessionReconnected();
+
 		// Transfer the virtual circuit list from the previous session to this session
 		m_vcircuits = otherSess.getVirtualCircuitList();
 		otherSess.clearVirtualCircuitList();
@@ -2099,5 +2134,27 @@ public class SMBSrvSession extends SrvSession<SMBSrvSession.Dbg> implements Runn
         }
         else
             debugPrintln("No session keys");
+	}
+
+	/**
+	 * Return the session details as a string
+	 *
+	 * @return String
+	 */
+	public String toString() {
+		StringBuilder str = new StringBuilder();
+		addBaseDetails( str);
+
+		str.append(",SMB state=");
+		str.append( getState());
+		str.append(", VCs=");
+		str.append( numberOfVirtualCircuits());
+		str.append(", lastIO=");
+		str.append( System.currentTimeMillis() - getLastIOTime());
+		str.append("ms");
+
+		str.append("]");
+
+		return str.toString();
 	}
 }

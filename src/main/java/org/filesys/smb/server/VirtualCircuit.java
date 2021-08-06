@@ -83,6 +83,9 @@ public class VirtualCircuit {
     // Flag to indicate if the virtual circuit is logged on/off
     private boolean m_loggedOn;
 
+    // Time of last I/O on this virtual circuit
+    private long m_lastIO;
+
     /**
      * Class constructor
      *
@@ -121,6 +124,24 @@ public class VirtualCircuit {
      */
     public final ClientInfo getClientInformation() {
         return m_clientInfo;
+    }
+
+    /**
+     * Return the time of the last I/o on this virtual circuit
+     *
+     * @return long
+     */
+    public final long getLastIOTime() {
+        return m_lastIO;
+    }
+
+    /**
+     * Set the time of the last I/O on this virtual circuit
+     *
+     * @param ioTime long
+     */
+    public final void setLastIOTime(long ioTime) {
+        m_lastIO = ioTime;
     }
 
     /**
@@ -362,6 +383,12 @@ public class VirtualCircuit {
      */
     public synchronized final void closeCircuit(SrvSession sess) {
 
+        // Notify the session that the virtual circuit is closing
+        if ( sess instanceof SMBSrvSession) {
+            SMBSrvSession smbSess = (SMBSrvSession) sess;
+            smbSess.closeVirtualCircuit(this);
+        }
+
         //  Debug
         if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.STATE))
             sess.debugPrintln("Cleanup vc=" + getVCNumber() + ", id=" + getId() + ", searches=" + getSearchCount() + ", treeConns=" + getConnectionCount());
@@ -415,6 +442,11 @@ public class VirtualCircuit {
     }
 
     /**
+     * Clear the client information from the virtual circuit
+     */
+    public final void clearClientInformation() { m_clientInfo = null; }
+
+    /**
      * Return the virtual circuit details as a string
      *
      * @return String
@@ -432,6 +464,9 @@ public class VirtualCircuit {
         str.append(getConnectionCount());
         str.append(",Searches=");
         str.append(getSearchCount());
+        str.append(",lastIO=");
+        str.append( System.currentTimeMillis() - getLastIOTime());
+        str.append("ms");
         str.append("]");
 
         return str.toString();

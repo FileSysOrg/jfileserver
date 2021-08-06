@@ -22,6 +22,8 @@ package org.filesys.smb.server;
 import org.filesys.server.SrvSession;
 import org.filesys.server.auth.ClientInfo;
 
+import java.util.Iterator;
+
 
 /**
  * Virtual Circuit List Class
@@ -73,7 +75,7 @@ public interface VirtualCircuitList {
     public void removeCircuit(int id, SrvSession sess);
 
     /**
-     * Return the active tree connection count
+     * Return the virtual circuit count
      *
      * @return int
      */
@@ -85,4 +87,11 @@ public interface VirtualCircuitList {
      * @param sess SMBSrvSession
      */
     public void clearCircuitList(SMBSrvSession sess);
+
+    /**
+     * Iterate the virtual circuits
+     *
+     * @return Iterator&lt;VirtualCircuit&gt;
+     */
+    public Iterator<VirtualCircuit> iterator();
 }
