@@ -282,7 +282,7 @@ public class XMLServerConfiguration extends SMBOnlyXMLServerConfiguration {
 		elem = findChildNode("port", ftp.getChildNodes());
 		if ( elem != null) {
 			try {
-				ftpConfig.setFTPPort(Integer.parseInt(getText(elem)));
+				ftpConfig.setFTPPort(Integer.parseInt(getTextWithEnvVars(elem)));
 				if ( ftpConfig.getFTPPort() <= 0 || ftpConfig.getFTPPort() >= 65535)
 					throw new InvalidConfigurationException("FTP server port out of valid range");
 			}
