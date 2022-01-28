@@ -389,6 +389,9 @@ public class SMBSrvSession extends SrvSession<SMBSrvSession.Dbg> implements Runn
 			m_pktHandler.closeHandler();
 			if (Debug.EnableInfo && hasDebug(SMBSrvSession.Dbg.STATE))
 				debugPrintln("Closed packet handler for client: " + m_pktHandler.getClientName());
+
+			// Notify the SMB server that the session has been closed
+			getSMBServer().sessionClosed( this);
 		}
 		catch (Exception ex) {
 //			Debug.println(ex);
@@ -459,7 +462,6 @@ public class SMBSrvSession extends SrvSession<SMBSrvSession.Dbg> implements Runn
 			// Cleanup the disconnected sessions virtual circuits, open files, searches as the client will not currently
 			// try to re-use them
 			cleanupSession();
-
 		}
 
 		try {
