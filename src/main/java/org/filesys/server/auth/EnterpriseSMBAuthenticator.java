@@ -106,6 +106,9 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
 
     private static final int MIC_TOKEN_VER_NTLMSSP  = 0x00000001;
 
+    // Output extra debug logging
+    private static final boolean EXTRA_DEBUG = false;
+
     // Use NTLMSSP or SPNEGO
     protected boolean m_useRawNTLMSSP;
 
@@ -1586,9 +1589,17 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
                 // Generate the v2 hash using the challenge that was sent to the client
                 byte[] v2hash = getEncryptor().doNTLM2Encryption(md4Pwd, type3Msg.getUserName(), type3Msg.getDomain());
 
+                // DEBUG
+                if ( EXTRA_DEBUG)
+                    debugOutput( "[SMB] Generate v2hash user=" + type3Msg.getUserName() + ", domain=" + type3Msg.getDomain() + ", v2hash=" + HexDump.hexString( v2hash));
+
                 // Get the NTLMv2 blob sent by the client and the challenge that was sent by the server
                 NTLMv2Blob v2blob = new NTLMv2Blob(type3Msg.getNTLMHash());
                 byte[] srvChallenge = type2Msg.getChallenge();
+
+                // DEBUG
+                if ( EXTRA_DEBUG)
+                    debugOutput( "[SMB] v2blob= len=" + v2blob.getLength() + ",data=" + HexDump.hexString( v2blob.getBuffer(), 16, "") + "..., challenge=" + HexDump.hexString( srvChallenge));
 
                 // Calculate the HMAC of the received blob and compare
                 byte[] srvHmac = v2blob.calculateHMAC(srvChallenge, v2hash);
@@ -1609,6 +1620,10 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
 
                 // Check if a session key has been returned by the client
                 if ( NTLM.hasFlag(type3Msg.getFlags(), NTLM.FlagKeyExchange)) {
+
+                    // DEBUG
+                    if ( EXTRA_DEBUG)
+                        debugOutput( "[SMB] Type3 session key=" + HexDump.hexString( type3Msg.getSessionKey()));
 
                     // Make sure we got an encrypted session key from the client
                     if ( type3Msg.hasSessionKey()) {
@@ -2076,6 +2091,10 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
     private void generateSessionKeys(SMBSrvSession sess, Type3NTLMMessage type3, byte[] v2hash, byte[] srvHMAC, byte[] clientHMAC)
         throws Exception {
 
+        // DEBUG
+        if (hasDebugOutput())
+            debugOutput("[SMB] Generate session keys, v2hash=" + HexDump.hexString( v2hash));
+
         // Calculate the session base key
         Mac hmacMd5 = Mac.getInstance("HMACMD5");
         SecretKeySpec blobKey = new SecretKeySpec(v2hash, "MD5");
@@ -2083,8 +2102,16 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
         hmacMd5.init(blobKey);
         byte[] sessionBaseKey = hmacMd5.doFinal(clientHMAC);
 
+        // DEBUG
+        if (hasDebugOutput())
+            debugOutput("  Session base key=" + HexDump.hexString( sessionBaseKey));
+
         // Decrypt the random session key
         byte[] encSessKey = type3.getSessionKey();
+
+        // DEBUG
+        if (hasDebugOutput())
+            debugOutput("  Random session key=" + HexDump.hexString( encSessKey));
 
         Cipher rc4 = Cipher.getInstance("RC4");
         rc4.init(Cipher.DECRYPT_MODE, new SecretKeySpec(sessionBaseKey, "RC4"));
