@@ -238,8 +238,8 @@
         <connection>scm:git:git@github.com:FileSysOrg/jfileserver.git</connection>
         <developerConnection>scm:git:git@github.com:FileSysOrg/jfileserver.git</developerConnection>
         <url>https://github.com/FileSysOrg/jfileserver</url>
-      <tag>jfileserver-1.2.0</tag>
-  </scm>
+        <tag>jfileserver-1.2.0</tag>
+    </scm>
 
     <distributionManagement>
         <snapshotRepository>
