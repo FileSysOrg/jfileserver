@@ -266,7 +266,9 @@ public class SMBFileServer implements ServerListener {
 					else if ( inChar == 'r' || inChar == 'R')
 						m_restart = true;
 					else if ( inChar == 's' || inChar == 'S')
-						dumpSessions();
+						dumpSessions( false);
+					else if ( inChar == 'v' || inChar == 'V')
+						dumpSessions( true);
 					else if ( inChar == -1) {
 						
 						// Sleep for a short while
@@ -567,8 +569,10 @@ public class SMBFileServer implements ServerListener {
 
 	/**
 	 * Dump the session lists for the active servers
+	 *
+	 * @param verbose boolean
 	 */
-	protected void dumpSessions() {
+	protected void dumpSessions(boolean verbose) {
 
 		Debug.println("Dump the active server sessions lists:");
 
@@ -578,7 +582,7 @@ public class SMBFileServer implements ServerListener {
 			NetworkServer curServer = m_srvConfig.getServer( idx);
 
 			if ( curServer != null && curServer.isActive())
-				curServer.dumpSessionLists();
+				curServer.dumpSessionLists( verbose);
 		}
 	}
 }
