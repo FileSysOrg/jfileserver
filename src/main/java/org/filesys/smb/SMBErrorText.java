@@ -681,6 +681,9 @@ public final class SMBErrorText {
             case SMBStatus.NTSharingViolation:
                 errtext = "Sharing violation";
                 break;
+            case SMBStatus.NTNoEAsOnFile:
+                errtext = "No EAs on file";
+                break;
             case SMBStatus.NTBadNetName:
                 errtext = "Bad network name";
                 break;
@@ -770,6 +773,9 @@ public final class SMBErrorText {
                 break;
             case SMBStatus.SMBInvalidSMB:
                 errtext = "Invalid SMB, or not supported";
+                break;
+            case SMBStatus.NTNetworkSessionExpired:
+                errtext = "Network session expired";
                 break;
             default:
                 errtext = "Unknown NT status 0x" + Integer.toHexString(errcode);
