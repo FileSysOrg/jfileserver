@@ -430,8 +430,10 @@ public abstract class NetworkServer {
 
     /**
      * Dump the session list(s) for this server to the debug device
+     *
+     * @param verbose boolean
      */
-    public void dumpSessionLists() {}
+    public void dumpSessionLists( boolean verbose) {}
 
     /**
      * Trigger a closed session event to all registered session listeners.

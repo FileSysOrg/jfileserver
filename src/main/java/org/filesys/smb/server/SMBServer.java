@@ -546,7 +546,7 @@ public class SMBServer extends NetworkFileServer implements Runnable, Configurat
             Debug.println("[SMB] SMB Server shutting down ...");
 
             // Dump the session lists
-            dumpSessionLists();
+            dumpSessionLists( true);
         }
 
         // Close the host announcer and session handlers
@@ -701,7 +701,7 @@ public class SMBServer extends NetworkFileServer implements Runnable, Configurat
     }
 
     @Override
-    public void dumpSessionLists() {
+    public void dumpSessionLists(boolean verbose) {
 
         // Dump the active sessions
         Debug.println("[SMB] Open sessions: " + m_sessions.numberOfSessions());
@@ -715,6 +715,15 @@ public class SMBServer extends NetworkFileServer implements Runnable, Configurat
                 if ( curSess != null && curSess instanceof SMBSrvSession) {
                     SMBSrvSession smbSess = (SMBSrvSession) curSess;
                     Debug.println("[SMB]  Open session: " + smbSess.toString());
+
+                    // Dump the virtual circuit details if verbose output requested
+                    if ( verbose && smbSess.getVirtualCircuitList() != null) {
+                        Iterator<VirtualCircuit> vcIter = smbSess.getVirtualCircuitList().iterator();
+
+                        while (vcIter.hasNext()) {
+                            Debug.println("         VC=" + vcIter.next());
+                        }
+                    }
                 }
             }
         }
