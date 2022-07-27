@@ -190,6 +190,7 @@ public final class SMBStatus {
 	public static final int NTObjectPathNotFound 	= 0xC000003A;
 	public static final int NTDataError				= 0xC000003E;
 	public static final int NTSharingViolation 		= 0xC0000043;
+	public static final int NTNoEAsOnFile			= 0xC0000052;
 	public static final int NTLockConflict 			= 0xC0000054;
 	public static final int NTLockNotGranted 		= 0xC0000055;
 	public static final int NTLogonFailure 			= 0xC000006D;
@@ -224,6 +225,7 @@ public final class SMBStatus {
 	public static final int NTAccountLocked			= 0xC0000234;
 	public static final int NTFileOffline 			= 0xC0000267;
 	public static final int NTVolumeNotUpgraded		= 0xC000029C;
+	public static final int NTNetworkSessionExpired	= 0xC000035C;
 
 	public static final int SMBInvalidSMB				= 0x00010002;
 	
