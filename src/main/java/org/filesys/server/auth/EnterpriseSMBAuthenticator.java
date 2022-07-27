@@ -89,13 +89,13 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
     private static final String LineSeperator = System.getProperty("line.separator");
 
     // NTLM flags mask, used to mask out features that are not supported
-    private static final int NTLM_UNSUPPORTED_FLAGS = NTLM.Flag56Bit + NTLM.Flag128Bit + NTLM.FlagLanManKey + NTLM.FlagNegotiateNTLM +
-                                                      NTLM.FlagNegotiateUnicode;
+    private static final int NTLM_UNSUPPORTED_FLAGS = 0;
 
     // NTLM flags to be sent back to the client
-    private static final int NTLM_SERVER_FLAGS = NTLM.FlagChallengeAccept + NTLM.FlagRequestTarget + NTLM.Flag128Bit + NTLM.FlagNegotiateOEM +
+    private static final int NTLM_SERVER_FLAGS = NTLM.FlagChallengeAccept + NTLM.FlagRequestTarget + NTLM.Flag128Bit +
                                                  NTLM.FlagNegotiateUnicode + NTLM.FlagKeyExchange + NTLM.FlagTargetInfo + NTLM.FlagRequestVersion +
-                                                 NTLM.FlagAlwaysSign + NTLM.FlagNegotiateSign + NTLM.FlagNegotiateExtSecurity + NTLM.FlagNegotiateSeal;
+                                                 NTLM.FlagAlwaysSign + NTLM.FlagNegotiateSign + NTLM.FlagNegotiateExtSecurity + NTLM.FlagNegotiateSeal +
+                                                 NTLM.FlagNegotiateNTLM;
 
     // MIC token
     private static final int MIC_TOKEN_LENGTH   = 16;
@@ -107,7 +107,7 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
     private static final int MIC_TOKEN_VER_NTLMSSP  = 0x00000001;
 
     // Output extra debug logging
-    private static final boolean EXTRA_DEBUG = false;
+    private static final boolean EXTRA_DEBUG = true;
 
     // Use NTLMSSP or SPNEGO
     protected boolean m_useRawNTLMSSP;
@@ -1035,7 +1035,7 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
             }
 
             // Determine if the client sent us NTLMv1 or NTLMv2
-            if (type3Msg.hasFlag(NTLM.Flag128Bit)) { // && type3Msg.hasFlag(NTLM.FlagNTLM2Key)) {
+            if (type3Msg.hasFlag(NTLM.Flag128Bit) || type3Msg.hasFlag(NTLM.FlagNegotiateExtSecurity)) { // && type3Msg.hasFlag(NTLM.FlagNTLM2Key)) {
 
                 // Determine if the client sent us an NTLMv2 blob or an NTLMv2 session key
                 if (type3Msg.getNTLMHashLength() > 24) {
@@ -1612,6 +1612,10 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
                         i++;
 
                     if (i != clientHmac.length) {
+
+                        // DEBUG
+                        if ( EXTRA_DEBUG)
+                            debugOutput( "[SMB] HMac does not match, client=" + HexDump.hexString( clientHmac) + ", server=" + HexDump.hexString( srvHmac));
 
                         // Return a logon failure
                         throw new SMBSrvException(SMBStatus.NTLogonFailure, SMBStatus.ErrDos, SMBStatus.DOSAccessDenied);
