@@ -336,7 +336,9 @@ public class FileServer implements ServerListener {
 					else if ( inChar == 'r' || inChar == 'R')
 						m_restart = true;
 					else if ( inChar == 's' || inChar == 'S')
-						dumpSessions();
+						dumpSessions( false);
+					else if ( inChar == 'v' || inChar == 'V')
+						dumpSessions( true);
 					else if ( inChar == 'g' || inChar == 'G') {
 						Debug.println( "Running garbage collection ...");
 						System.gc();
@@ -738,8 +740,10 @@ public class FileServer implements ServerListener {
 
 	/**
 	 * Dump the session lists for the active servers
+	 *
+	 * @param verbose boolean
 	 */
-	protected void dumpSessions() {
+	protected void dumpSessions(boolean verbose) {
 
 		Debug.println("Dump the active server sessions lists:");
 
@@ -749,7 +753,7 @@ public class FileServer implements ServerListener {
 			NetworkServer curServer = m_srvConfig.getServer( idx);
 
 			if ( curServer != null && curServer.isActive())
-				curServer.dumpSessionLists();
+				curServer.dumpSessionLists( verbose);
 		}
 	}
 }
