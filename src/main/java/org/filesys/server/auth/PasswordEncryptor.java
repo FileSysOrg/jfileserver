@@ -427,7 +427,10 @@ public class PasswordEncryptor {
         StringBuffer str = new StringBuffer();
 
         str.append(userName.toUpperCase());
-        str.append(domain.toUpperCase());
+
+        // Client should sent the domain name as uppercase
+        // Windows 11 can send the value 'MicrosoftAccount' which is case sensitive
+        str.append(domain);
 
         String dataStr = str.toString();
         byte[] dataByts = null;

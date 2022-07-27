@@ -158,6 +158,15 @@ public class ClientInfo {
     }
 
     /**
+     * Check if there is a valid user name
+     *
+     * @return boolean
+     */
+    public final boolean hasUserName() {
+        return m_user != null && m_user.isEmpty() == false;
+    }
+
+    /**
      * Get the user name.
      *
      * @return String
