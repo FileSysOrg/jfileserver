@@ -28,6 +28,8 @@ import org.filesys.server.core.DeviceInterface;
 import org.filesys.server.core.InvalidDeviceInterfaceException;
 import org.filesys.server.core.SharedDevice;
 
+import java.util.Iterator;
+
 /**
  * The tree connection class holds the details of a single SMB tree connection. A tree connection
  * is a connection to a shared device.
@@ -46,9 +48,8 @@ public class TreeConnection {
     //	Shared device that the connection is associated with
     private SharedDevice m_shareDev;
 
-    //	List of open files on this connection. Count of open file slots used.
-    private NetworkFile[] m_files;
-    private int m_fileCount;
+    //	List of open files on this connection
+    private OpenFileMap m_files;
 
     //	Access permission that the user has been granted
     private ISMBAuthenticator.ShareStatus m_permission;
@@ -64,6 +65,9 @@ public class TreeConnection {
     public TreeConnection(SharedDevice shrDev) {
         m_shareDev = shrDev;
         m_shareDev.incrementConnectionCount();
+
+//        m_files = new ArrayOpenFileMap();
+        m_files = new HashedOpenFileMap();
     }
 
     /**
@@ -77,6 +81,9 @@ public class TreeConnection {
         m_shareDev.incrementConnectionCount();
 
         m_treeId = treeId;
+
+//        m_files = new ArrayOpenFileMap();
+        m_files = new HashedOpenFileMap();
     }
 
     /**
@@ -99,41 +106,15 @@ public class TreeConnection {
     public synchronized int addFile(NetworkFile file, SrvSession sess)
             throws TooManyFilesException {
 
-        //  Check if the file array has been allocated
-        if (m_files == null)
-            m_files = new NetworkFile[INITIALFILES];
-
-        //  Find a free slot for the network file
-        int idx = 0;
-
-        while (idx < m_files.length && m_files[idx] != null)
-            idx++;
-
-        //  Check if we found a free slot
-        if (idx == m_files.length) {
-
-            //  The file array needs to be extended, check if we reached the limit.
-            if (m_files.length >= MAXFILES)
-                throw new TooManyFilesException();
-
-            //  Extend the file array
-            NetworkFile[] newFiles = new NetworkFile[m_files.length * 2];
-            System.arraycopy(m_files, 0, newFiles, 0, m_files.length);
-            m_files = newFiles;
-        }
+        // Allocate a file id handle, and store the network file
+        int handle_id = m_files.addFile( file, sess);
 
         //	Inform listeners that a file has been opened
         NetworkFileServer fileSrv = (NetworkFileServer) sess.getServer();
         if (fileSrv != null)
             fileSrv.fireOpenFileEvent(sess, file);
 
-        //  Store the network file, update the open file count and return the index
-        m_files[idx] = file;
-        m_fileCount++;
-
-        // Save the protocol level id
-        file.setProtocolId(idx);
-        return idx;
+        return handle_id;
     }
 
     /**
@@ -147,27 +128,34 @@ public class TreeConnection {
         if (openFileCount() > 0) {
 
             //  Close all open files
-            for (int idx = 0; idx < m_files.length; idx++) {
+            Iterator<Integer> fileIter = m_files.iterateFileHandles();
 
-                //  Make sure the file is closed
-                if (m_files[idx] != null) {
+            while (fileIter.hasNext()) {
+
+                // Get the current file id handle
+                Integer fileHandle = fileIter.next();
+
+                // Get the current open file
+                NetworkFile openFile = m_files.findFile( fileHandle);
+
+                if ( openFile != null) {
 
                     //  Close the file
                     try {
 
                         //  Access the disk interface and close the file
                         DiskInterface disk = (DiskInterface) m_shareDev.getInterface();
-                        m_files[idx].setForce(true);
-                        disk.closeFile(sess, this, m_files[idx]);
-                        m_files[idx].setClosed(true);
+                        openFile.setForce(true);
+                        disk.closeFile(sess, this, openFile);
+                        openFile.setClosed(true);
                     }
                     catch (Exception ex) {
                     }
-
-                    // Remove the file from the open file table
-                    removeFile(idx, sess);
                 }
             }
+
+            // Remove all the open files
+            m_files.removeAllFiles();
         }
 
         //	Decrement the active connection count for the shared device
@@ -181,24 +169,7 @@ public class TreeConnection {
      * @return NetworkFile
      */
     public synchronized NetworkFile findFile(int fid) {
-
-        //  Check if the file id and file array are valid
-        if (m_files == null || fid >= m_files.length || fid < 0)
-            return null;
-
-        //  Get the required file details
-        return m_files[fid];
-    }
-
-    /**
-     * Return the length of the file table
-     *
-     * @return int
-     */
-    public synchronized int getFileTableLength() {
-        if (m_files == null)
-            return 0;
-        return m_files.length;
+        return m_files.findFile( fid);
     }
 
     /**
@@ -286,45 +257,43 @@ public class TreeConnection {
      * @return int
      */
     public synchronized int openFileCount() {
-        return m_fileCount;
+        return m_files.openFileCount();
+    }
+
+    /**
+     * Iterate the open file handles
+     *
+     * @return Iterator&lt;Integer&gt;
+     */
+    public final Iterator<Integer> iterateOpenFileHandles() {
+        return m_files.iterateFileHandles();
     }
 
     /**
      * Remove all files from the tree connection.
      */
     public synchronized final void removeAllFiles() {
-
-        //  Check if the file array has been allocated
-        if (m_files == null)
-            return;
-
-        //  Clear the file list
-        for (int idx = 0; idx < m_files.length; m_files[idx++] = null) ;
-        m_fileCount = 0;
+        m_files.removeAllFiles();
     }
 
     /**
      * Remove a network file from the list of open files for this connection.
      *
-     * @param idx  int
+     * @param fid  int
      * @param sess SrvSession
      */
-    public synchronized void removeFile(int idx, SrvSession sess) {
+    public synchronized void removeFile(int fid, SrvSession sess) {
 
-        //  Range check the file index
-        if (m_files == null || idx >= m_files.length)
-            return;
+        // Remove the file
+        NetworkFile netFile = m_files.removeFile( fid, sess);
 
-        //	Inform listeners of the file closure
-        NetworkFileServer fileSrv = (NetworkFileServer) sess.getServer();
-        if (fileSrv != null)
-            fileSrv.fireCloseFileEvent(sess, m_files[idx]);
+        if ( netFile != null) {
 
-        //  Remove the file and update the open file count.
-        if (m_files[idx] != null)
-            m_files[idx].setProtocolId(-1);
-        m_files[idx] = null;
-        m_fileCount--;
+            //	Inform listeners of the file closure
+            NetworkFileServer fileSrv = (NetworkFileServer) sess.getServer();
+            if (fileSrv != null)
+                fileSrv.fireCloseFileEvent(sess, netFile);
+        }
     }
 
     /**
