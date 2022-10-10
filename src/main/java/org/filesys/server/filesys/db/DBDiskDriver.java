@@ -239,7 +239,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
 
         //  Check if the file was opened for write access, if so then update the file size and modify date/time
         if (file.getGrantedAccess() != NetworkFile.Access.READ_ONLY && file.isDirectory() == false &&
-                file.getWriteCount() > 0) {
+                file.getWriteCount() > 0 && file.hasDeleteOnClose() == false) {
 
             //  DEBUG
             if (Debug.EnableInfo && hasDebug())
@@ -392,6 +392,9 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
                 dbCtx.getStateCache().releaseFileAccess(fstate, accessToken);
                 accessToken = null;
             }
+
+            // Update the parent folder timestamps
+            updateParentFolderTimestamps( params.getPath(), dbCtx);
         }
         catch (Exception ex) {
             Debug.println(ex);
@@ -520,6 +523,9 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
 
             //  Open the file
             file.openFile(true);
+
+            // Update the parent folder timestamps
+            updateParentFolderTimestamps( params.getPath(), dbCtx);
         }
         catch (DBException ex) {
 
@@ -614,6 +620,9 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
             fstate.setFileStatus(FileStatus.NotExist, FileState.ChangeReason.FolderDeleted);
             fstate.setFileId(-1);
             fstate.removeAttribute(FileState.FileInformation);
+
+            // Update the parent folder timestamps
+            updateParentFolderTimestamps( dir, dbCtx);
         }
         catch (DBException ex) {
             Debug.println(ex);
@@ -737,6 +746,9 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
                 //  Release the file space back to the filesystem free space
                 dbCtx.getQuotaManager().releaseSpace(sess, tree, fstate.getFileId(), null, dbInfo.getSize());
             }
+
+            // Update the parent folder timestamps
+            updateParentFolderTimestamps( name, dbCtx);
         }
         catch (DBException ex) {
             throw new IOException("Failed to delete file " + name);
@@ -1034,7 +1046,6 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
         DBFileInfo finfo = getFileDetails(params.getPath(), dbCtx, fstate);
 
         if (finfo == null)
-//      throw new AccessDeniedException();
             throw new FileNotFoundException();
 
         //  If retention is enabled get the expiry date/time
@@ -1090,6 +1101,10 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
 
             // Save the access token
             jdbcFile.setAccessToken(accessToken);
+
+            // Set the full path of the file, if not already set
+            if ( jdbcFile.getFullName() == null)
+                jdbcFile.setFullName( params.getPath());
         }
         finally {
 
@@ -1238,6 +1253,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
 
             //  Check if the new name file/folder already exists
             DBFileInfo newInfo = getFileDetails(newName, dbCtx);
+
             if (newInfo != null)
                 throw new FileExistsException("Rename to file/folder already exists," + newName);
 
@@ -1262,6 +1278,18 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
 
             //  Update the file state with the new file name/path
             dbCtx.getStateCache().renameFileState(newName, fstate, curInfo.isDirectory());
+
+            // Update the cached file information name
+            if ( curInfo != null) {
+                curInfo.setFileName(newFname);
+                curInfo.setFullName(newName);
+            }
+
+            // Update the parent folder timestamps
+            updateParentFolderTimestamps( newName, dbCtx);
+
+            if ( dirId != newDirId)
+                updateParentFolderTimestamps( oldName, dbCtx);
         }
         catch (DBException ex) {
             throw new FileNotFoundException(oldName);
@@ -1468,13 +1496,14 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
         // Check if the path is to a file or folder, if there is no trailing seperator
         if ( searchPath.endsWith( FileName.DOS_SEPERATOR_STR) == false) {
 
-            // Get the file name part of the path and chck if it contains wildcard character(s)
+            // Get the file name part of the path and check if it contains wildcard character(s)
             String fileNamePart = FileName.getFileNamePart( searchPath);
 
             if ( fileNamePart == null || WildCard.containsWildcards( fileNamePart) == false) {
 
                 // Check if the search path is to a file or folder
                 FileStatus pathSts = fileExists(sess, tree, searchPath);
+
                 if (pathSts == FileStatus.DirectoryExists)
                     searchPath = searchPath + FileName.DOS_SEPERATOR_STR;
             }
@@ -1779,7 +1808,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
 
 
     /**
-     * Get the file id for a file
+     * Get the file information for a path
      *
      * @param path  String
      * @param dbCtx DBDeviceContext
@@ -1790,7 +1819,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
     }
 
     /**
-     * Get the file id for a file
+     * Get the file information for a path
      *
      * @param path   String
      * @param dbCtx  DBDeviceContext
@@ -2323,6 +2352,47 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
     }
 
     /**
+     * Update the parent folder path file information last write and change timestamps
+     *
+     * @param path String
+     * @param ctx DBDeviceContext
+     */
+    protected final void updateParentFolderTimestamps(String path, DBDeviceContext ctx) {
+
+        // Get the parent folder path
+        String parentPath = FileName.removeFileName( path);
+        if ( parentPath == null)
+            return;
+
+        // Get the file state for the parent folder, or create it
+        FileState fstate = getFileState( parentPath, ctx, true);
+
+        if ( fstate != null) {
+
+            // Update the cached last write and change timestamps for the folder
+            long updTime = System.currentTimeMillis();
+
+            fstate.updateModifyDateTime( updTime);
+            fstate.updateChangeDateTime( updTime);
+
+            // Update the cached file information, if available
+            DBFileInfo finfo = (DBFileInfo) fstate.findAttribute(FileState.FileInformation);
+            if (finfo != null) {
+
+                // Update the file information timestamps
+                finfo.setModifyDateTime( updTime);
+                finfo.setChangeDateTime( updTime);
+            }
+
+            // DEBUG
+//            if ( hasDebug()) {
+//                Debug.println("$$$ Update parent folder path=" + parentPath + ", fstate=" + fstate);
+//                ctx.getStateCache().dumpCache( true);
+//            }
+        }
+    }
+
+    /**
      * Connection opened to this disk device
      *
      * @param sess Server session
@@ -2472,10 +2542,6 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
         //  Create the stream list
         streamList = new StreamInfoList();
 
-        // Add an entry for the main file data stream
-        StreamInfo sinfo = new StreamInfo("::$DATA", finfo.getFileId(), 0, finfo.getSize(), finfo.getAllocationSize());
-        streamList.addStream(sinfo);
-
         //  Get the list of streams
         StreamInfoList sList = loadStreamList(fstate, finfo, dbCtx, true);
         if (sList != null) {
@@ -2487,6 +2553,10 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
                 streamList.addStream(sList.getStreamAt(i));
             }
         }
+
+        // Add an entry for the main file data stream
+        StreamInfo sinfo = new StreamInfo("::$DATA", finfo.getFileId(), 0, finfo.getSize(), finfo.getAllocationSize());
+        streamList.addStream(sinfo);
 
         //  Cache the stream list
         fstate.addAttribute(DBStreamList, streamList);
