@@ -246,6 +246,20 @@ public class JavaNIODiskDriver implements DiskInterface {
         netFile.setGrantedAccess(NetworkFile.Access.READ_WRITE);
         netFile.setFullName(params.getPath());
 
+        //  Check if the file is a hidden file
+        if (Files.isHidden(newPath))
+            netFile.setAttributes(FileAttribute.Hidden);
+        else {
+
+            // Get the file name
+            String fname = FileName.getFileNamePart(params.getPath());
+
+            if (fname != null && (fname.equalsIgnoreCase("Desktop.ini") ||
+                    fname.equalsIgnoreCase("Thumbs.db") ||
+                    fname.startsWith(".")))
+                netFile.setAttributes(FileAttribute.Hidden);
+        }
+
         //  Return the network file
         return netFile;
     }
@@ -722,6 +736,22 @@ public class JavaNIODiskDriver implements DiskInterface {
         //  Check if the file is actually a directory
         if ( Files.isDirectory( filePath))
             netFile.setAttributes(FileAttribute.Directory);
+        else {
+
+            //	Check for common hidden files
+            if (Files.isHidden(filePath))
+                netFile.setAttributes(FileAttribute.Hidden);
+            else {
+
+                // Get the file name
+                String fname = FileName.getFileNamePart(params.getPath());
+
+                if (fname != null && (fname.equalsIgnoreCase("Desktop.ini") ||
+                        fname.equalsIgnoreCase("Thumbs.db") ||
+                        fname.startsWith(".")))
+                    netFile.setAttributes(FileAttribute.Hidden);
+            }
+        }
 
         //  Return the network file
         return netFile;
