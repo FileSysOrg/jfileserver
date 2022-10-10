@@ -36,6 +36,7 @@ import org.filesys.server.filesys.NetworkFile;
 import org.filesys.server.filesys.cache.FileState;
 import org.filesys.server.filesys.db.DBDeviceContext;
 import org.filesys.server.filesys.db.DBInterface;
+import org.filesys.server.filesys.db.DirectoryNetworkFile;
 import org.filesys.server.filesys.db.LocalDataNetworkFile;
 import org.springframework.extensions.config.ConfigElement;
 
@@ -128,10 +129,21 @@ public class SimpleFileLoader implements FileLoader, NamedFileLoader {
             newFile.close();
         }
 
-        //  Create a Java network file
-        file = new File(fullName);
-        LocalDataNetworkFile netFile = new LocalDataNetworkFile(params.getPath(), fid, did, file);
-        netFile.setGrantedAccess(NetworkFile.Access.READ_WRITE);
+        // Check for a file or folder
+        NetworkFile netFile = null;
+
+        if ( dir == false) {
+
+            //  Create a Java network file
+            file = new File(fullName);
+            netFile = new LocalDataNetworkFile(params.getPath(), fid, did, file);
+            netFile.setGrantedAccess(NetworkFile.Access.READ_WRITE);
+        }
+        else {
+
+            // Create a folder network file
+            netFile = new DirectoryNetworkFile( params.getPath(), fid, did);
+        }
 
         //  Return the network file
         return netFile;
