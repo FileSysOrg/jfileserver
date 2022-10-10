@@ -970,7 +970,7 @@ public abstract class FileState implements Serializable {
             //	the path.
             if (path.length() > 3) {
 
-                //	Split the path to seperate the folders/file name
+                //	Split the path to separate the folders/file name
                 int pos = path.lastIndexOf(FileName.DOS_SEPERATOR);
                 if (pos != -1) {
 
