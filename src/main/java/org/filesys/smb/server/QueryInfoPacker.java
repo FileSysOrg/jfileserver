@@ -28,6 +28,7 @@ import org.filesys.smb.*;
 import org.filesys.smb.server.ntfs.StreamInfo;
 import org.filesys.smb.server.ntfs.StreamInfoList;
 import org.filesys.util.DataBuffer;
+import org.filesys.util.MemorySize;
 
 /**
  * Query File Information Packer Class
@@ -563,10 +564,10 @@ public class QueryInfoPacker {
             buf.putLong(sinfo.getSize());
 
             // Allocation size
-            if (sinfo.getAllocationSize() < sinfo.getSize())
-                buf.putLong(sinfo.getSize());
+            if (sinfo.getAllocationSize() <= sinfo.getSize())
+                buf.putLong(MemorySize.roundupLongSize( sinfo.getSize()));
             else
-                buf.putLong(sinfo.getAllocationSize());
+                buf.putLong(MemorySize.roundupLongSize( sinfo.getAllocationSize()));
 
             buf.putString(sName, uni, false);
 
@@ -615,7 +616,7 @@ public class QueryInfoPacker {
         // Information format :-
         // ULONG Unknown1
         // ULONG Unknown2
-        buf.putInt(1);
+        buf.putInt(0);
         buf.putInt(0);
     }
 
