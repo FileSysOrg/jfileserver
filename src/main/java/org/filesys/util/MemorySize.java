@@ -200,7 +200,7 @@ public class MemorySize {
 	 * @return long
 	 */
 	public static long roundupLongSize(long lSize) {
-		return (lSize + 512L) & 0xFFFFFFFFFFFFFE00L;
+		return (lSize + 511L) & 0xFFFFFFFFFFFFFE00L;
 	}
 
 	/**
@@ -210,6 +210,6 @@ public class MemorySize {
 	 * @return int
 	 */
 	public static int roundupIntSize(int iSize) {
-		return (iSize + 512) & 0xFFFFFE00;
+		return (iSize + 511) & 0xFFFFFE00;
 	}
 }
