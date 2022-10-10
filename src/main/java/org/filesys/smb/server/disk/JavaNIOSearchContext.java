@@ -211,6 +211,7 @@ public class JavaNIOSearchContext extends SearchContext {
 
                     info.setModifyDateTime(modifyDateMs);
                     info.setChangeDateTime(modifyDateMs);
+                    info.setAccessDateTime(modifyDateMs);
 
                     long dummyCreate = JavaNIODiskDriver.getGlobalCreateDateTime();
 
@@ -318,6 +319,7 @@ public class JavaNIOSearchContext extends SearchContext {
 
                     info.setModifyDateTime(modifyDateMs);
                     info.setChangeDateTime(modifyDateMs);
+                    info.setAccessDateTime(modifyDateMs);
 
                     long dummyCreate = JavaNIODiskDriver.getGlobalCreateDateTime();
 
