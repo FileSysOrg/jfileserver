@@ -305,7 +305,7 @@ public final class DataPacker {
 
         do {
 
-            //  Get a V1Unicode character from the buffer
+            //  Get a Unicode character from the buffer
             curChar = (char) (((byt[endpos + 1] & 0xFF) << 8) + (byt[endpos] & 0xFF));
 
             //  Add the character to the array
