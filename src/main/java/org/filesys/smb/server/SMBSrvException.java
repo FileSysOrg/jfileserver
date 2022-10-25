@@ -111,6 +111,23 @@ public class SMBSrvException extends Exception {
     }
 
     /**
+     * Construct an SMB exception with an NT error code and original cause
+     *
+     * @param ntError int
+     * @param cause   Throwable
+     */
+    public SMBSrvException( int ntError, Throwable cause) {
+        super( SMBErrorText.ErrorString( SMBStatus.NTErr, ntError), cause);
+
+        // Save the NT error code
+        m_NTerror = ntError;
+
+        // Set the older error class/code to an invalid value
+        m_errorclass = SMBStatus.InternalErr;
+        m_errorcode  = SMBStatus.IntNoShortErrorCode;
+    }
+
+    /**
      * Return the error class for this SMB exception.
      *
      * @return SMB error class.
