@@ -24,7 +24,9 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.*;
+import java.nio.file.DirectoryNotEmptyException;
 import java.nio.file.attribute.FileTime;
+import java.util.EnumSet;
 import java.util.Random;
 import java.util.StringTokenizer;
 import java.util.concurrent.Executor;
@@ -35,20 +37,9 @@ import org.filesys.debug.Debug;
 import org.filesys.server.SrvSession;
 import org.filesys.server.core.DeviceContext;
 import org.filesys.server.core.DeviceContextException;
+import org.filesys.server.filesys.*;
 import org.filesys.server.filesys.AccessDeniedException;
-import org.filesys.server.filesys.DiskDeviceContext;
-import org.filesys.server.filesys.DiskInterface;
-import org.filesys.server.filesys.FileAttribute;
-import org.filesys.server.filesys.FileExistsException;
-import org.filesys.server.filesys.FileInfo;
-import org.filesys.server.filesys.FileName;
-import org.filesys.server.filesys.FileOpenParams;
-import org.filesys.server.filesys.FileStatus;
 import org.filesys.server.filesys.FileSystem;
-import org.filesys.server.filesys.NetworkFile;
-import org.filesys.server.filesys.PathNotFoundException;
-import org.filesys.server.filesys.SearchContext;
-import org.filesys.server.filesys.TreeConnection;
 import org.filesys.smb.server.SMBSrvSession;
 import org.filesys.util.WildCard;
 import org.springframework.extensions.config.ConfigElement;
@@ -868,14 +859,15 @@ public class JavaNIODiskDriver implements DiskInterface {
     /**
      * Start a file search
      *
-     * @param sess       Session details
-     * @param tree       Tree connection
-     * @param searchPath Search path, may include wildcards
-     * @param attrib     Search attributes
+     * @param sess        Session details
+     * @param tree        Tree connection
+     * @param searchPath  Search path, may include wildcards
+     * @param attrib      Search attributes
+     * @param searchFlags Search flags
      * @return SearchContext
      * @throws FileNotFoundException File not found
      */
-    public SearchContext startSearch(SrvSession sess, TreeConnection tree, String searchPath, int attrib)
+    public SearchContext startSearch(SrvSession sess, TreeConnection tree, String searchPath, int attrib, EnumSet<SearchFlags> searchFlags)
             throws java.io.FileNotFoundException {
 
         //  Create the full search path string

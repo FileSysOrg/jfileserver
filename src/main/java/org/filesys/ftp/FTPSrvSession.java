@@ -39,13 +39,7 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.Enumeration;
-import java.util.List;
-import java.util.StringTokenizer;
-import java.util.TimeZone;
+import java.util.*;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -3652,7 +3646,7 @@ public class FTPSrvSession extends SrvSession<FTPSrvSession.Dbg> implements Runn
 
             try {
                 disk = (DiskInterface) path.getSharedDevice().getInterface();
-                ctx = disk.startSearch(this, tree, searchPath, searchAttr);
+                ctx = disk.startSearch(this, tree, searchPath, searchAttr, EnumSet.noneOf( SearchFlags.class));
             }
             catch (Exception ex) {
             }

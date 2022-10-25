@@ -23,6 +23,7 @@ package org.filesys.smb.server;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.sql.Time;
+import java.util.EnumSet;
 import java.util.Set;
 
 import org.filesys.debug.Debug;
@@ -2740,7 +2741,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                 wildcardSearch = true;
 
             // Start a new search
-            ctx = disk.startSearch(m_sess, conn, srchPath, srchAttr);
+            ctx = disk.startSearch(m_sess, conn, srchPath, srchAttr, EnumSet.noneOf( SearchFlags.class));
 
             if (ctx != null) {
 

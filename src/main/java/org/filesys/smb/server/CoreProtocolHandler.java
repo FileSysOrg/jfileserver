@@ -21,6 +21,7 @@
 package org.filesys.smb.server;
 
 import java.io.IOException;
+import java.util.EnumSet;
 
 import org.filesys.debug.Debug;
 import org.filesys.netbios.RFCNetBIOSProtocol;
@@ -1976,7 +1977,7 @@ class CoreProtocolHandler extends ProtocolHandler {
                         + ", maxFiles=" + maxFiles);
 
             // Start a new search
-            ctx = disk.startSearch(m_sess, conn, srchPath, srchAttr);
+            ctx = disk.startSearch(m_sess, conn, srchPath, srchAttr, EnumSet.noneOf( SearchFlags.class));
             if (ctx != null) {
 
                 // Store details of the search in the context
