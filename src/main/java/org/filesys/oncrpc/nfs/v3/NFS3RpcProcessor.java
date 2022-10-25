@@ -30,6 +30,7 @@ import org.filesys.util.HexDump;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.EnumSet;
 
 /**
  * NFS v3 RPC Processor Class
@@ -2459,7 +2460,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             if (cookie == 0) {
 
                 //	Start a new search, allocate a search id
-                search = disk.startSearch(nfsSess, conn, searchPath, FileAttribute.Directory + FileAttribute.Normal);
+                search = disk.startSearch(nfsSess, conn, searchPath, FileAttribute.Directory + FileAttribute.Normal, EnumSet.noneOf( SearchFlags.class));
 
                 //	Allocate a search id for the new search
                 searchId = nfsSess.allocateSearchSlot(search);
@@ -2487,7 +2488,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
                 if (search == null) {
 
                     //	Restart the search
-                    search = disk.startSearch(nfsSess, conn, searchPath, FileAttribute.Directory + FileAttribute.Normal);
+                    search = disk.startSearch(nfsSess, conn, searchPath, FileAttribute.Directory + FileAttribute.Normal, EnumSet.noneOf( SearchFlags.class));
 
                     //	Allocate a search id for the new search
                     searchId = nfsSess.allocateSearchSlot(search);
@@ -2739,7 +2740,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             if (cookie == 0L) {
 
                 //	Start a new search, allocate a search id
-                search = disk.startSearch(nfsSess, conn, searchPath, FileAttribute.Directory + FileAttribute.Normal);
+                search = disk.startSearch(nfsSess, conn, searchPath, FileAttribute.Directory + FileAttribute.Normal, EnumSet.noneOf( SearchFlags.class));
 
                 //	Allocate a search id for the new search
                 searchId = nfsSess.allocateSearchSlot(search);
@@ -2769,7 +2770,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
                 if (search == null) {
 
                     //	Restart the search
-                    search = disk.startSearch(nfsSess, conn, searchPath, FileAttribute.Directory + FileAttribute.Normal);
+                    search = disk.startSearch(nfsSess, conn, searchPath, FileAttribute.Directory + FileAttribute.Normal, EnumSet.noneOf( SearchFlags.class));
 
                     //	Allocate a search id for the new search
                     searchId = nfsSess.allocateSearchSlot(search);

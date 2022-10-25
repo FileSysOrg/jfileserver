@@ -31,6 +31,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.EnumSet;
 import java.util.StringTokenizer;
 
 
@@ -814,14 +815,15 @@ public class JavaFileDiskDriver implements DiskInterface {
     /**
      * Start a file search
      *
-     * @param sess       Session details
-     * @param tree       Tree connection
-     * @param searchPath Search path, may include wildcards
-     * @param attrib     Search attributes
+     * @param sess        Session details
+     * @param tree        Tree connection
+     * @param searchPath  Search path, may include wildcards
+     * @param attrib      Search attributes
+     * @param searchFlags Search flags
      * @return SearchContext
      * @throws FileNotFoundException File not found
      */
-    public SearchContext startSearch(SrvSession sess, TreeConnection tree, String searchPath, int attrib)
+    public SearchContext startSearch(SrvSession sess, TreeConnection tree, String searchPath, int attrib, EnumSet<SearchFlags> searchFlags)
             throws FileNotFoundException {
 
         //  Create a context for the new search

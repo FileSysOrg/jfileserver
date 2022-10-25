@@ -24,6 +24,8 @@ import org.filesys.server.SrvSession;
 import org.filesys.server.core.DeviceContext;
 import org.filesys.server.core.DeviceInterface;
 
+import java.util.EnumSet;
+
 /**
  * The disk interface is implemented by classes that provide an interface for a disk type shared
  * device.
@@ -203,14 +205,15 @@ public interface DiskInterface extends DeviceInterface {
      * Start a new search on the filesystem using the specified searchPath that may contain
      * wildcards.
      *
-     * @param sess       Server session
-     * @param tree       Tree connection
-     * @param searchPath File(s) to search for, may include wildcards.
-     * @param attrib     Attributes of the file(s) to search for, see class SMBFileAttribute.
+     * @param sess        Server session
+     * @param tree        Tree connection
+     * @param searchPath  File(s) to search for, may include wildcards.
+     * @param attrib      Attributes of the file(s) to search for, see class SMBFileAttribute.
+     * @param searchFlags Search flags
      * @return SearchContext
      * @throws java.io.FileNotFoundException If the search could not be started.
      */
-    public SearchContext startSearch(SrvSession sess, TreeConnection tree, String searchPath, int attrib)
+    public SearchContext startSearch(SrvSession sess, TreeConnection tree, String searchPath, int attrib, EnumSet<SearchFlags> searchFlags)
             throws java.io.FileNotFoundException;
 
     /**
