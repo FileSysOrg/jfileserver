@@ -23,6 +23,9 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.EnumSet;
 
 import org.filesys.debug.Debug;
@@ -180,13 +183,13 @@ public class SimpleFileLoader implements FileLoader, NamedFileLoader {
 
         //  Get the full path for the file
         String name = FileName.buildPath(getRootPath(), fname, null, java.io.File.separatorChar);
+        Path filePath = Paths.get( name);
 
         //  Check if the file exists, and it is a file
-        File delFile = new File(name);
-        if (delFile.exists() && delFile.isFile()) {
+        if ( Files.exists( filePath) && Files.isDirectory( filePath) == false) {
 
-            //	Delete the file
-            delFile.delete();
+            // Delete the file
+            Files.delete( filePath);
         }
     }
 
@@ -210,7 +213,9 @@ public class SimpleFileLoader implements FileLoader, NamedFileLoader {
 
         //  Create the new directory
         File newDir = new File(dirname);
-        newDir.mkdir();
+
+        if (newDir.mkdir() == false)
+            throw new IOException("Failed to create directory " + dirname);
     }
 
     /**
@@ -229,38 +234,40 @@ public class SimpleFileLoader implements FileLoader, NamedFileLoader {
 
         //  Get the full path for the directory
         String dirname = FileName.buildPath(getRootPath(), dir, null, java.io.File.separatorChar);
+        Path dirPath = Paths.get( dirname);
 
         //  Check if the directory exists, and it is a directory
-        File delDir = new File(dirname);
-        if (delDir.exists() && delDir.isDirectory()) {
-
-            //	Check if the directory contains any files
-            String[] fileList = delDir.list();
-            if (fileList != null && fileList.length > 0)
-                throw new AccessDeniedException("Directory not empty");
+        if ( Files.exists( dirPath) && Files.isDirectory( dirPath)) {
 
             //	Delete the directory
-            delDir.delete();
+            try {
+                Files.delete(dirPath);
+            }
+            catch ( java.nio.file.DirectoryNotEmptyException ex) {
+                throw new org.filesys.server.filesys.DirectoryNotEmptyException( "Directory not empty - " + dirPath);
+            }
         }
 
         //  If the path does not exist then try and map it to a real path, there may be case differences
-        else if (delDir.exists() == false) {
+        else if ( Files.exists( dirPath) == false) {
 
             //  Map the path to a real path
-            String mappedPath = FileName.mapPath(getRootPath(), dir);
+            String mappedPath = FileName.mapPath( getRootPath(), dir);
+
             if (mappedPath != null) {
 
                 //  Check if the path is a directory
-                delDir = new File(mappedPath);
-                if (delDir.isDirectory()) {
+                dirPath = Paths.get( mappedPath);
 
-                    //	Check if the directory contains any files
-                    String[] fileList = delDir.list();
-                    if (fileList != null && fileList.length > 0)
-                        throw new AccessDeniedException("Directory not empty");
+                if ( Files.isDirectory( dirPath)) {
 
                     //	Delete the directory
-                    delDir.delete();
+                    try {
+                        Files.delete(dirPath);
+                    }
+                    catch ( java.nio.file.DirectoryNotEmptyException ex) {
+                        throw new org.filesys.server.filesys.DirectoryNotEmptyException( "Directory not empty - " + dirPath);
+                    }
                 }
             }
         }
@@ -300,11 +307,15 @@ public class SimpleFileLoader implements FileLoader, NamedFileLoader {
         String newPath = FileName.buildPath(getRootPath(), newName, null, java.io.File.separatorChar);
 
         //  Rename the file
-        File curFile = new File(curPath);
-        File newFile = new File(newPath);
+        Path curFile = Paths.get(curPath);
+        Path newFile = Paths.get(newPath);
 
-        if (curFile.renameTo(newFile) == false)
-            throw new IOException("Rename " + curPath + " to " + newPath + " failed");
+        try {
+            Files.move(curFile, newFile);
+        }
+        catch ( Exception ex) {
+            throw new IOException( "Rename failed from " + curPath + " to " + newPath, ex);
+        }
     }
 
     /**
@@ -334,11 +345,12 @@ public class SimpleFileLoader implements FileLoader, NamedFileLoader {
         ConfigElement nameVal = params.getChild("RootPath");
         if (nameVal == null || nameVal.getValue() == null || nameVal.getValue().length() == 0)
             throw new FileLoaderException("SimpleFileLoader RootPath parameter required");
-        m_rootPath = nameVal.getValue();
+        m_rootPath = FileName.asPlatformPath( nameVal.getValue());
 
         //	Check that the root path is valid
-        File root = new File(m_rootPath);
-        if (root.exists() == false || root.isFile())
+        Path root = Paths.get( m_rootPath);
+
+        if ( Files.exists( root) == false || Files.isDirectory( root) == false)
             throw new FileLoaderException("SimpleFileLoader RootPath does not exist or is not a directory, " + m_rootPath);
     }
 
