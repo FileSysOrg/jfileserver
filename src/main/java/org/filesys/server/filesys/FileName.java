@@ -19,6 +19,8 @@
 
 package org.filesys.server.filesys;
 
+import com.sun.jna.Platform;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.StringTokenizer;
@@ -30,11 +32,11 @@ import java.util.StringTokenizer;
  */
 public final class FileName {
 
-    //	DOS file name seperator
+    //	DOS file name separator
     public static final char DOS_SEPERATOR          = '\\';
     public static final String DOS_SEPERATOR_STR    = "\\";
 
-    //	NTFS Stream seperator
+    //	NTFS Stream separator
     public static final String NTFSStreamSeperator = ":";
 
     // Data stream names
@@ -125,7 +127,7 @@ public final class FileName {
     }
 
     /**
-     * Convert the file seperators in a path to the specified path seperator character.
+     * Convert the file separators in a path to the specified path separator character.
      *
      * @param path java.lang.String
      * @param sep  char
@@ -133,18 +135,18 @@ public final class FileName {
      */
     public static String convertSeperators(String path, char sep) {
 
-        //  Check if the path contains any DOS seperators
+        //  Check if the path contains any DOS separators
         if (path.indexOf(DOS_SEPERATOR) == -1)
             return path;
 
-        //  Convert DOS path seperators to the specified seperator
+        //  Convert DOS path seperators to the specified separator
         StringBuffer newPath = new StringBuffer();
         int idx = 0;
 
         while (idx < path.length()) {
 
             //  Get the current character from the path and check if it is a DOS path
-            //  seperator character.
+            //  separator character.
             char ch = path.charAt(idx++);
             if (ch == DOS_SEPERATOR)
                 newPath.append(sep);
@@ -631,5 +633,29 @@ public final class FileName {
 
         // Path looks valid
         return true;
+    }
+
+    /**
+     * Convert separators in a path to match the platform
+     *
+     * @param path String
+     * @return String
+     */
+    public final static String asPlatformPath(String path) {
+
+        String platformPath = null;
+
+        if (Platform.isWindows()) {
+
+            // Replace forward slash with back slash
+            platformPath = path.replace( '/', DOS_SEPERATOR);
+        }
+        else {
+
+            // Replace back slash with forward slash for Unix like platforms
+            platformPath = path.replace( DOS_SEPERATOR, '/');
+        }
+
+        return platformPath;
     }
 }
