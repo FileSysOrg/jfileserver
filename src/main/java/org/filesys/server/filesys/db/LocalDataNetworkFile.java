@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 
+import org.filesys.debug.Debug;
 import org.filesys.server.filesys.cache.FileState;
 import org.filesys.smb.SeekType;
 
@@ -75,8 +76,9 @@ public class LocalDataNetworkFile extends DBNetworkFile {
     public void openFile(boolean createFlag)
             throws IOException {
 
-        //  Open the local file
-        m_io = new RandomAccessFile(m_file, "rw");
+        // Only open the file if we are creating a new file
+        if ( createFlag)
+            m_io = new RandomAccessFile(m_file, "rw");
     }
 
     /**
@@ -94,7 +96,7 @@ public class LocalDataNetworkFile extends DBNetworkFile {
 
         //  Open the file, if not already open
         if (m_io == null)
-            openFile(false);
+            openUnderlyingFile();
 
         //	Seek to the read position
         m_io.seek(fileOff);
@@ -118,7 +120,7 @@ public class LocalDataNetworkFile extends DBNetworkFile {
 
         //  Open the file, if not already open
         if (m_io == null)
-            openFile(false);
+            openUnderlyingFile();
 
         //	We need to seek to the write position. If the write position is off the end of the file
         //	we must null out the area between the current end of file and the write position.
@@ -129,6 +131,9 @@ public class LocalDataNetworkFile extends DBNetworkFile {
 
             //	Extend the file
             m_io.setLength(endpos);
+
+            // Update the file size
+            setFileSize( endpos);
         }
 
         //	Check for a zero length write
@@ -153,8 +158,10 @@ public class LocalDataNetworkFile extends DBNetworkFile {
             throws IOException {
 
         //	Flush any buffered data
-        if (m_io != null)
+        if (m_io != null) {
             m_io.getFD().sync();
+            setFileSize(m_io.length());
+        }
     }
 
     /**
@@ -170,7 +177,7 @@ public class LocalDataNetworkFile extends DBNetworkFile {
 
         //  Open the file, if not already open
         if (m_io == null)
-            openFile(false);
+            openUnderlyingFile();
 
         //  Check if the current file position is the required file position
         long curPos = m_io.getFilePointer();
@@ -211,7 +218,7 @@ public class LocalDataNetworkFile extends DBNetworkFile {
 
         //  Open the file, if not already open
         if (m_io == null)
-            openFile(false);
+            openUnderlyingFile();
 
         //  Set the file length
         m_io.setLength(siz);
@@ -243,5 +250,15 @@ public class LocalDataNetworkFile extends DBNetworkFile {
             //	Set the new file size
             setFileSize(m_file.length());
         }
+    }
+
+    /**
+     * Internal method to open the underlying file
+     *
+     * @exception IOException Error opening the file
+     */
+    private void openUnderlyingFile()
+        throws IOException{
+        m_io = new RandomAccessFile(m_file, "rw");
     }
 }
