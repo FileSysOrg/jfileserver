@@ -1273,7 +1273,7 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
         String outType = getAttributeWithEnvVars(elem, "type");
         String dbgClass = null;
 
-        if ( outType != null) {
+        if ( outType != null && outType.isEmpty() == false) {
 
             // Check for a valid debug output type
             if ( outType.equalsIgnoreCase( "console"))
