@@ -360,7 +360,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
 
                 //  Create the directory in the filesystem/repository
                 NamedFileLoader namedLoader = (NamedFileLoader) dbCtx.getFileLoader();
-                namedLoader.createDirectory(params.getPath(), fid, dirId);
+                namedLoader.createDirectory(params, fid, dirId);
             }
 
             // Release the access token
@@ -1159,9 +1159,10 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
      * @param tree    Tree connection
      * @param oldName Existing file name
      * @param newName New file name
+     * @param netFile NetworkFile for handle based rename, or null for path based rename
      * @throws IOException If an error occurs.
      */
-    public void renameFile(SrvSession sess, TreeConnection tree, String oldName, String newName)
+    public void renameFile(SrvSession sess, TreeConnection tree, String oldName, String newName, NetworkFile netFile)
             throws IOException {
 
         //  Debug
@@ -1239,7 +1240,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
 
                 //  Rename the file/directory
                 NamedFileLoader namedLoader = (NamedFileLoader) dbCtx.getFileLoader();
-                namedLoader.renameFileDirectory(oldName, fid, newName, fstate, curInfo.isDirectory());
+                namedLoader.renameFileDirectory(oldName, fid, newName, fstate, curInfo.isDirectory(), netFile);
             }
 
             //  Get the new file/directory name

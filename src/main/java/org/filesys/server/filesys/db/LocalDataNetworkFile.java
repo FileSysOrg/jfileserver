@@ -260,5 +260,6 @@ public class LocalDataNetworkFile extends DBNetworkFile {
     private void openUnderlyingFile()
         throws IOException{
         m_io = new RandomAccessFile(m_file, "rw");
+        setStatusFlag( Flags.CLOSED, false);
     }
 }

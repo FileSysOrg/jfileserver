@@ -26,10 +26,12 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.UserPrincipal;
 import java.util.EnumSet;
 
 import org.filesys.debug.Debug;
 import org.filesys.server.SrvSession;
+import org.filesys.server.auth.ClientInfo;
 import org.filesys.server.core.DeviceContext;
 import org.filesys.server.filesys.AccessDeniedException;
 import org.filesys.server.filesys.FileInfo;
@@ -58,6 +60,9 @@ public class SimpleFileLoader implements FileLoader, NamedFileLoader {
 
     //	Enable debug output
     private boolean m_debug;
+
+    // Enable setting of the file owner, if there is a logged on user name (only available when using Kerberos authentication)
+    private boolean m_setOwner = false;
 
     /**
      * Default constructor
@@ -130,6 +135,14 @@ public class SimpleFileLoader implements FileLoader, NamedFileLoader {
         if (create) {
             FileWriter newFile = new FileWriter(file);
             newFile.close();
+
+            // Set the file owner, if available
+            if ( m_setOwner && params.hasClientInformation()) {
+
+                // Set the file owner
+                Path filePath = Paths.get(fullName);
+                setOwner( filePath, params.getClientInformation());
+            }
         }
 
         // Check for a file or folder
@@ -196,26 +209,34 @@ public class SimpleFileLoader implements FileLoader, NamedFileLoader {
     /**
      * Create a directory
      *
-     * @param dir String
+     * @param params FileOpenParams
      * @param fid int
      * @param parentId int
      * @throws IOException Failed to create the directory
      */
-    public void createDirectory(String dir, int fid, int parentId)
+    public void createDirectory(FileOpenParams params, int fid, int parentId)
             throws IOException {
 
         //	DEBUG
         if (m_debug)
-            Debug.println("SimpleFileLoader.createDirectory() dir=" + dir + ", fid=" + fid);
+            Debug.println("SimpleFileLoader.createDirectory() dir=" + params.getPath() + ", fid=" + fid);
 
         //  Get the full path for the new directory
-        String dirname = FileName.buildPath(getRootPath(), dir, null, java.io.File.separatorChar);
+        String dirName = FileName.buildPath(getRootPath(), params.getPath(), null, java.io.File.separatorChar);
 
         //  Create the new directory
-        File newDir = new File(dirname);
+        File newDir = new File(dirName);
 
         if (newDir.mkdir() == false)
-            throw new IOException("Failed to create directory " + dirname);
+            throw new IOException("Failed to create directory " + dirName);
+
+        // Set the file owner, if available
+        if ( m_setOwner && params.hasClientInformation()) {
+
+            // Set the file owner
+            Path filePath = Paths.get(dirName);
+            setOwner( filePath, params.getClientInformation());
+        }
     }
 
     /**
@@ -293,9 +314,10 @@ public class SimpleFileLoader implements FileLoader, NamedFileLoader {
      * @param newName String
      * @param fstate  FileState
      * @param isdir   boolean
+     * @param netFile NetworkFile for a handle based rename, else null
      * @throws IOException Failed to rename the file or directory
      */
-    public void renameFileDirectory(String curName, int fid, String newName, FileState fstate, boolean isdir)
+    public void renameFileDirectory(String curName, int fid, String newName, FileState fstate, boolean isdir, NetworkFile netFile)
             throws IOException {
 
         //	DEBUG
@@ -309,6 +331,14 @@ public class SimpleFileLoader implements FileLoader, NamedFileLoader {
         //  Rename the file
         Path curFile = Paths.get(curPath);
         Path newFile = Paths.get(newPath);
+
+        // Check if the file has opened the underlying file
+        if ( netFile.getWriteCount() > 0 || netFile.getReadCount() > 0) {
+            Debug.println("SimpleFileLoader: Rename of open file, writes=" + netFile.getWriteCount() + ", reads=" + netFile.getReadCount());
+
+            // Close the underlying file
+            netFile.closeFile();
+        }
 
         try {
             Files.move(curFile, newFile);
@@ -352,6 +382,10 @@ public class SimpleFileLoader implements FileLoader, NamedFileLoader {
 
         if ( Files.exists( root) == false || Files.isDirectory( root) == false)
             throw new FileLoaderException("SimpleFileLoader RootPath does not exist or is not a directory, " + m_rootPath);
+
+        // Check if the file/folder owner should be set when creating new files/folders
+        if(params.getChild( "SetOwner") != null)
+            m_setOwner = true;
     }
 
     /**
@@ -412,5 +446,39 @@ public class SimpleFileLoader implements FileLoader, NamedFileLoader {
      * @param dbCtx DBDeviceContext
      */
     public final void setContext(DBDeviceContext dbCtx) {
+    }
+
+    /**
+     * Set the file owner for a new file/folder
+     *
+     * @param path Path
+     * @param cInfo ClientInformation
+     * @return boolean
+     */
+    private final boolean setOwner(Path path, ClientInfo cInfo) {
+
+        boolean sts = false;
+
+        try {
+
+            // Set the file owner
+            UserPrincipal userPrincipal = path.getFileSystem().getUserPrincipalLookupService().lookupPrincipalByName( cInfo.getUserName());
+
+            Files.setOwner( path, userPrincipal);
+
+            sts = true;
+
+            // DEBUG
+            if ( m_debug)
+                Debug.println("SimpleFileLoader: Set owner path=" + path + " to " + cInfo.getUserName() + " (principal=" + userPrincipal + ")");
+        }
+        catch ( Exception ex) {
+            if (m_debug) {
+                Debug.println("SimpleFileLoader: Failed to set file owner for " + path + " to " + cInfo.getUserName());
+                Debug.println("Exception: " + ex);
+            }
+        }
+
+        return sts;
     }
 }
