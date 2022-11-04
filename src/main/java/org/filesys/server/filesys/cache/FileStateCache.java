@@ -624,7 +624,7 @@ public abstract class FileStateCache {
 
                 // DEBUG
                 if (hasDebug())
-                    Debug.println("File already open by pid=" + fstate.getProcessId() +
+                    Debug.println("File already open by pid=Ox" + Long.toHexString(fstate.getProcessId()) +
                             ", sharingMode=" + fstate.getSharedAccess().name() + ", open params=" + params);
 
                 // Check if the open action indicates a new file create
@@ -632,7 +632,9 @@ public abstract class FileStateCache {
                     throw new FileExistsException();
 
                 // Check for impersonation security level from the original process that opened the file
-                if (params.getSecurityLevel() == ImpersonationLevel.IMPERSONATION && params.getProcessId() == fstate.getProcessId())
+                if ((params.getSecurityLevel() == ImpersonationLevel.IMPERSONATION ||
+                        params.getSecurityLevel() == ImpersonationLevel.ANONYMOUS) &&
+                        params.getProcessId() == fstate.getProcessId())
                     nosharing = false;
 
                 // Check if the caller wants read access, check the sharing mode

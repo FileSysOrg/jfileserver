@@ -29,8 +29,8 @@ import org.filesys.server.filesys.FileAccessToken;
  */
 public class LocalFileAccessToken implements FileAccessToken {
 
-    // Use the request process id
-    private int m_pid;
+    // Use the request process id or session id/virtual circuit id
+    private long m_pid;
 
     // Attributes only file access
     private boolean m_attribOnly;
@@ -41,18 +41,18 @@ public class LocalFileAccessToken implements FileAccessToken {
     /**
      * Class constructor
      *
-     * @param pid int
+     * @param pid long
      */
-    public LocalFileAccessToken(int pid) {
+    public LocalFileAccessToken(long pid) {
         m_pid = pid;
     }
 
     /**
      * Return the process id
      *
-     * @return int
+     * @return long
      */
-    public final int getProcessId() {
+    public final long getProcessId() {
         return m_pid;
     }
 
