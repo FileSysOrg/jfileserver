@@ -21,6 +21,7 @@
 package org.filesys.server.filesys;
 
 import org.filesys.server.SrvSession;
+import org.filesys.server.auth.ClientInfo;
 import org.filesys.server.locking.OplockOwner;
 import org.filesys.smb.*;
 
@@ -93,8 +94,8 @@ public class FileOpenParams {
     private FileType m_fileType;
     private String m_symName;
 
-    // Process id
-    private int m_pid;
+    // Process id or session id/virtual circuit id
+    private long m_pid;
 
     // 	NTCreateAndX createFlags field (extended response and oplock flags)
     private int m_createFlags;
@@ -111,6 +112,9 @@ public class FileOpenParams {
     // Timestamp of a previous version
     private long m_prevVersion;
 
+    // Client details of the user creating/opening the file/folder
+    private ClientInfo m_clientInfo;
+
     /**
      * Class constructor for Core SMB dialect Open SMB requests
      *
@@ -118,9 +122,9 @@ public class FileOpenParams {
      * @param openAction int
      * @param accessMode int Access Mode
      * @param fileAttr   int
-     * @param pid        int
+     * @param pid        long
      */
-    public FileOpenParams(String path, int openAction, int accessMode, int fileAttr, int pid) {
+    public FileOpenParams(String path, int openAction, int accessMode, int fileAttr, long pid) {
 
         //	Parse the file path, split into file name and stream if specified
         parseFileName(path);
@@ -148,9 +152,9 @@ public class FileOpenParams {
      * @param gid        int
      * @param uid        int
      * @param mode       int
-     * @param pid        int
+     * @param pid        long
      */
-    public FileOpenParams(String path, int openAction, int accessMode, int fileAttr, int gid, int uid, int mode, int pid) {
+    public FileOpenParams(String path, int openAction, int accessMode, int fileAttr, int gid, int uid, int mode, long pid) {
 
         //	Parse the file path, split into file name and stream if specified
         parseFileName(path);
@@ -182,10 +186,10 @@ public class FileOpenParams {
      * @param fileAttr   int
      * @param allocSize  int
      * @param createDate long
-     * @param pid        int
+     * @param pid        long
      */
     public FileOpenParams(String path, int openAction, int accessMode, int searchAttr, int fileAttr,
-                          int allocSize, long createDate, int pid) {
+                          int allocSize, long createDate, long pid) {
 
         //	Parse the file path, split into file name and stream if specified
         parseFileName(path);
@@ -219,10 +223,10 @@ public class FileOpenParams {
      * @param rootFID      int
      * @param secLevel     ImpersonationLevel
      * @param secFlags     int
-     * @param pid          int
+     * @param pid          long
      */
     public FileOpenParams(String path, CreateDisposition openAction, int accessMode, int attr, SharingMode sharedAccess, long allocSize,
-                          int createOption, int rootFID, ImpersonationLevel secLevel, int secFlags, int pid) {
+                          int createOption, int rootFID, ImpersonationLevel secLevel, int secFlags, long pid) {
 
         //	Parse the file path, split into file name and stream if specified
         parseFileName(path);
@@ -254,10 +258,10 @@ public class FileOpenParams {
      * @param sharedAccess SharingMode
      * @param createOption int
      * @param secLevel     ImpersonationLevel
-     * @param pid          int
+     * @param pid          long
      */
     public FileOpenParams(String path, CreateDisposition openAction, int accessMode, int attr, SharingMode sharedAccess, int createOption,
-                          ImpersonationLevel secLevel, int pid) {
+                          ImpersonationLevel secLevel, long pid) {
 
         //	Parse the file path, split into file name and stream if specified
         parseFileName(path);
@@ -346,9 +350,9 @@ public class FileOpenParams {
     /**
      * Return the process id
      *
-     * @return int
+     * @return long
      */
-    public final int getProcessId() {
+    public final long getProcessId() {
         return m_pid;
     }
 
@@ -651,6 +655,20 @@ public class FileOpenParams {
     }
 
     /**
+     * Check if the client information is available
+     *
+     * @return boolean
+     */
+    public final boolean hasClientInformation() { return m_clientInfo != null; }
+
+    /**
+     * Return the client information
+     *
+     * @return ClientInfo
+     */
+    public final ClientInfo getClientInformation() { return m_clientInfo; }
+
+    /**
      * Return the requested oplock type
      *
      * @return OplockType
@@ -832,6 +850,13 @@ public class FileOpenParams {
     }
 
     /**
+     * Set the client information of the client that is making the open/create request
+     *
+     * @param cInfo ClientInfo
+     */
+    public final void setClientInformation(ClientInfo cInfo) { m_clientInfo = cInfo; }
+
+    /**
      * Set the file type
      *
      * @param typ FileType
@@ -992,8 +1017,8 @@ public class FileOpenParams {
         str.append(getAllocationSize());
         str.append(",share=");
         str.append(getSharedAccess().name());
-        str.append(",pid=");
-        str.append(getProcessId());
+        str.append(",pid=0x");
+        str.append(Long.toHexString(getProcessId()));
 
         if (getRootDirectoryFID() != 0) {
             str.append(",fid=");
@@ -1042,6 +1067,12 @@ public class FileOpenParams {
         if ( isPreviousVersion()) {
             str.append(",PrevVer=");
             str.append( getPreviousVersionDateTime());
+        }
+
+        // Client information available
+        if ( hasClientInformation()) {
+            str.append(",Client=");
+            str.append( getClientInformation());
         }
 
         str.append("]");

@@ -225,4 +225,44 @@ public abstract class DBNetworkFile extends NetworkFile implements NetworkFileSt
 
         setClosed(false);
     }
+
+    /**
+     * Return the file details as a string
+     *
+     * @return String
+     */
+    public String toString() {
+        StringBuilder str = new StringBuilder();
+
+        str.append("[");
+        str.append(getName());
+        str.append("/");
+        str.append(getFullName());
+
+        str.append(" ");
+        str.append(isDirectory() ? "D" : "-");
+        str.append(isArchived() ? "A" : "-");
+        str.append(isSystem() ? "S" : "-");
+        str.append(isHidden() ? "H" : "-");
+
+        str.append(" ");
+        str.append(getFileSize());
+
+        str.append(":");
+        str.append(getFileId());
+        str.append("/");
+        str.append(getDirectoryId());
+
+        if ( isPreviousVersion())
+            str.append( " Ver");
+
+        if ( m_stateProxy != null) {
+            str.append(" fstate=");
+            str.append( getFileState());
+        }
+        str.append("]");
+
+        return str.toString();
+    }
+
 }

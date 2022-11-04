@@ -22,6 +22,8 @@ package org.filesys.server.filesys.loader;
 import java.io.IOException;
 
 import org.filesys.server.filesys.FileInfo;
+import org.filesys.server.filesys.FileOpenParams;
+import org.filesys.server.filesys.NetworkFile;
 import org.filesys.server.filesys.cache.FileState;
 
 
@@ -38,12 +40,12 @@ public interface NamedFileLoader {
     /**
      * Create a directory
      *
-     * @param dir String
+     * @param params FileOpenParams
      * @param fid int
      * @param parentId Parent directory file id
      * @throws IOException Failed to create the directory
      */
-    public void createDirectory(String dir, int fid, int parentId)
+    public void createDirectory(FileOpenParams params, int fid, int parentId)
             throws IOException;
 
     /**
@@ -64,9 +66,10 @@ public interface NamedFileLoader {
      * @param newName String
      * @param fstate  FileState
      * @param isdir   boolean
+     * @param netFile NetworkFile for handle based rename, or null for path based rename
      * @throws IOException Failed to rename the file or directory
      */
-    public void renameFileDirectory(String curName, int fid, String newName, FileState fstate, boolean isdir)
+    public void renameFileDirectory(String curName, int fid, String newName, FileState fstate, boolean isdir, NetworkFile netFile)
             throws IOException;
 
     /**
