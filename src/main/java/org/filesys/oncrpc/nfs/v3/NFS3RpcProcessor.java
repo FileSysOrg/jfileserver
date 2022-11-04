@@ -2251,7 +2251,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
                 }
 
                 //	Rename the file/directory
-                disk.renameFile(nfsSess, conn, oldPath, newPath);
+                disk.renameFile(nfsSess, conn, oldPath, newPath, null);
 
                 //	Remove the original path from the cache
                 if (finfo != null && finfo.getFileId() != -1) {
