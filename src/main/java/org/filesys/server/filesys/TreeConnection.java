@@ -27,6 +27,7 @@ import org.filesys.server.core.DeviceContext;
 import org.filesys.server.core.DeviceInterface;
 import org.filesys.server.core.InvalidDeviceInterfaceException;
 import org.filesys.server.core.SharedDevice;
+import org.filesys.smb.server.SMBSrvSession;
 
 import java.util.Iterator;
 
@@ -66,7 +67,6 @@ public class TreeConnection {
         m_shareDev = shrDev;
         m_shareDev.incrementConnectionCount();
 
-//        m_files = new ArrayOpenFileMap();
         m_files = new HashedOpenFileMap();
     }
 
@@ -82,7 +82,6 @@ public class TreeConnection {
 
         m_treeId = treeId;
 
-//        m_files = new ArrayOpenFileMap();
         m_files = new HashedOpenFileMap();
     }
 
@@ -341,5 +340,28 @@ public class TreeConnection {
         str.append(m_permission.name());
         str.append("]");
         return str.toString();
+    }
+
+    /**
+     * Dump the open file list
+     *
+     * @param sess SMBSrvSession
+     */
+    public final void dumpOpenFiles(SMBSrvSession sess) {
+
+        // Dump the open file list
+        sess.debugPrintln("Dump open files:");
+
+        Iterator<Integer> iterHandles = iterateOpenFileHandles();
+
+        while ( iterHandles.hasNext()) {
+
+            // Get the next file handle
+            Integer handle = iterHandles.next();
+            NetworkFile netFile = findFile( handle);
+
+            if ( netFile != null)
+                sess.debugPrintln("  " + handle + ": " + netFile);
+        }
     }
 }
