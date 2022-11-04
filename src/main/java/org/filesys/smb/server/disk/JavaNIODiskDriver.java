@@ -786,9 +786,10 @@ public class JavaNIODiskDriver implements DiskInterface {
      * @param tree    Tree connection
      * @param oldName Existing file name
      * @param newName New file name
+     * @param netFile NetworkFile for handle based rename, or null for path based rename
      * @exception IOException I/O error
      */
-    public void renameFile(SrvSession sess, TreeConnection tree, String oldName, String newName)
+    public void renameFile(SrvSession sess, TreeConnection tree, String oldName, String newName, NetworkFile netFile)
             throws java.io.IOException {
 
         //  Get the full path for the existing file and the new file name

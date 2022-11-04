@@ -2319,7 +2319,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
             DiskInterface disk = (DiskInterface) conn.getSharedDevice().getInterface();
 
             // Rename the requested file
-            disk.renameFile(m_sess, conn, oldName, newName);
+            disk.renameFile(m_sess, conn, oldName, newName, null);
         }
         catch (InvalidDeviceInterfaceException ex) {
 
@@ -4060,7 +4060,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                                     m_sess.debugPrintln("Transact rename via standard rename from=" + netFile.getFullName() + " to=" + newPath);
 
                                 // Call the standard disk interface rename method to rename the file
-                                disk.renameFile(m_sess, conn, netFile.getFullName(), newPath);
+                                disk.renameFile(m_sess, conn, netFile.getFullName(), newPath, null);
                             }
                         }
                         else {

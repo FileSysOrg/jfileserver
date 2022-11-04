@@ -2400,7 +2400,7 @@ public class FTPSrvSession extends SrvSession<FTPSrvSession.Dbg> implements Runn
                     ) {
 
                 // Rename the file/directory
-                disk.renameFile(this, tree, m_renameFrom.getSharePath(), ftpPath.getSharePath());
+                disk.renameFile(this, tree, m_renameFrom.getSharePath(), ftpPath.getSharePath(), null);
 
                 // Check if there are any file/directory change notify requests active
                 DiskDeviceContext diskCtx = (DiskDeviceContext) tree.getContext();

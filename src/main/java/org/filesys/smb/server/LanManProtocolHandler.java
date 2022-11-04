@@ -1330,7 +1330,7 @@ class LanManProtocolHandler extends CoreProtocolHandler {
             DiskInterface disk = (DiskInterface) conn.getSharedDevice().getInterface();
 
             // Rename the requested file
-            disk.renameFile(m_sess, conn, oldName, newName);
+            disk.renameFile(m_sess, conn, oldName, newName, null);
         }
         catch (InvalidDeviceInterfaceException ex) {
 

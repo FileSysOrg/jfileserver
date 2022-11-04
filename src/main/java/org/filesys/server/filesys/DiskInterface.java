@@ -168,11 +168,12 @@ public interface DiskInterface extends DeviceInterface {
      *
      * @param sess    Server session
      * @param tree    Tree connection
-     * @param oldName java.lang.String
-     * @param newName java.lang.String
+     * @param oldName Current path
+     * @param newName New path
+     * @param netFile NetworkFile for handle based rename, or null for path based rename
      * @throws java.io.IOException If an error occurs.
      */
-    public void renameFile(SrvSession sess, TreeConnection tree, String oldName, String newName)
+    public void renameFile(SrvSession sess, TreeConnection tree, String oldName, String newName, NetworkFile netFile)
             throws java.io.IOException;
 
     /**
