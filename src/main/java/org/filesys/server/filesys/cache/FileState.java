@@ -99,9 +99,9 @@ public abstract class FileState implements Serializable {
     //	Open file count
     private int m_openCount;
 
-    // Sharing mode and PID of first process to open the file
+    // Sharing mode and PID (or session/virtual circuit id) of first process to open the file
     private SharingMode m_sharedAccess = SharingMode.ALL;
-    private int m_pid = -1;
+    private long m_pid = -1L;
 
     //	File lock list, allocated once there are active locks on this file
     private FileLockList m_lockList;
@@ -226,9 +226,9 @@ public abstract class FileState implements Serializable {
     /**
      * Return the PID of the first process to open the file, or -1 if the file is not open
      *
-     * @return int
+     * @return long
      */
-    public final int getProcessId() {
+    public final long getProcessId() {
         return m_pid;
     }
 
@@ -537,6 +537,16 @@ public abstract class FileState implements Serializable {
      * @param pid int
      */
     public void setProcessId(int pid) {
+        if (getOpenCount() == 0)
+            m_pid = pid;
+    }
+
+    /**
+     * Set the PID of the process opening the file
+     *
+     * @param pid long
+     */
+    public void setProcessId(long pid) {
         if (getOpenCount() == 0)
             m_pid = pid;
     }
@@ -1057,8 +1067,8 @@ public abstract class FileState implements Serializable {
         if (getOpenCount() > 0) {
             str.append("(shr=");
             str.append(getSharedAccess().name());
-            str.append(",pid=");
-            str.append(getProcessId());
+            str.append(",pid=0x");
+            str.append(Long.toHexString(getProcessId()));
             str.append(")");
         }
         str.append(",Fid=");

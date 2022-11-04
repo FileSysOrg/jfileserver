@@ -46,7 +46,7 @@ public class GrantAccessParams implements Serializable {
     private String m_ownerName;
 
     // Process id that owns the file
-    private int m_pid;
+    private long m_pid;
 
     // File status, if FileStatus.Unknown then do not set on file state
     private FileStatus m_fileSts;
@@ -116,9 +116,9 @@ public class GrantAccessParams implements Serializable {
     /**
      * Return the process id
      *
-     * @return int
+     * @return long
      */
-    public final int getProcessId() {
+    public final long getProcessId() {
         return m_pid;
     }
 

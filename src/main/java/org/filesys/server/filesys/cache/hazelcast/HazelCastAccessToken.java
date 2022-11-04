@@ -43,7 +43,7 @@ public class HazelCastAccessToken implements Serializable, FileAccessToken {
     private String m_ownerName;
 
     // Process id that owns the file
-    private int m_pid;
+    private long m_pid;
 
     // Granted oplock type, if requested, and flag to indicate if the oplock is not available
     private OpLockType m_oplock;
@@ -69,9 +69,9 @@ public class HazelCastAccessToken implements Serializable, FileAccessToken {
      * Class constructor
      *
      * @param clName String
-     * @param pid    int
+     * @param pid    long
      */
-    protected HazelCastAccessToken(String clName, int pid) {
+    protected HazelCastAccessToken(String clName, long pid) {
         m_ownerName = clName;
         m_pid = pid;
     }
@@ -80,9 +80,9 @@ public class HazelCastAccessToken implements Serializable, FileAccessToken {
      * Class constructor
      *
      * @param clNode ClusterNode
-     * @param pid    int
+     * @param pid    long
      */
-    protected HazelCastAccessToken(ClusterNode clNode, int pid) {
+    protected HazelCastAccessToken(ClusterNode clNode, long pid) {
         m_ownerName = clNode.getName();
         m_pid = pid;
     }
@@ -91,11 +91,11 @@ public class HazelCastAccessToken implements Serializable, FileAccessToken {
      * Class constructor
      *
      * @param clName         String
-     * @param pid            int
+     * @param pid            long
      * @param oplock         OpLockType
      * @param oplockNotAvail boolean
      */
-    protected HazelCastAccessToken(String clName, int pid, OpLockType oplock, boolean oplockNotAvail) {
+    protected HazelCastAccessToken(String clName, long pid, OpLockType oplock, boolean oplockNotAvail) {
         m_ownerName = clName;
         m_pid = pid;
         m_oplock = oplock;
@@ -114,9 +114,9 @@ public class HazelCastAccessToken implements Serializable, FileAccessToken {
     /**
      * Return the process id
      *
-     * @return int
+     * @return long
      */
-    public final int getProcessId() {
+    public final long getProcessId() {
         return m_pid;
     }
 
