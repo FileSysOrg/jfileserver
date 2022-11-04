@@ -58,10 +58,13 @@ public class NotifyRequest {
     //	Unique client request id.
     private long m_id;
 
-    // Tree, process and user ids from the original request
+    // Tree, process and user ids from the original request (SMB1)
     private int m_tid;
     private int m_pid;
     private int m_uid;
+
+    // Full session id (SMB2/3)
+    private long m_sessId;
 
     //	Notifications to buffer whilst waiting for request to be reset
     private int m_maxQueueLen;
@@ -141,6 +144,44 @@ public class NotifyRequest {
         m_tid = treeId;
         m_pid = procId;
         m_uid = vcId;
+
+        m_maxRespLen = maxRespLen;
+
+        //	Set the normalised watch path
+        m_watchPath = m_watchDir.getFullName().toUpperCase();
+        if (m_watchPath.length() == 0)
+            m_watchPath = "\\";
+        else if (m_watchPath.indexOf('/') != -1)
+            m_watchPath = m_watchPath.replace('/', '\\');
+    }
+
+    /**
+     * Class constructor
+     *
+     * @param filter    Set of NotifyChange
+     * @param watchTree boolean
+     * @param sess      SMBSrvSession
+     * @param dir       NetworkFile
+     * @param id        long
+     * @param treeId    int
+     * @param procId    int
+     * @param vcId      int
+     * @param sessId    long
+     * @param maxRespLen int
+     */
+    public NotifyRequest(Set<NotifyChange> filter, boolean watchTree, SMBSrvSession sess, NetworkFile dir, long id, int treeId, int procId, int vcId, long sessId, int maxRespLen) {
+        m_filter = filter;
+        m_watchTree = watchTree;
+        m_sess = sess;
+        m_watchDir = dir;
+
+        m_id = id;
+
+        m_tid = treeId;
+        m_pid = procId;
+        m_uid = vcId;
+
+        m_sessId = sessId;
 
         m_maxRespLen = maxRespLen;
 
@@ -382,6 +423,13 @@ public class NotifyRequest {
     }
 
     /**
+     * Return the full session id (for SMB 2/3)
+     *
+     * @return long
+     */
+    public final long getSessionId() { return m_sessId; }
+
+    /**
      * Return the expiry time that a completed request must be reset by before being removed from
      * the queue.
      *
@@ -615,6 +663,11 @@ public class NotifyRequest {
 
             str.append(", maxRespLen=");
             str.append(getMaximumResponseLength());
+        }
+
+        if ( getSessionId() != 0L) {
+            str.append(",SessId=0x");
+            str.append( Long.toHexString( getSessionId()));
         }
 
         if (isCompleted()) {
