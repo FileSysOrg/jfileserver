@@ -88,4 +88,11 @@ public interface DebugInterface {
      * @return int
      */
     public int getLogLevel();
+
+    /**
+     * Check if exception stacktraces should be dumped out
+     *
+     * @return boolean
+     */
+    public boolean hasDumpStackTrace();
 }

@@ -76,6 +76,13 @@ public final class Debug {
     }
 
     /**
+     * Check if stack trace dumps are enabled
+     *
+     * @return boolean
+     */
+    public static final boolean hasDumpStackTraces() { return m_debug.hasDumpStackTrace(); }
+
+    /**
      * Output a debug string.
      *
      * @param str String
