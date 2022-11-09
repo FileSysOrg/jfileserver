@@ -33,11 +33,14 @@ import org.springframework.extensions.config.ConfigElement;
  */
 public abstract class DebugInterfaceBase implements DebugInterface {
 
-    //	Line seperator used for exception stack traces
+    //	Line separator used for exception stack traces
     private static final String LineSeperator = System.getProperty("line.separator");
 
     // Log output level
     private int m_logLevel = Debug.Debug;
+
+    // Dump exception stack traces
+    private boolean m_dumpStackTrace;
 
     /**
      * Class constructor
@@ -45,51 +48,27 @@ public abstract class DebugInterfaceBase implements DebugInterface {
     public DebugInterfaceBase() {
     }
 
-    /**
-     * Close the debug output.
-     */
+    @Override
     public void close() {
     }
 
-    /**
-     * Output a debug string.
-     *
-     * @param str String
-     */
+    @Override
     public final void debugPrint(String str) {
         debugPrint(str, Debug.Debug);
     }
 
-    /**
-     * Output a debug string with a specific logging level
-     *
-     * @param str   String
-     * @param level int
-     */
+    @Override
     public abstract void debugPrint(String str, int level);
 
-    /**
-     * Output a debug string, and a newline.
-     *
-     * @param str String
-     */
+    @Override
     public final void debugPrintln(String str) {
         debugPrintln(str, Debug.Debug);
     }
 
-    /**
-     * Output a debug string, and a newline, with a specific logging level
-     *
-     * @param str String
-     */
+    @Override
     public abstract void debugPrintln(String str, int level);
 
-    /**
-     * Output an exception
-     *
-     * @param ex    Exception
-     * @param level int
-     */
+    @Override
     public void debugPrintln(Exception ex, int level) {
 
         //	Write the exception stack trace records to an in-memory stream
@@ -103,30 +82,17 @@ public abstract class DebugInterfaceBase implements DebugInterface {
             debugPrintln(strTok.nextToken(), level);
     }
 
-    /**
-     * Return the debug interface logging level
-     *
-     * @return int
-     */
+    @Override
     public final int getLogLevel() {
         return m_logLevel;
     }
 
-    /**
-     * Set the logging level
-     *
-     * @param logLevel int
-     */
-    public final void setLogLevel(int logLevel) {
-        m_logLevel = logLevel;
+    @Override
+    public boolean hasDumpStackTrace() {
+        return m_dumpStackTrace;
     }
 
-    /**
-     * Initialize the debug interface using the specified parameters.
-     *
-     * @param params ConfigElement
-     * @param config ServerConfiguration
-     */
+    @Override
     public void initialize(ConfigElement params, ServerConfiguration config)
             throws Exception {
 
@@ -153,5 +119,20 @@ public abstract class DebugInterfaceBase implements DebugInterface {
                     throw new Exception("Invalid debug logging level, " + logLevelStr);
             }
         }
+
+        // Check if stack traces should be dumped out
+        ConfigElement dumpStackElem = params.getChild( "dumpStackTrace");
+
+        if ( dumpStackElem != null)
+            m_dumpStackTrace = true;
+    }
+
+    /**
+     * Set the logging level
+     *
+     * @param logLevel int
+     */
+    public final void setLogLevel(int logLevel) {
+        m_logLevel = logLevel;
     }
 }
