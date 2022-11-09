@@ -144,9 +144,11 @@ public class NIOSMBThreadRequest implements ThreadRequest {
                     if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.SOCKET)) {
 
                         // Do not log client connection resets
-                        if ( ex.getMessage() != null && ex.getMessage().startsWith( "Connection reset by peer") == false) {
+                        if ( ex.getMessage() != null && ex.getMessage().startsWith( "Connection reset") == false) {
                             Debug.println("Error during packet receive, closing session sess=" + m_sess.getUniqueId() + ", addr=" + m_sess.getRemoteAddressString() + " ex=" + ex.getMessage());
-                            Debug.println(ex);
+
+                            if ( Debug.hasDumpStackTraces())
+                                Debug.println(ex);
                         }
                     }
 
