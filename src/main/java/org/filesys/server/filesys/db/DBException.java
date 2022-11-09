@@ -43,4 +43,14 @@ public class DBException extends Exception {
     public DBException(String msg) {
         super(msg);
     }
+
+    /**
+     * Class constructor
+     *
+     * @param msg String
+     * @param cause Throwable
+     */
+    public DBException(String msg, Throwable cause) {
+        super(msg, cause);
+    }
 }

@@ -40,9 +40,19 @@ public class DirectoryNotEmptyException extends IOException {
     /**
      * Class constructor.
      *
-     * @param s java.lang.String
+     * @param s String
      */
     public DirectoryNotEmptyException(String s) {
         super(s);
+    }
+
+    /**
+     * Class constructor.
+     *
+     * @param s String
+     * @param cause Throwable
+     */
+    public DirectoryNotEmptyException(String s, Throwable cause) {
+        super(s, cause);
     }
 }

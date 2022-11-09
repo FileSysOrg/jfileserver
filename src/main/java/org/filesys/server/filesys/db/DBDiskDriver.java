@@ -254,6 +254,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
                 dbCtx.getDBInterface().setFileInformation(file.getDirectoryId(), file.getFileId(), finfo);
             }
             catch (DBException ex) {
+                throw new IOException( ex.getMessage(), ex.getCause());
             }
         }
     }
@@ -373,7 +374,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
             updateParentFolderTimestamps( params.getPath(), dbCtx);
         }
         catch (Exception ex) {
-            Debug.println(ex);
+            throw new IOException( "Create directory error", ex);
         }
         finally {
 
@@ -508,9 +509,17 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
             // Remove the file state for the new file
             dbCtx.getStateCache().removeFileState(fstate.getPath());
 
-            // DEBUG
-            Debug.println("Create file error: " + ex.toString());
-            Debug.println(ex);
+            // Close the file, if valid
+            if ( file != null) {
+                try {
+                    file.closeFile();
+                    file = null;
+                }
+                catch ( Exception ex2) {
+                }
+            }
+
+            throw new IOException( "Failed to create file " + params.getPath(), ex);
         }
         finally {
 
@@ -522,17 +531,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
         //  Return the new file details
         if (file == null)
             throw new IOException("Failed to create file " + params.getPath());
-/**
- else {
 
- // Save the file sharing mode, needs to be done before the open count is incremented
- fstate.setSharedAccess( params.getSharedAccess());
- fstate.setProcessId( params.getProcessId());
-
- //  Update the file state
- fstate.incrementOpenCount();
- }
- **/
         //  Return the network file
         return file;
     }
@@ -601,8 +600,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
             updateParentFolderTimestamps( dir, dbCtx);
         }
         catch (DBException ex) {
-            Debug.println(ex);
-            throw new IOException();
+            throw new IOException( "Failed to delete directory " + dir, ex.getCause());
         }
     }
 
@@ -727,7 +725,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
             updateParentFolderTimestamps( name, dbCtx);
         }
         catch (DBException ex) {
-            throw new IOException("Failed to delete file " + name);
+            throw new IOException("Failed to delete file " + name, ex);
         }
     }
 
@@ -1034,7 +1032,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
                     fstate.setRetentionExpiryDateTime(retDetails.getEndTime());
             }
             catch (DBException ex) {
-                throw new AccessDeniedException("Retention error, " + ex.getMessage());
+                throw new AccessDeniedException("Retention error for " + params.getPath(), ex);
             }
         }
 
@@ -1270,7 +1268,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
                 updateParentFolderTimestamps( oldName, dbCtx);
         }
         catch (DBException ex) {
-            throw new FileNotFoundException(oldName);
+            throw new IOException("Failed to rename " + oldName, ex);
         }
     }
 
@@ -1439,7 +1437,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
             fstate.setFileId(dbInfo.getFileId());
         }
         catch (DBException ex) {
-            throw new IOException();
+            throw new IOException("Failed to set file information for " + name, ex);
         }
     }
 
@@ -1535,7 +1533,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
             }
         }
         catch (DBException ex) {
-            throw new FileNotFoundException();
+            throw new FileNotFoundException( ex.getMessage());
         }
 
         //  Return the search context
@@ -1650,7 +1648,8 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
                 dbInfo.setChangeDateTime(finfo.getChangeDateTime());
                 dbInfo.setAllocationSize(siz);
             }
-            catch (Exception ex) {
+            catch (DBException ex) {
+                throw new IOException( "Failed to truncate " + file.getFullName(), ex);
             }
         }
     }
@@ -1949,6 +1948,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
             fileId = dbCtx.getDBInterface().getFileId(dirId, name, false, true);
         }
         catch (DBException ex) {
+            Debug.println( ex);
         }
 
         //  Update the cache entry, if available
@@ -2843,10 +2843,18 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
                         //  DEBUG
                         if (Debug.EnableInfo && hasDebug())
                             Debug.println("Updated stream file size");
-                    } else
-                        Debug.println("** Failed to find details for stream " + stream.getStreamName());
-                } else
-                    Debug.println("** Failed to get streams list for " + parentPath);
+                    } else {
+
+                        //  DEBUG
+                        if (Debug.EnableInfo && hasDebug())
+                            Debug.println("** Failed to find details for stream " + stream.getStreamName());
+                    }
+                } else {
+
+                    //  DEBUG
+                    if (Debug.EnableInfo && hasDebug())
+                        Debug.println("** Failed to get streams list for " + parentPath);
+                }
             }
 
             //  Update the file details for the file stream in the database
@@ -2875,6 +2883,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
                 dbCtx.getDBInterface().setStreamInformation(stream.getDirectoryId(), stream.getFileId(), stream.getStreamId(), sInfo);
             }
             catch (DBException ex) {
+                throw new IOException( "Failed to close stream " + stream.getFullName(), ex);
             }
         }
     }
@@ -2938,8 +2947,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
                 sstate.setFileStatus(FileStatus.NotExist);
         }
         catch (DBException ex) {
-            Debug.println("Error: " + ex.toString());
-            Debug.println(ex);
+            throw new IOException( "Failed to delete stream " + name, ex);
         }
     }
 
@@ -2960,7 +2968,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
         //  If the streams list is not loaded then load it from the database
         if (sList == null && dbLoad == true) {
 
-            //  Load the streams list from the database
+            //  Load the streams list from the database, if NTFS streams are enabled
             try {
 
                 //  Load the streams list
@@ -2971,6 +2979,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
                     fstate.addAttribute(DBStreamList, sList);
             }
             catch (DBException ex) {
+                Debug.println(ex);
             }
         }
 
@@ -3213,7 +3222,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
                 symLink = dbInterface.readSymbolicLink(dirId, fid);
             }
             catch (DBException ex) {
-                throw new FileNotFoundException(path);
+                throw new FileNotFoundException(path + ":" + ex.getMessage());
             }
         }
 
