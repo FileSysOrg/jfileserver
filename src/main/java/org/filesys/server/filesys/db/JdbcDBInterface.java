@@ -1030,6 +1030,10 @@ public abstract class JdbcDBInterface implements DBInterface, DBConnectionPoolLi
                     }
                     catch (DBException ex) {
 
+                        // DEBUG
+                        if (hasDebug())
+                            Debug.println("JDBCInterface: Failed to requeue " + fileReq + ", ex=" + ex);
+
                         // If there was an error the request will go back onto a new in-memory pending queue
                     }
                 }
