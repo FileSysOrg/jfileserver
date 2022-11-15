@@ -103,6 +103,7 @@ public class LocalDataNetworkFile extends DBNetworkFile {
 
         //  Read from the file
         int rdlen = m_io.read(buf, pos, len);
+        incrementReadCount();
         return rdlen;
     }
 

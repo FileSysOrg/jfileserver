@@ -20,6 +20,7 @@
 package org.filesys.server.filesys;
 
 import com.sun.jna.Platform;
+import org.filesys.util.PlatformType;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -170,6 +171,19 @@ public final class FileName {
     public static final String mapPath(String base, String path)
             throws java.io.FileNotFoundException {
 
+        // On Windows we do not need to map the path as it is a caseless filesystem
+        if (PlatformType.isPlatformType() == PlatformType.Type.WINDOWS) {
+
+            // Just build the full path
+            StringBuilder fullPath = new StringBuilder();
+            fullPath.append( base);
+            if (base.endsWith(java.io.File.separator) == false)
+                fullPath.append(java.io.File.separator);
+            fullPath.append( path);
+
+            return fullPath.toString();
+        }
+
         //  Split the path string into seperate directory components
         String pathCopy = path;
         if (pathCopy.length() > 0 && pathCopy.startsWith(DOS_SEPERATOR_STR))
@@ -201,7 +215,7 @@ public final class FileName {
             }
 
             //  Build up the path string and validate that the path exists at each stage.
-            StringBuffer pathStr = new StringBuffer(base);
+            StringBuilder pathStr = new StringBuilder(base);
             if (base.endsWith(java.io.File.separator) == false)
                 pathStr.append(java.io.File.separator);
 

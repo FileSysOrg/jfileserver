@@ -839,7 +839,7 @@ public abstract class JdbcDBInterface implements DBInterface, DBConnectionPoolLi
             return name;
 
         //	Escape any special characters within the file/directory name
-        StringBuffer nameBuf = new StringBuffer(name.length() * 2);
+        StringBuilder nameBuf = new StringBuilder(name.length() * 2);
 
         for (int i = 0; i < name.length(); i++) {
 
