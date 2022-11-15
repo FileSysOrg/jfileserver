@@ -1229,7 +1229,8 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
             //  Check if the new name file/folder already exists
             DBFileInfo newInfo = getFileDetails(newName, dbCtx);
 
-            if (newInfo != null)
+            // Check if we are just changing the case of the file/folder name, in which case it will exist
+            if (newInfo != null && oldName.equalsIgnoreCase( newName) == false)
                 throw new FileExistsException("Rename to file/folder already exists," + newName);
 
             //  Check if the loader handles rename requests, an exception may be thrown by the loader
