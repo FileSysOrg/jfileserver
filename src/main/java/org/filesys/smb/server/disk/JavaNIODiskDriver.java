@@ -803,7 +803,8 @@ public class JavaNIODiskDriver implements DiskInterface {
             throw new FileNotFoundException("Rename file, does not exist " + oldName);
 
         //	Check if the new file/directory exists
-        if ( Files.exists(newPath))
+        // Check if we are just changing the case of the file/folder name, in which case it will exist
+        if ( Files.exists(newPath) && oldName.equalsIgnoreCase( newName) == false)
             throw new FileExistsException("Rename file, path exists " + newName);
 
         //  Rename the file
