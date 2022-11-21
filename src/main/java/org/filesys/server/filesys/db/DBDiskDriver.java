@@ -328,8 +328,8 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
             }
 
             //  Set the default NFS file mode, if not set
-            if (params.hasMode() == false)
-                params.setMode(DefaultNFSDirMode);
+//            if (params.hasMode() == false)
+//                params.setMode(DefaultNFSDirMode);
 
             //  Make sure the create directory option is enabled
             if (params.hasCreateOption(WinNT.CreateDirectory) == false)
@@ -461,8 +461,8 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
             }
 
             //  Set the default NFS file mode, if not set
-            if (params.hasMode() == false)
-                params.setMode(DefaultNFSFileMode);
+//            if (params.hasMode() == false)
+//                params.setMode(DefaultNFSFileMode);
 
             // Check if the current file open allows the required shared access
             if (params.getPath().equals("\\") == false) {

@@ -51,10 +51,12 @@ public class FileInfo {
 	public static final int SetUid				= 0x0100;
 	public static final int SetMode				= 0x0200;
 	public static final int SetDeleteOnClose 	= 0x0400;
+	public static final int SetEncrypted		= 0x0800;
 
 	// State flags
 	public static final int FlagDeleteOnClose	= 0x0001;
 	public static final int FlagPseudoFile		= 0x0002;
+	public static final int FlagEncrypted		= 0x0004;
 	
 	// File name string
 	protected String m_name;
@@ -312,6 +314,15 @@ public class FileInfo {
 	 */
 	public final boolean hasDeleteOnClose() {
 		return (m_flags & FlagDeleteOnClose) != 0 ? true : false;
+	}
+
+	/**
+	 * Return the encrypted flag setting
+	 *
+	 * @return boolean
+	 */
+	public final boolean isEncrypted() {
+		return (m_flags & FlagEncrypted) != 0 ? true : false;
 	}
 
 	/**
@@ -877,6 +888,19 @@ public class FileInfo {
 	}
 
 	/**
+	 * Set the file data encryption status
+	 *
+	 * @param enc boolean
+	 */
+	public final void setEncrypted(boolean enc) {
+		if (enc)
+			m_flags = m_flags | FlagEncrypted;
+		else
+			m_flags = m_flags & ~FlagEncrypted;
+
+	}
+
+	/**
 	 * Set the set file information flags to indicated which values are to be set
 	 *
 	 * @param setFlags int
@@ -985,7 +1009,7 @@ public class FileInfo {
 	 * @return File information string.
 	 */
 	public String toString() {
-		StringBuffer str = new StringBuffer();
+		StringBuilder str = new StringBuilder();
 
 		// Append the path, and terminate with a trailing '\'
 		if (m_path != null) {
@@ -1043,6 +1067,10 @@ public class FileInfo {
 		// Check if this is a pseudo file
 		if (isPseudoFile())
 			str.append(", Pseudo");
+
+		// Check if this is an encrypted file
+		if (isEncrypted())
+			str.append(", Encrypted");
 
 		// Return the file information string
 		return str.toString();

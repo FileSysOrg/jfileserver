@@ -252,7 +252,9 @@ public class OpLockHelper {
                             // Log the error
                             if (Debug.EnableError) {
                                 Debug.println("Failed to send local oplock break:", Debug.Error);
-                                Debug.println(ex, Debug.Error);
+
+                                if ( Debug.hasDumpStackTraces())
+                                    Debug.println(ex, Debug.Error);
                             }
 
                             // Throw an access denied exception so that the file open is rejected

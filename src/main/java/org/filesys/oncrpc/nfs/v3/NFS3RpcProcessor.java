@@ -1358,7 +1358,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
                     gid = rpc.unpackInt();
 
                 //	Create a new file
-                FileOpenParams params = new FileOpenParams(filePath, FileAction.CreateNotExist, AccessMode.ReadWrite, 0, gid, uid, mode, 0);
+                UnixFileOpenParams params = new UnixFileOpenParams(filePath, FileAction.CreateNotExist, AccessMode.ReadWrite, 0, gid, uid, mode, 0);
                 NetworkFile netFile = disk.createFile(nfsSess, conn, params);
 
                 //  DEBUG
@@ -1527,7 +1527,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
                     gid = rpc.unpackInt();
 
                 //	Directory creation parameters
-                FileOpenParams params = new FileOpenParams(dirPath, FileAction.CreateNotExist, AccessMode.ReadWrite,
+                UnixFileOpenParams params = new UnixFileOpenParams(dirPath, FileAction.CreateNotExist, AccessMode.ReadWrite,
                         FileAttribute.NTDirectory, gid, uid, mode, 0);
 
                 //	Create a new directory
@@ -1761,7 +1761,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             } else {
 
                 //  Create a new symbolic
-                FileOpenParams params = new FileOpenParams(filePath, FileAction.CreateNotExist, AccessMode.ReadWrite, 0, gid, uid, mode, 0);
+                UnixFileOpenParams params = new UnixFileOpenParams(filePath, FileAction.CreateNotExist, AccessMode.ReadWrite, 0, gid, uid, mode, 0);
                 params.setSymbolicLink(linkName);
 
                 NetworkFile netFile = disk.createFile(nfsSess, conn, params);
