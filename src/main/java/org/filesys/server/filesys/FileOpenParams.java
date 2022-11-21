@@ -109,11 +109,11 @@ public class FileOpenParams {
     // Oplock owner details, if an oplock as been requested
     private OplockOwner m_oplockOwner;
 
-    // Timestamp of a previous version
-    private long m_prevVersion;
-
     // Client details of the user creating/opening the file/folder
     private ClientInfo m_clientInfo;
+
+    // Timestamp of a previous version
+    private long m_prevVersion;
 
     /**
      * Class constructor for Core SMB dialect Open SMB requests
@@ -140,40 +140,6 @@ public class FileOpenParams {
 
         //	No security settings
         m_secLevel = ImpersonationLevel.INVALID;
-    }
-
-    /**
-     * Class constructor for Core SMB dialect Open SMB requests
-     *
-     * @param path       String
-     * @param openAction int
-     * @param accessMode int Access Mode
-     * @param fileAttr   int
-     * @param gid        int
-     * @param uid        int
-     * @param mode       int
-     * @param pid        long
-     */
-    public FileOpenParams(String path, int openAction, int accessMode, int fileAttr, int gid, int uid, int mode, long pid) {
-
-        //	Parse the file path, split into file name and stream if specified
-        parseFileName(path);
-
-        m_openAction = convertToNTOpenAction(openAction);
-        m_accessMode = convertToNTAccessMode(accessMode);
-        m_attr = fileAttr;
-        m_pid = pid;
-
-        //	Check if the diectory attribute is set
-        if (FileAttribute.isDirectory(m_attr))
-            m_createOptions = WinNT.CreateDirectory;
-
-        //	No security settings
-        m_secLevel = ImpersonationLevel.INVALID;
-
-        m_gid = gid;
-        m_uid = uid;
-        m_mode = mode;
     }
 
     /**
@@ -489,15 +455,6 @@ public class FileOpenParams {
     }
 
     /**
-     * Return the symbolic link name
-     *
-     * @return String
-     */
-    public final String getSymbolicLinkName() {
-        return m_symName;
-    }
-
-    /**
      * Determine if the file will be accessed sequentially only
      *
      * @return boolean
@@ -583,58 +540,18 @@ public class FileOpenParams {
     }
 
     /**
-     * Determine if the group id has been set
+     * Check if the client information is available
      *
      * @return boolean
      */
-    public final boolean hasGid() {
-        return m_gid != -1 ? true : false;
-    }
+    public final boolean hasClientInformation() { return m_clientInfo != null; }
 
     /**
-     * Return the owner group id
+     * Return the client information
      *
-     * @return int
+     * @return ClientInfo
      */
-    public final int getGid() {
-        return m_gid;
-    }
-
-    /**
-     * Determine if the user id has been set
-     *
-     * @return boolean
-     */
-    public final boolean hasUid() {
-        return m_uid != -1 ? true : false;
-    }
-
-    /**
-     * Return the owner user id
-     *
-     * @return int
-     */
-    public final int getUid() {
-        return m_uid;
-    }
-
-    /**
-     * Determine if the mode has been set
-     *
-     * @return boolean
-     */
-    public final boolean hasMode() {
-        return m_mode != -1 ? true : false;
-    }
-
-    /**
-     * Return the Unix mode
-     *
-     * @return int
-     */
-    public final int getMode() {
-        return m_mode;
-    }
+    public final ClientInfo getClientInformation() { return m_clientInfo; }
 
     /**
      * Check if the open is for a previous version of a file
@@ -653,20 +570,6 @@ public class FileOpenParams {
     public final long getPreviousVersionDateTime() {
         return m_prevVersion;
     }
-
-    /**
-     * Check if the client information is available
-     *
-     * @return boolean
-     */
-    public final boolean hasClientInformation() { return m_clientInfo != null; }
-
-    /**
-     * Return the client information
-     *
-     * @return ClientInfo
-     */
-    public final ClientInfo getClientInformation() { return m_clientInfo; }
 
     /**
      * Return the requested oplock type
@@ -805,15 +708,6 @@ public class FileOpenParams {
     }
 
     /**
-     * Set the Unix mode
-     *
-     * @param mode int
-     */
-    public final void setMode(int mode) {
-        m_mode = mode;
-    }
-
-    /**
      * Set a create option flag
      *
      * @param flag int
@@ -866,13 +760,12 @@ public class FileOpenParams {
     }
 
     /**
-     * Set the symbolic link name
+     * Set the allocation size for a new file
      *
-     * @param name String
+     * @param allocSize long
      */
-    public final void setSymbolicLink(String name) {
-        m_symName = name;
-        m_fileType = FileType.SymbolicLink;
+    public final void setAllocationSize(long allocSize) {
+        m_allocSize = allocSize;
     }
 
     /**
@@ -885,13 +778,18 @@ public class FileOpenParams {
     }
 
     /**
-     * Set the allocation size for a new file
+     * Set the creation date/time
      *
-     * @param allocSize long
+     * @param createdAt long
      */
-    public final void setAllocationSize(long allocSize) {
-        m_allocSize = allocSize;
-    }
+    protected final void setCreationDateTime(long createdAt) { m_createDate = createdAt; }
+
+    /**
+     * Set the file attributes
+     *
+     * @param attr int
+     */
+    protected final void setFileAttributes(int attr) { m_attr = attr; }
 
     /**
      * Convert a Core/LanMan access mode to an NT access mode
@@ -997,6 +895,14 @@ public class FileOpenParams {
     }
 
     /**
+     * Additional information to be appended by the toString()
+     *
+     * @param str StringBuilder
+     */
+    protected void additionalToString(StringBuilder str) {
+    }
+
+    /**
      * Return the file open parameters as a string
      *
      * @return String
@@ -1042,18 +948,6 @@ public class FileOpenParams {
             str.append(Integer.toHexString(m_secFlags));
         }
 
-        if (hasGid() || hasUid()) {
-            str.append(",gid=");
-            str.append(getGid());
-            str.append(",uid=");
-            str.append(getUid());
-        }
-
-        if (getMode() != -1) {
-            str.append(",mode=0");
-            str.append(Integer.toOctalString(getMode()));
-        }
-
         if (m_createFlags != 0) {
             if (requestBatchOpLock())
                 str.append(",BatchOpLck");
@@ -1063,17 +957,20 @@ public class FileOpenParams {
                 str.append(",ExtResp");
         }
 
+        // Client information available
+        if ( hasClientInformation()) {
+            str.append(",Client=");
+            str.append( getClientInformation());
+        }
+
         // Previous version open
         if ( isPreviousVersion()) {
             str.append(",PrevVer=");
             str.append( getPreviousVersionDateTime());
         }
 
-        // Client information available
-        if ( hasClientInformation()) {
-            str.append(",Client=");
-            str.append( getClientInformation());
-        }
+        // Add additional information to the details string
+        additionalToString( str);
 
         str.append("]");
 

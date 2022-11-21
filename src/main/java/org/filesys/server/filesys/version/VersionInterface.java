@@ -18,10 +18,7 @@
 package org.filesys.server.filesys.version;
 
 import org.filesys.server.SrvSession;
-import org.filesys.server.filesys.FileInfo;
-import org.filesys.server.filesys.FileOpenParams;
-import org.filesys.server.filesys.NetworkFile;
-import org.filesys.server.filesys.TreeConnection;
+import org.filesys.server.filesys.*;
 
 import java.io.IOException;
 import java.util.List;
