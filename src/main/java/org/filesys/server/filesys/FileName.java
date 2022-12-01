@@ -184,7 +184,187 @@ public final class FileName {
             return fullPath.toString();
         }
 
-        //  Split the path string into seperate directory components
+        //  Split the path string into separate directory components
+        String pathCopy = path;
+        if (pathCopy.length() > 0 && pathCopy.startsWith(DOS_SEPERATOR_STR))
+            pathCopy = pathCopy.substring(1);
+
+        StringTokenizer token = new StringTokenizer(pathCopy, "\\/");
+        int tokCnt = token.countTokens();
+
+        //  The mapped path string, if it can be mapped
+        String mappedPath = null;
+
+        if (tokCnt > 0) {
+
+            //  Allocate an array to hold the directory names
+            String[] dirs = new String[token.countTokens()];
+
+            //  Get the directory names
+            int idx = 0;
+            while (token.hasMoreTokens())
+                dirs[idx++] = token.nextToken();
+
+            //  Check if the path ends with a directory or file name, ie. has a trailing '\' or not
+            int maxDir = dirs.length;
+
+            if (path.endsWith(DOS_SEPERATOR_STR) == false) {
+
+                //  Ignore the last token as it is a file name
+                maxDir--;
+            }
+
+            //  Build up the path string and validate that the path exists at each stage.
+            StringBuilder pathStr = new StringBuilder(base);
+            if (base.endsWith(java.io.File.separator) == false)
+                pathStr.append(java.io.File.separator);
+
+            int lastPos = pathStr.length();
+            idx = 0;
+            File lastDir = null;
+            if (base != null && base.length() > 0)
+                lastDir = new File(base);
+            File curDir = null;
+
+            while (idx < maxDir) {
+
+                //  Append the current directory to the path
+                pathStr.append(dirs[idx]);
+                pathStr.append(java.io.File.separator);
+
+                //  Check if the current path exists
+                curDir = new File(pathStr.toString());
+
+                if (curDir.exists() == false) {
+
+                    //  Check if there is a previous directory to search
+                    if (lastDir == null)
+                        throw new FileNotFoundException();
+
+                    //  Search the current path for a matching directory, the case may be different
+                    String[] fileList = lastDir.list();
+                    if (fileList == null || fileList.length == 0)
+                        throw new FileNotFoundException();
+
+                    int fidx = 0;
+                    boolean foundPath = false;
+
+                    while (fidx < fileList.length && foundPath == false) {
+
+                        //  Check if the current file name matches the required directory name
+                        if (fileList[fidx].equalsIgnoreCase(dirs[idx])) {
+
+                            //  Use the current directory name
+                            pathStr.setLength(lastPos);
+                            pathStr.append(fileList[fidx]);
+                            pathStr.append(java.io.File.separator);
+
+                            //  Check if the path is valid
+                            curDir = new File(pathStr.toString());
+                            if (curDir.exists()) {
+                                foundPath = true;
+                                break;
+                            }
+                        }
+
+                        //  Update the file name index
+                        fidx++;
+                    }
+
+                    //  Check if we found the required directory
+                    if (foundPath == false)
+                        throw new FileNotFoundException();
+                }
+
+                //  Set the last valid directory file
+                lastDir = curDir;
+
+                //  Update the end of valid path location
+                lastPos = pathStr.length();
+
+                //  Update the current directory index
+                idx++;
+            }
+
+            //  Check if there is a file name to be added to the mapped path
+            if (path.endsWith(DOS_SEPERATOR_STR) == false) {
+
+                //  Map the file name
+                String[] fileList = lastDir.list();
+                String fileName = dirs[dirs.length - 1];
+
+                //	Check if the file list is valid, if not then the path is not valid
+                if (fileList == null)
+                    throw new FileNotFoundException(path);
+
+                //	Search for the required file
+                idx = 0;
+                boolean foundFile = false;
+
+                while (idx < fileList.length && foundFile == false) {
+                    if (fileList[idx].compareTo(fileName) == 0)
+                        foundFile = true;
+                    else
+                        idx++;
+                }
+
+                //  Check if we found the file name, if not then do a case insensitive search
+                if (foundFile == false) {
+
+                    //  Search again using a case insensitive search
+                    idx = 0;
+
+                    while (idx < fileList.length && foundFile == false) {
+                        if (fileList[idx].equalsIgnoreCase(fileName)) {
+                            foundFile = true;
+                            fileName = fileList[idx];
+                        } else
+                            idx++;
+                    }
+                }
+
+                //  Append the file name
+                pathStr.append(fileName);
+            }
+
+            //  Set the new path string
+            mappedPath = pathStr.toString();
+        }
+
+        //  Return the mapped path string, if successful.
+        return mappedPath;
+    }
+
+    /**
+     * Map the input path to a real path, this may require changing the case of various parts of the
+     * path. The base path is not checked, it is assumed to exist.
+     *
+     * @param base String
+     * @param path String
+     * @param caseless boolean
+     * @return String
+     * @throws java.io.FileNotFoundException The path could not be mapped to a real path.
+     */
+    public static final String mapPath(String base, String path, boolean caseless)
+            throws java.io.FileNotFoundException {
+
+        // On Windows we do not need to map the path as it is a caseless filesystem
+        if ( caseless) {
+
+            // Just build the full path
+            StringBuilder fullPath = new StringBuilder();
+            fullPath.append( base);
+            if (base.endsWith(java.io.File.separator) == false)
+                fullPath.append(java.io.File.separator);
+            fullPath.append( path);
+
+            if ( File.separatorChar != DOS_SEPERATOR)
+                return fullPath.toString().replace( DOS_SEPERATOR, File.separatorChar);
+            else
+                return fullPath.toString();
+        }
+
+        //  Split the path string into separate directory components
         String pathCopy = path;
         if (pathCopy.length() > 0 && pathCopy.startsWith(DOS_SEPERATOR_STR))
             pathCopy = pathCopy.substring(1);

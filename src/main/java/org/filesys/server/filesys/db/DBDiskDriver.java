@@ -340,14 +340,18 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
             // Note: The file status is set to NotExist at this point, the file record creation may fail
             accessToken = dbCtx.getStateCache().grantFileAccess(params, fstate, FileStatus.NotExist);
 
-            //  Use the database interface to create the new file record
-            fid = dbCtx.getDBInterface().createFileRecord(dname, dirId, params, retain);
+            // Synchronize on the file state to avoid concurrent database create of the same file record
+            synchronized ( fstate) {
 
-            //  Indicate that the path exists
-            fstate.setFileStatus(FileStatus.DirectoryExists, FileState.ChangeReason.FolderCreated);
+                //  Use the database interface to create the new file record
+                fid = dbCtx.getDBInterface().createFileRecord(dname, dirId, params, retain);
 
-            //  Set the file id for the new directory
-            fstate.setFileId(fid);
+                //  Indicate that the path exists
+                fstate.setFileStatus(FileStatus.DirectoryExists, FileState.ChangeReason.FolderCreated);
+
+                //  Set the file id for the new directory
+                fstate.setFileId(fid);
+            }
 
             //  If retention is enabled get the expiry date/time
             if (dbCtx.hasRetentionPeriod() && retain == true) {
@@ -439,6 +443,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
         //  Create a new file
         DBNetworkFile file = null;
         FileAccessToken accessToken = null;
+        int fid = -1;
 
         try {
 
@@ -473,14 +478,18 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
                 accessToken = dbCtx.getStateCache().grantFileAccess(params, fstate, FileStatus.NotExist);
             }
 
-            //  Create a new file record
-            int fid = dbCtx.getDBInterface().createFileRecord(fname, dirId, params, retain);
+            // Synchronize on the file state to avoid concurrent database create of the same file record
+            synchronized ( fstate) {
 
-            //  Indicate that the file exists
-            fstate.setFileStatus(FileStatus.FileExists, FileState.ChangeReason.FileCreated);
+                //  Create a new file record
+                fid = dbCtx.getDBInterface().createFileRecord(fname, dirId, params, retain);
 
-            //  Save the file id
-            fstate.setFileId(fid);
+                //  Indicate that the file exists
+                fstate.setFileStatus(FileStatus.FileExists, FileState.ChangeReason.FileCreated);
+
+                //  Save the file id
+                fstate.setFileId(fid);
+            }
 
             //  If retention is enabled get the expiry date/time
             if (dbCtx.hasRetentionPeriod() && retain == true) {

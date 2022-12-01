@@ -161,6 +161,9 @@ public abstract class DBNetworkFile extends NetworkFile implements NetworkFileSt
         setFileSize(info.getSize());
         setAttributes(info.getFileAttributes());
 
+        if ( isDirectory() && getFileSize() == 0L)
+            setFileSize( 512L);
+
         if (info.getCreationDateTime() > 0L)
             setCreationDate(info.getCreationDateTime());
 
