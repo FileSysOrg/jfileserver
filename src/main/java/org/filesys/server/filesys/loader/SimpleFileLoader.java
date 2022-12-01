@@ -33,7 +33,6 @@ import org.filesys.debug.Debug;
 import org.filesys.server.SrvSession;
 import org.filesys.server.auth.ClientInfo;
 import org.filesys.server.core.DeviceContext;
-import org.filesys.server.filesys.AccessDeniedException;
 import org.filesys.server.filesys.FileInfo;
 import org.filesys.server.filesys.FileName;
 import org.filesys.server.filesys.FileOpenParams;
@@ -55,10 +54,13 @@ import org.springframework.extensions.config.ConfigElement;
  */
 public class SimpleFileLoader implements FileLoader, NamedFileLoader {
 
-    //	Local path that the virtual filesystem is mapped to
+    // Local path that the virtual filesystem is mapped to
     private String m_rootPath;
 
-    //	Enable debug output
+    // Filesystem is caseless
+    private boolean m_fsCaseless = true;
+
+    // Enable debug output
     private boolean m_debug;
 
     // Enable setting of the file owner, if there is a logged on user name (only available when using Kerberos authentication)
@@ -92,6 +94,13 @@ public class SimpleFileLoader implements FileLoader, NamedFileLoader {
     }
 
     /**
+     * Check if the filesystem that the loader is using is caseless
+     *
+     * @return boolean
+     */
+    protected final boolean isCaseLess() { return m_fsCaseless; }
+
+    /**
      * Open/create a file
      *
      * @param params FileOpenParams
@@ -118,7 +127,7 @@ public class SimpleFileLoader implements FileLoader, NamedFileLoader {
         if (file.exists() == false) {
 
             //  Try and map the file name string to a local path
-            String mappedPath = FileName.mapPath(getRootPath(), params.getPath());
+            String mappedPath = FileName.mapPath(getRootPath(), params.getPath(), isCaseLess());
             if (mappedPath == null && create == false)
                 throw new FileNotFoundException("File does not exist, " + params.getPath());
 
@@ -270,10 +279,10 @@ public class SimpleFileLoader implements FileLoader, NamedFileLoader {
         }
 
         //  If the path does not exist then try and map it to a real path, there may be case differences
-        else if ( Files.exists( dirPath) == false) {
+        else if ( Files.exists( dirPath) == false && !isCaseLess()) {
 
             //  Map the path to a real path
-            String mappedPath = FileName.mapPath( getRootPath(), dir);
+            String mappedPath = FileName.mapPath( getRootPath(), dir, isCaseLess());
 
             if (mappedPath != null) {
 
@@ -382,6 +391,33 @@ public class SimpleFileLoader implements FileLoader, NamedFileLoader {
 
         if ( Files.exists( root) == false || Files.isDirectory( root) == false)
             throw new FileLoaderException("SimpleFileLoader RootPath does not exist or is not a directory, " + m_rootPath);
+
+        // Check if the filesystem storing the files  is caseless
+        try {
+
+            // Create a test file on the filesystem
+            String caseTestName = new String("__FsCaseTest__");
+            Path caseTestPath = Paths.get( m_rootPath, caseTestName);
+
+            if ( !Files.exists( caseTestPath))
+                Files.createFile( caseTestPath);
+
+            // Check if the file can be found when using different case names
+            boolean upperExists = Files.exists( Paths.get( m_rootPath, caseTestName.toUpperCase()));
+            boolean lowerExists = Files.exists( Paths.get( m_rootPath, caseTestName.toLowerCase()));
+            boolean originalExists = Files.exists( caseTestPath);
+
+            m_fsCaseless = upperExists && lowerExists && originalExists;
+
+            Files.delete( caseTestPath);
+
+            // DEBUG
+            if ( m_debug)
+                Debug.println("SimpleFileLoader: File store path " + m_rootPath + " caseLess=" + isCaseLess());
+        }
+        catch ( Exception ex) {
+
+        }
 
         // Check if the file/folder owner should be set when creating new files/folders
         if(params.getChild( "SetOwner") != null)
