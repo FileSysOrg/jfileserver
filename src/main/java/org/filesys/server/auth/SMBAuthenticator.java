@@ -207,13 +207,13 @@ public abstract class SMBAuthenticator implements ISMBAuthenticator {
 
         switch ( alg) {
             case LANMAN:
-                passAlg = org.filesys.client.PasswordEncryptor.LANMAN;
+                passAlg = PasswordEncryptor.LANMAN;
                 break;
             case NTLM1:
-                passAlg = org.filesys.client.PasswordEncryptor.NTLM1;
+                passAlg = PasswordEncryptor.NTLM1;
                 break;
             case NTLM2:
-                passAlg = org.filesys.client.PasswordEncryptor.NTLM2;
+                passAlg = PasswordEncryptor.NTLM2;
                 break;
         }
 
