@@ -58,4 +58,17 @@ public class DCEPipeHandler {
             return _handlers[ival];
         return null;
     }
+
+    /**
+     * Add a DCE/RPC handler for the specified pipe type
+     *
+     * @param typ DCCEPipeType
+     * @param handler DCEHandler
+     */
+    public final static void addHandlerForType(DCEPipeType typ, DCEHandler handler) {
+        int ival = typ.intValue();
+
+        if (ival >= 0 && ival < _handlers.length)
+            _handlers[ival] = handler;
+    }
 }
