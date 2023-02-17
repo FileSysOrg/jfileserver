@@ -67,10 +67,10 @@ public class GlobalConfigSection extends ConfigSection {
      * Set the server timezone name
      *
      * @param name String
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error setting the timezone
      */
-    public final int setTimeZone(String name)
+    public final ConfigurationListener.Sts setTimeZone(String name)
             throws InvalidConfigurationException {
 
         //  Validate the timezone
@@ -79,7 +79,7 @@ public class GlobalConfigSection extends ConfigSection {
             throw new InvalidConfigurationException("Invalid timezone, " + name);
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.ServerTimezone, name);
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.ServerTimezone, name);
 
         //  Get the daylight savings value
         int dst = 0;
@@ -100,14 +100,14 @@ public class GlobalConfigSection extends ConfigSection {
      * Set the timezone offset from UTC in seconds (+/-)
      *
      * @param offset int
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error setting the timezone offset
      */
-    public final int setTimeZoneOffset(int offset)
+    public final ConfigurationListener.Sts setTimeZoneOffset(int offset)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.ServerTZOffset, new Integer(offset));
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.ServerTZOffset, new Integer(offset));
         m_tzOffset = offset;
 
         //  Return the change status

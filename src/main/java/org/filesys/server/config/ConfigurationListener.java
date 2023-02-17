@@ -33,21 +33,28 @@ package org.filesys.server.config;
  */
 public interface ConfigurationListener {
 
-    //	Configuration listener status codes
+    //	Configuration listener status codes enum
+    public enum Sts {
+        Ignored,
+        Accepted,
+        NewSessionsOnly,
+        RestartRequired
+    }
+/*
     public static final int StsIgnored          = 0;
     public static final int StsAccepted         = 1;
     public static final int StsNewSessionsOnly  = 2;
     public static final int StsRestartRequired  = 3;
-
+*/
     /**
      * Configuration variable changed
      *
      * @param id     int
      * @param config ServerConfiguration
      * @param newVal Object
-     * @return int
+     * @return Sts
      * @exception InvalidConfigurationException Error during configuration change
      */
-    public int configurationChanged(int id, ServerConfiguration config, Object newVal)
+    public Sts configurationChanged(int id, ServerConfiguration config, Object newVal)
             throws InvalidConfigurationException;
 }

@@ -81,13 +81,13 @@ public class DebugConfigSection extends ConfigSection {
      *
      * @param dbgClass String
      * @param params   ConfigElement
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error setting the debug interface
      */
-    public final int setDebug(String dbgClass, ConfigElement params)
+    public final ConfigurationListener.Sts setDebug(String dbgClass, ConfigElement params)
             throws InvalidConfigurationException {
 
-        int sts = ConfigurationListener.StsIgnored;
+        ConfigurationListener.Sts sts = ConfigurationListener.Sts.Ignored;
 
         try {
 

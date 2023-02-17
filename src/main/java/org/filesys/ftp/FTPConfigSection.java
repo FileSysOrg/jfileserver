@@ -328,14 +328,14 @@ public class FTPConfigSection extends ConfigSection {
      * Set the FTP server bind address, may be null to indicate bind to all available addresses
      *
      * @param addr InetAddress
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error setting the bind address
      */
-    public final int setFTPBindAddress(InetAddress addr)
+    public final ConfigurationListener.Sts setFTPBindAddress(InetAddress addr)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.FTPBindAddress, addr);
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.FTPBindAddress, addr);
         m_ftpBindAddress = addr;
 
         //  Return the change status
@@ -346,14 +346,14 @@ public class FTPConfigSection extends ConfigSection {
      * Set the FTP server port to use for incoming connections, -1 indicates disable the FTP server
      *
      * @param port int
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error setting the port
      */
-    public final int setFTPPort(int port)
+    public final ConfigurationListener.Sts setFTPPort(int port)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.FTPPort, new Integer(port));
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.FTPPort, new Integer(port));
         m_ftpPort = port;
 
         //  Return the change status
@@ -364,14 +364,14 @@ public class FTPConfigSection extends ConfigSection {
      * Set the FTP server session timeout
      *
      * @param timeout int
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error setting the timeout
      */
-    public final int setFTPSrvSessionTimeout(int timeout)
+    public final ConfigurationListener.Sts setFTPSrvSessionTimeout(int timeout)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.FTPSrvSessionTimeout, new Integer(timeout));
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.FTPSrvSessionTimeout, new Integer(timeout));
         m_ftpSrvSessionTimeout = timeout;
 
         //  Return the change status
@@ -382,14 +382,14 @@ public class FTPConfigSection extends ConfigSection {
      * Set the FTP server data port range low value
      *
      * @param port int
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error setting the data port range
      */
-    public final int setFTPDataPortLow(int port)
+    public final ConfigurationListener.Sts setFTPDataPortLow(int port)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.FTPDataPortLow, new Integer(port));
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.FTPDataPortLow, new Integer(port));
         m_ftpDataPortLow = port;
 
         //  Return the change status
@@ -400,14 +400,14 @@ public class FTPConfigSection extends ConfigSection {
      * Set the FTP server data port range high value
      *
      * @param port int
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error setting the data port range
      */
-    public final int setFTPDataPortHigh(int port)
+    public final ConfigurationListener.Sts setFTPDataPortHigh(int port)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.FTPDataPortHigh, new Integer(port));
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.FTPDataPortHigh, new Integer(port));
         m_ftpDataPortHigh = port;
 
         //  Return the change status
@@ -418,14 +418,14 @@ public class FTPConfigSection extends ConfigSection {
      * Set the FTP root path
      *
      * @param path String
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error setting the root path
      */
-    public final int setFTPRootPath(String path)
+    public final ConfigurationListener.Sts setFTPRootPath(String path)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.FTPRootPath, path);
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.FTPRootPath, path);
         m_ftpRootPath = path;
 
         //  Return the change status
@@ -436,14 +436,14 @@ public class FTPConfigSection extends ConfigSection {
      * Enable/disable anonymous FTP access
      *
      * @param ena boolean
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error setting the allow anonymous access flag
      */
-    public final int setAllowAnonymousFTP(boolean ena)
+    public final ConfigurationListener.Sts setAllowAnonymousFTP(boolean ena)
             throws InvalidConfigurationException {
 
         //  Check if the value has changed
-        int sts = ConfigurationListener.StsIgnored;
+        ConfigurationListener.Sts sts = ConfigurationListener.Sts.Ignored;
 
         if (m_ftpAllowAnonymous != ena) {
 
@@ -460,14 +460,14 @@ public class FTPConfigSection extends ConfigSection {
      * Set the anonymous FTP account name
      *
      * @param acc String
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error setting the anonymous account name
      */
-    public final int setAnonymousFTPAccount(String acc)
+    public final ConfigurationListener.Sts setAnonymousFTPAccount(String acc)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.FTPAnonAccount, acc);
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.FTPAnonAccount, acc);
         m_ftpAnonymousAccount = acc;
 
         //  Return the change status
@@ -478,14 +478,14 @@ public class FTPConfigSection extends ConfigSection {
      * Set the FTP debug flags
      *
      * @param dbg EnumSet&lt;FTPSrvSession.Dbg&gt;
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error setting the debug flags
      */
-    public final int setFTPDebug(EnumSet<FTPSrvSession.Dbg> dbg)
+    public final ConfigurationListener.Sts setFTPDebug(EnumSet<FTPSrvSession.Dbg> dbg)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.FTPDebugFlags, dbg);
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.FTPDebugFlags, dbg);
         m_ftpDebug = dbg;
 
         //  Return the change status
@@ -496,14 +496,14 @@ public class FTPConfigSection extends ConfigSection {
      * Set the FTP SITE interface to handle custom FTP commands
      *
      * @param siteInterface FTPSiteInterface
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error setting the site interface
      */
-    public final int setFTPSiteInterface(FTPSiteInterface siteInterface)
+    public final ConfigurationListener.Sts setFTPSiteInterface(FTPSiteInterface siteInterface)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.FTPSiteInterface, siteInterface);
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.FTPSiteInterface, siteInterface);
         m_ftpSiteInterface = siteInterface;
 
         //  Return the change status
@@ -515,14 +515,14 @@ public class FTPConfigSection extends ConfigSection {
      *
      * @param authClass String
      * @param params    ConfigElement
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error setting the authenticator
      */
-    public final int setAuthenticator(String authClass, ConfigElement params)
+    public final ConfigurationListener.Sts setAuthenticator(String authClass, ConfigElement params)
             throws InvalidConfigurationException {
 
         //  Validate the authenticator class
-        int sts = ConfigurationListener.StsIgnored;
+        ConfigurationListener.Sts sts = ConfigurationListener.Sts.Ignored;
         FTPAuthenticator auth = null;
 
         try {
@@ -560,14 +560,14 @@ public class FTPConfigSection extends ConfigSection {
      * Set the authenticator to be used to authenticate FTP users.
      *
      * @param auth the authenticator
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error setting the authenticator
      */
-    public final int setAuthenticator(FTPAuthenticator auth)
+    public final ConfigurationListener.Sts setAuthenticator(FTPAuthenticator auth)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.FTPAuthenticator, auth);
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.FTPAuthenticator, auth);
 
         //  Set the FTP authenticator interface
         m_ftpAuthenticator = auth;
@@ -581,14 +581,14 @@ public class FTPConfigSection extends ConfigSection {
      * Set the key store path
      *
      * @param path String
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error setting the key store path
      */
-    public final int setKeyStorePath(String path)
+    public final ConfigurationListener.Sts setKeyStorePath(String path)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.FTPKeyStore, path);
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.FTPKeyStore, path);
 
         //  Set the key store path
         m_keyStorePath = path;
@@ -601,14 +601,14 @@ public class FTPConfigSection extends ConfigSection {
      * Set the key store type
      *
      * @param typ String
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error setting the key store type
      */
-    public final int setKeyStoreType(String typ)
+    public final ConfigurationListener.Sts setKeyStoreType(String typ)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.FTPKeyStoreType, typ);
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.FTPKeyStoreType, typ);
 
         //  Set the key store type
         m_keyStoreType = typ;
@@ -621,14 +621,14 @@ public class FTPConfigSection extends ConfigSection {
      * Set the trust store path
      *
      * @param path String
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error setting the trust store path
      */
-    public final int setTrustStorePath(String path)
+    public final ConfigurationListener.Sts setTrustStorePath(String path)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.FTPTrustStore, path);
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.FTPTrustStore, path);
 
         //  Set the trust store path
         m_trustStorePath = path;
@@ -641,14 +641,14 @@ public class FTPConfigSection extends ConfigSection {
      * Set the trust store type
      *
      * @param typ String
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error setting the trust store type
      */
-    public final int setTrustStoreType(String typ)
+    public final ConfigurationListener.Sts setTrustStoreType(String typ)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.FTPTrustStoreType, typ);
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.FTPTrustStoreType, typ);
 
         //  Set the trust store type
         m_trustStoreType = typ;
@@ -661,14 +661,14 @@ public class FTPConfigSection extends ConfigSection {
      * Set the key store passphrase
      *
      * @param passphrase String
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error setting the key store pass phrase
      */
-    public final int setKeyStorePassphrase(String passphrase)
+    public final ConfigurationListener.Sts setKeyStorePassphrase(String passphrase)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.FTPKeyPassphrase, passphrase);
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.FTPKeyPassphrase, passphrase);
 
         //  Set the key store passphrase
         m_keyStorePass = passphrase.toCharArray();
@@ -681,14 +681,14 @@ public class FTPConfigSection extends ConfigSection {
      * Set the trust store passphrase
      *
      * @param passphrase String
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error setting the trust store pass phrase
      */
-    public final int setTrustStorePassphrase(String passphrase)
+    public final ConfigurationListener.Sts setTrustStorePassphrase(String passphrase)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.FTPTrustPassphrase, passphrase);
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.FTPTrustPassphrase, passphrase);
 
         //  Set the trust store passphrase
         m_trustStorePass = passphrase.toCharArray();
@@ -701,14 +701,14 @@ public class FTPConfigSection extends ConfigSection {
      * Set the require secure session flag
      *
      * @param reqSecureSess boolean
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error setting the secure session flag
      */
-    public final int setRequireSecureSession(boolean reqSecureSess)
+    public final ConfigurationListener.Sts setRequireSecureSession(boolean reqSecureSess)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.FTPRequireSecure, new Boolean(reqSecureSess));
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.FTPRequireSecure, new Boolean(reqSecureSess));
 
         //  Set the require secure session flag
         m_requireSecureSess = reqSecureSess;

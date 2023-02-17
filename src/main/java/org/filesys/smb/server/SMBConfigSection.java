@@ -177,13 +177,13 @@ public class SMBConfigSection extends ConfigSection {
      * Sets the terminal server list.
      *
      * @param terminalServerList List of Strings
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Failed to set the terminal server list
      */
-    public final int setTerminalServerList(List<String> terminalServerList) throws InvalidConfigurationException {
+    public final ConfigurationListener.Sts setTerminalServerList(List<String> terminalServerList) throws InvalidConfigurationException {
         // Inform listeners, validate the configuration change
 
-        int sts = fireConfigurationChange(ConfigId.SMBTerminalServerList, terminalServerList);
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.SMBTerminalServerList, terminalServerList);
         m_terminalServerList = terminalServerList;
 
         // Return the change status
@@ -203,13 +203,13 @@ public class SMBConfigSection extends ConfigSection {
      * Sets the load balancer list.
      *
      * @param loadBalancerList List of Strings
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Failed to set the load balancer list
      */
-    public final int setLoadBalancerList(List<String> loadBalancerList) throws InvalidConfigurationException {
+    public final ConfigurationListener.Sts setLoadBalancerList(List<String> loadBalancerList) throws InvalidConfigurationException {
         // Inform listeners, validate the configuration change
 
-        int sts = fireConfigurationChange(ConfigId.SMBLoadBalancerList, loadBalancerList);
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.SMBLoadBalancerList, loadBalancerList);
         m_loadBalancerList = loadBalancerList;
 
         // Return the change status
@@ -626,14 +626,14 @@ public class SMBConfigSection extends ConfigSection {
      * @param params     ConfigElement
      * @param accessMode AuthMode
      * @param allowGuest boolean
-     * @return int
+     * @return ConfigurationListener.Sts
      * @throws InvalidConfigurationException Failed to set the authenticator class
      */
-    public final int setAuthenticator(String authClass, ConfigElement params, ISMBAuthenticator.AuthMode accessMode, boolean allowGuest)
+    public final ConfigurationListener.Sts setAuthenticator(String authClass, ConfigElement params, ISMBAuthenticator.AuthMode accessMode, boolean allowGuest)
             throws InvalidConfigurationException {
 
         //  Validate the authenticator class
-        int sts = ConfigurationListener.StsIgnored;
+        ConfigurationListener.Sts sts = ConfigurationListener.Sts.Ignored;
         SMBAuthenticator auth = null;
 
         try {
@@ -678,14 +678,14 @@ public class SMBConfigSection extends ConfigSection {
      * Set the authenticator to be used to authenticate users and share connections.
      *
      * @param auth the authenticator
-     * @return int
+     * @return ConfigurationListener.Sts
      * @throws InvalidConfigurationException Failed to set the authenticator class
      */
-    public final int setAuthenticator(ISMBAuthenticator auth)
+    public final ConfigurationListener.Sts setAuthenticator(ISMBAuthenticator auth)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.SMBAuthenticator, auth);
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.SMBAuthenticator, auth);
 
         //  Set the server authenticator
         m_authenticator = auth;
@@ -700,14 +700,14 @@ public class SMBConfigSection extends ConfigSection {
      * Set the local address that the SMB server should bind to.
      *
      * @param addr java.net.InetAddress
-     * @return int
+     * @return ConfigurationListener.Sts
      * @throws InvalidConfigurationException Failed to set the bind address
      */
-    public final int setSMBBindAddress(InetAddress addr)
+    public final ConfigurationListener.Sts setSMBBindAddress(InetAddress addr)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.SMBBindAddress, addr);
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.SMBBindAddress, addr);
         m_smbBindAddress = addr;
 
         //  Return the change status
@@ -718,14 +718,14 @@ public class SMBConfigSection extends ConfigSection {
      * Set the local address that the NetBIOS name server should bind to.
      *
      * @param addr java.net.InetAddress
-     * @return int
+     * @return ConfigurationListener.Sts
      * @throws InvalidConfigurationException Failed to set the NetBIOS bind address
      */
-    public final int setNetBIOSBindAddress(InetAddress addr)
+    public final ConfigurationListener.Sts setNetBIOSBindAddress(InetAddress addr)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.NetBIOSBindAddress, addr);
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.NetBIOSBindAddress, addr);
         m_nbBindAddress = addr;
 
         //  Return the change status
@@ -736,14 +736,14 @@ public class SMBConfigSection extends ConfigSection {
      * Set the broadcast mask to be used for broadcast datagrams.
      *
      * @param mask String
-     * @return int
+     * @return ConfigurationListener.Sts
      * @throws InvalidConfigurationException Failed to set the broadcast mask
      */
-    public final int setBroadcastMask(String mask)
+    public final ConfigurationListener.Sts setBroadcastMask(String mask)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.SMBBroadcastMask, mask);
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.SMBBroadcastMask, mask);
         m_broadcast = mask;
 
         //  Return the change status
@@ -754,14 +754,14 @@ public class SMBConfigSection extends ConfigSection {
      * Set the server comment.
      *
      * @param comment String
-     * @return int
+     * @return ConfigurationListener.Sts
      * @throws InvalidConfigurationException Failed to set the server comment
      */
-    public final int setComment(String comment)
+    public final ConfigurationListener.Sts setComment(String comment)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.SMBComment, comment);
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.SMBComment, comment);
         m_comment = comment;
 
         //  Return the change status
@@ -772,14 +772,14 @@ public class SMBConfigSection extends ConfigSection {
      * Set the domain that the server is to belong to.
      *
      * @param domain String
-     * @return int
+     * @return ConfigurationListener.Sts
      * @throws InvalidConfigurationException Failed to set the server domain
      */
-    public final int setDomainName(String domain)
+    public final ConfigurationListener.Sts setDomainName(String domain)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.SMBDomain, domain);
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.SMBDomain, domain);
         m_domain = domain;
 
         //  Return the change status
@@ -790,14 +790,14 @@ public class SMBConfigSection extends ConfigSection {
      * Set the SMB dialects that the server may use when negotiating a session with a client.
      *
      * @param dialects DialectSelector
-     * @return int
+     * @return ConfigurationListener.Sts
      * @throws InvalidConfigurationException Failed to set the enabled SMB dialects
      */
-    public final int setEnabledDialects(DialectSelector dialects)
+    public final ConfigurationListener.Sts setEnabledDialects(DialectSelector dialects)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.SMBDialects, dialects);
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.SMBDialects, dialects);
         m_dialects = new DialectSelector();
         m_dialects.copyFrom(dialects);
 
@@ -809,14 +809,14 @@ public class SMBConfigSection extends ConfigSection {
      * Enable/disable the host announcer.
      *
      * @param b boolean
-     * @return int
+     * @return ConfigurationListener.Sts
      * @throws InvalidConfigurationException Failed to enable the host announcer
      */
-    public final int setHostAnnouncer(boolean b)
+    public final ConfigurationListener.Sts setHostAnnouncer(boolean b)
             throws InvalidConfigurationException {
 
         //  Check if the value has changed
-        int sts = ConfigurationListener.StsIgnored;
+        ConfigurationListener.Sts sts = ConfigurationListener.Sts.Ignored;
 
         if (m_announce != b) {
 
@@ -833,14 +833,14 @@ public class SMBConfigSection extends ConfigSection {
      * Set the host announcement interval, in minutes
      *
      * @param ival int
-     * @return int
+     * @return ConfigurationListener.Sts
      * @throws InvalidConfigurationException Failed to set the host announcement interval
      */
-    public final int setHostAnnounceInterval(int ival)
+    public final ConfigurationListener.Sts setHostAnnounceInterval(int ival)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.SMBAnnceInterval, new Integer(ival));
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.SMBAnnceInterval, new Integer(ival));
         m_announceInterval = ival;
 
         //  Return the change status
@@ -851,14 +851,14 @@ public class SMBConfigSection extends ConfigSection {
      * Set the host announcer port
      *
      * @param port int
-     * @return int
+     * @return ConfigurationListener.Sts
      * @throws InvalidConfigurationException Failed to set the host announcer port
      */
-    public final int setHostAnnouncerPort(int port)
+    public final ConfigurationListener.Sts setHostAnnouncerPort(int port)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.SMBAnncePort, new Integer(port));
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.SMBAnncePort, new Integer(port));
         m_announcePort = port;
 
         //  Return the change status
@@ -869,14 +869,14 @@ public class SMBConfigSection extends ConfigSection {
      * Set the name server port to listen on.
      *
      * @param port int
-     * @return int
+     * @return ConfigurationListener.Sts
      * @throws InvalidConfigurationException Failed to set the name server port
      */
-    public final int setNameServerPort(int port)
+    public final ConfigurationListener.Sts setNameServerPort(int port)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.NetBIOSNamePort, new Integer(port));
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.NetBIOSNamePort, new Integer(port));
         m_namePort = port;
 
         //  Return the change status
@@ -887,14 +887,14 @@ public class SMBConfigSection extends ConfigSection {
      * Set the name server datagram port
      *
      * @param port int
-     * @return int
+     * @return ConfigurationListener.Sts
      * @throws InvalidConfigurationException Failed to set the name server datagram port
      */
-    public final int setDatagramPort(int port)
+    public final ConfigurationListener.Sts setDatagramPort(int port)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.NetBIOSDatagramPort, new Integer(port));
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.NetBIOSDatagramPort, new Integer(port));
         m_nbDatagramPort = port;
 
         //  Return the change status
@@ -905,14 +905,14 @@ public class SMBConfigSection extends ConfigSection {
      * Enable/disable NetBIOS name server debug output
      *
      * @param ena boolean
-     * @return int
+     * @return ConfigurationListener.Sts
      * @throws InvalidConfigurationException Failed to set the NetBIOS debug flag
      */
-    public final int setNetBIOSDebug(boolean ena)
+    public final ConfigurationListener.Sts setNetBIOSDebug(boolean ena)
             throws InvalidConfigurationException {
 
         //  Check if the value has changed
-        int sts = ConfigurationListener.StsIgnored;
+        ConfigurationListener.Sts sts = ConfigurationListener.Sts.Ignored;
 
         if (m_nbDebug != ena) {
 
@@ -929,14 +929,14 @@ public class SMBConfigSection extends ConfigSection {
      * Enable/disable host announcement debug output
      *
      * @param ena boolean
-     * @return int
+     * @return ConfigurationListener.Sts
      * @throws InvalidConfigurationException Failed to set the host announcer debug flag
      */
-    public final int setHostAnnounceDebug(boolean ena)
+    public final ConfigurationListener.Sts setHostAnnounceDebug(boolean ena)
             throws InvalidConfigurationException {
 
         //  Check if the value has changed
-        int sts = ConfigurationListener.StsIgnored;
+        ConfigurationListener.Sts sts = ConfigurationListener.Sts.Ignored;
 
         if (m_announceDebug != ena) {
 
@@ -953,14 +953,14 @@ public class SMBConfigSection extends ConfigSection {
      * Enable/disbale Macintosh extension SMBs
      *
      * @param ena boolean
-     * @return int
+     * @return ConfigurationListener.Sts
      * @throws InvalidConfigurationException Failed to set the Macintosh extensions flag
      */
-    public final int setMacintoshExtensions(boolean ena)
+    public final ConfigurationListener.Sts setMacintoshExtensions(boolean ena)
             throws InvalidConfigurationException {
 
         //  Check if the value has changed
-        int sts = ConfigurationListener.StsIgnored;
+        ConfigurationListener.Sts sts = ConfigurationListener.Sts.Ignored;
 
         if (m_macExtensions != ena) {
 
@@ -977,14 +977,14 @@ public class SMBConfigSection extends ConfigSection {
      * Set the server name.
      *
      * @param name String
-     * @return int
+     * @return ConfigurationListener.Sts
      * @throws InvalidConfigurationException Failed to set the server name
      */
-    public final int setServerName(String name)
+    public final ConfigurationListener.Sts setServerName(String name)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.SMBHostName, name);
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.SMBHostName, name);
         m_name = name;
 
         //  Return the change status
@@ -995,10 +995,10 @@ public class SMBConfigSection extends ConfigSection {
      * Add a server alias name
      *
      * @param alias String
-     * @return int
+     * @return ConfigurationListener.Sts
      * @throws InvalidConfigurationException Failed to add a server alias name
      */
-    public final int addAliasName(String alias)
+    public final ConfigurationListener.Sts addAliasName(String alias)
             throws InvalidConfigurationException {
 
         //  Check if the alias name list has been allocated
@@ -1006,7 +1006,7 @@ public class SMBConfigSection extends ConfigSection {
             m_aliasNames = new StringList();
 
         //  Check if the name already exists in the list
-        int sts = ConfigurationListener.StsIgnored;
+        ConfigurationListener.Sts sts = ConfigurationListener.Sts.Ignored;
 
         if (m_aliasNames.containsString(alias) == false) {
 
@@ -1023,10 +1023,10 @@ public class SMBConfigSection extends ConfigSection {
      * Add server alias names
      *
      * @param names StringList
-     * @return int
+     * @return ConfigurationListener.Sts
      * @throws InvalidConfigurationException Failed to add server alias names
      */
-    public final int addAliasNames(StringList names)
+    public final ConfigurationListener.Sts addAliasNames(StringList names)
             throws InvalidConfigurationException {
 
         //  Check if the alias name list has been allocated
@@ -1034,16 +1034,16 @@ public class SMBConfigSection extends ConfigSection {
             m_aliasNames = new StringList();
 
         //  Add the names to the alias list
-        int sts = ConfigurationListener.StsIgnored;
+        ConfigurationListener.Sts sts = ConfigurationListener.Sts.Ignored;
 
         for (int i = 0; i < names.numberOfStrings(); i++) {
 
             //  Add the current alias
             String curAlias = names.getStringAt(i);
-            int curSts = addAliasName(curAlias);
+            ConfigurationListener.Sts curSts = addAliasName(curAlias);
 
             //  Keep the highest status
-            if (curSts > sts)
+            if (curSts.ordinal() > sts.ordinal())
                 sts = curSts;
         }
 
@@ -1055,14 +1055,14 @@ public class SMBConfigSection extends ConfigSection {
      * Set the server type flags.
      *
      * @param typ int
-     * @return int
+     * @return ConfigurationListener.Sts
      * @throws InvalidConfigurationException Failed to set the server type flags
      */
-    public final int setServerType(int typ)
+    public final ConfigurationListener.Sts setServerType(int typ)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.SMBServerType, new Integer(typ));
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.SMBServerType, new Integer(typ));
         m_srvType = typ;
 
         //  Return the change status
@@ -1073,14 +1073,14 @@ public class SMBConfigSection extends ConfigSection {
      * Set the debug flags to be used by the server.
      *
      * @param flags EnumSet&lt;SMBSrvSession.Dbg&gt;
-     * @return int
+     * @return ConfigurationListener.Sts
      * @throws InvalidConfigurationException Failed to set the session debug flags
      */
-    public final int setSessionDebugFlags(EnumSet<SMBSrvSession.Dbg> flags)
+    public final ConfigurationListener.Sts setSessionDebugFlags(EnumSet<SMBSrvSession.Dbg> flags)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.SMBSessionDebug, flags);
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.SMBSessionDebug, flags);
         m_sessDebug = flags;
 
         //  Return the change status
@@ -1091,14 +1091,14 @@ public class SMBConfigSection extends ConfigSection {
      * Set the session port to listen on for incoming session requests.
      *
      * @param port int
-     * @return int
+     * @return ConfigurationListener.Sts
      * @throws InvalidConfigurationException Failed to set the server session port
      */
-    public final int setSessionPort(int port)
+    public final ConfigurationListener.Sts setSessionPort(int port)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.NetBIOSSessionPort, new Integer(port));
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.NetBIOSSessionPort, new Integer(port));
         m_sessPort = port;
 
         //  Return the change status
@@ -1109,14 +1109,14 @@ public class SMBConfigSection extends ConfigSection {
      * Enable/disable the NetBIOS SMB support
      *
      * @param ena boolean
-     * @return int
+     * @return ConfigurationListener.Sts
      * @throws InvalidConfigurationException Failed to set the NetBIOS SMB flag
      */
-    public final int setNetBIOSSMB(boolean ena)
+    public final ConfigurationListener.Sts setNetBIOSSMB(boolean ena)
             throws InvalidConfigurationException {
 
         //  Check if the value has changed
-        int sts = ConfigurationListener.StsIgnored;
+        ConfigurationListener.Sts sts = ConfigurationListener.Sts.Ignored;
 
         if (m_netBIOSEnable != ena) {
 
@@ -1133,14 +1133,14 @@ public class SMBConfigSection extends ConfigSection {
      * Enable/disable the TCP/IP SMB support
      *
      * @param ena boolean
-     * @return int
+     * @return ConfigurationListener.Sts
      * @throws InvalidConfigurationException Failed to set the TCPIP SMB flag
      */
-    public final int setTcpipSMB(boolean ena)
+    public final ConfigurationListener.Sts setTcpipSMB(boolean ena)
             throws InvalidConfigurationException {
 
         //  Check if the value has changed
-        int sts = ConfigurationListener.StsIgnored;
+        ConfigurationListener.Sts sts = ConfigurationListener.Sts.Ignored;
 
         if (m_tcpSMBEnable != ena) {
 
@@ -1157,14 +1157,14 @@ public class SMBConfigSection extends ConfigSection {
      * Enable/disable the Win32 NetBIOS SMB support
      *
      * @param ena boolean
-     * @return int
+     * @return ConfigurationListener.Sts
      * @throws InvalidConfigurationException Failed to set the Win32 NetBIOS SMB flag
      */
-    public final int setWin32NetBIOS(boolean ena)
+    public final ConfigurationListener.Sts setWin32NetBIOS(boolean ena)
             throws InvalidConfigurationException {
 
         //  Check if the value has changed
-        int sts = ConfigurationListener.StsIgnored;
+        ConfigurationListener.Sts sts = ConfigurationListener.Sts.Ignored;
 
         if (m_win32NBEnable != ena) {
 
@@ -1181,14 +1181,14 @@ public class SMBConfigSection extends ConfigSection {
      * Set the Win32 NetBIOS file server name
      *
      * @param name String
-     * @return int
+     * @return ConfigurationListener.Sts
      * @throws InvalidConfigurationException Failed to set the Win32 NetBIOS server name
      */
-    public final int setWin32NetBIOSName(String name)
+    public final ConfigurationListener.Sts setWin32NetBIOSName(String name)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.SMBWin32NBName, name);
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.SMBWin32NBName, name);
         m_win32NBName = name;
 
         //  Return the change status
@@ -1199,14 +1199,14 @@ public class SMBConfigSection extends ConfigSection {
      * Set the Win32 NetBIOS accepted client name
      *
      * @param name String
-     * @return int
+     * @return ConfigurationListener.Sts
      * @throws InvalidConfigurationException Failed to set the Win32 NetBIOS accepted client name
      */
-    public final int setWin32NetBIOSClientAccept(String name)
+    public final ConfigurationListener.Sts setWin32NetBIOSClientAccept(String name)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.SMBWin32NBAccept, name);
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.SMBWin32NBAccept, name);
         m_win32NBAccept = name;
 
         //  Return the change status
@@ -1217,14 +1217,14 @@ public class SMBConfigSection extends ConfigSection {
      * Enable/disable the Win32 NetBIOS host announcer.
      *
      * @param b boolean
-     * @return int
+     * @return ConfigurationListener.Sts
      * @throws InvalidConfigurationException Failed to set the Win32 NetBIOS host announcer flag
      */
-    public final int setWin32HostAnnouncer(boolean b)
+    public final ConfigurationListener.Sts setWin32HostAnnouncer(boolean b)
             throws InvalidConfigurationException {
 
         //  Check if the value has changed
-        int sts = ConfigurationListener.StsIgnored;
+        ConfigurationListener.Sts sts = ConfigurationListener.Sts.Ignored;
 
         if (m_win32NBAnnounce != b) {
 
@@ -1241,14 +1241,14 @@ public class SMBConfigSection extends ConfigSection {
      * Set the Win32 LANA to be used by the Win32 NetBIOS interface
      *
      * @param ival int
-     * @return int
+     * @return ConfigurationListener.Sts
      * @throws InvalidConfigurationException Failed to set the Win32 LANA
      */
-    public final int setWin32LANA(int ival)
+    public final ConfigurationListener.Sts setWin32LANA(int ival)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.SMBWin32NBLana, new Integer(ival));
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.SMBWin32NBLana, new Integer(ival));
         m_win32NBLANA = ival;
 
         //  Return the change status
@@ -1259,14 +1259,14 @@ public class SMBConfigSection extends ConfigSection {
      * Set the Win32 NetBIOS host announcement interval, in minutes
      *
      * @param ival int
-     * @return int
+     * @return ConfigurationListener.Sts
      * @throws InvalidConfigurationException Failed to set the Win32 NetBIOS host announcement interval
      */
-    public final int setWin32HostAnnounceInterval(int ival)
+    public final ConfigurationListener.Sts setWin32HostAnnounceInterval(int ival)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.SMBWin32NBAnnounce, new Integer(ival));
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.SMBWin32NBAnnounce, new Integer(ival));
         m_win32NBAnnounceInterval = ival;
 
         //  Return the change status
@@ -1277,14 +1277,14 @@ public class SMBConfigSection extends ConfigSection {
      * Set the Win32 NetBIOS interface to use either Winsock NetBIOS or the Netbios() API calls
      *
      * @param useWinsock boolean
-     * @return int
+     * @return ConfigurationListener.Sts
      * @throws InvalidConfigurationException Failed to set the Winsock NetBIOS flag
      */
-    public final int setWin32WinsockNetBIOS(boolean useWinsock)
+    public final ConfigurationListener.Sts setWin32WinsockNetBIOS(boolean useWinsock)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.SMBWin32NBWinsock, new Boolean(useWinsock));
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.SMBWin32NBWinsock, new Boolean(useWinsock));
         m_win32NBUseWinsock = useWinsock;
 
         //  Return the change status
@@ -1295,14 +1295,14 @@ public class SMBConfigSection extends ConfigSection {
      * Set the TCP/IP SMB port
      *
      * @param port int
-     * @return int
+     * @return ConfigurationListener.Sts
      * @throws InvalidConfigurationException Failed to set the TCPIP SMB port
      */
-    public final int setTcpipSMBPort(int port)
+    public final ConfigurationListener.Sts setTcpipSMBPort(int port)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.SMBTCPPort, new Integer(port));
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.SMBTCPPort, new Integer(port));
         m_tcpSMBPort = port;
 
         //  Return the change status
@@ -1313,14 +1313,14 @@ public class SMBConfigSection extends ConfigSection {
      * Set the primary WINS server address
      *
      * @param addr InetAddress
-     * @return int
+     * @return ConfigurationListener.Sts
      * @throws InvalidConfigurationException Failed to set the primary WINS server address
      */
-    public final int setPrimaryWINSServer(InetAddress addr)
+    public final ConfigurationListener.Sts setPrimaryWINSServer(InetAddress addr)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.NetBIOSWINSPrimary, addr);
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.NetBIOSWINSPrimary, addr);
         m_winsPrimary = addr;
 
         //  Return the change status
@@ -1331,14 +1331,14 @@ public class SMBConfigSection extends ConfigSection {
      * Set the secondary WINS server address
      *
      * @param addr InetAddress
-     * @return int
+     * @return ConfigurationListener.Sts
      * @throws InvalidConfigurationException Failed to set the secondary WINS server address
      */
-    public final int setSecondaryWINSServer(InetAddress addr)
+    public final ConfigurationListener.Sts setSecondaryWINSServer(InetAddress addr)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.NetBIOSWINSSecondary, addr);
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.NetBIOSWINSSecondary, addr);
         m_winsSecondary = addr;
 
         //  Return the change status
@@ -1349,14 +1349,14 @@ public class SMBConfigSection extends ConfigSection {
      * Set the disable NIO code flag
      *
      * @param disableNIO boolean
-     * @return int
+     * @return ConfigurationListener.Sts
      * @throws InvalidConfigurationException Failed to set the disable NIO flag
      */
-    public final int setDisableNIOCode(boolean disableNIO)
+    public final ConfigurationListener.Sts setDisableNIOCode(boolean disableNIO)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.SMBDisableNIO, new Boolean(disableNIO));
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.SMBDisableNIO, new Boolean(disableNIO));
         m_disableNIO = disableNIO;
 
         //  Return the change status
@@ -1367,14 +1367,14 @@ public class SMBConfigSection extends ConfigSection {
      * Set the client socket timeout, in milliseconds
      *
      * @param tmo int
-     * @return int
+     * @return ConfigurationListener.Sts
      * @throws InvalidConfigurationException Failed to set the client socket timeout
      */
-    public final int setSocketTimeout(int tmo)
+    public final ConfigurationListener.Sts setSocketTimeout(int tmo)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.SMBSocketTimeout, new Integer(tmo));
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.SMBSocketTimeout, new Integer(tmo));
         m_clientSocketTimeout = tmo;
 
         //  Return the change status
@@ -1385,14 +1385,14 @@ public class SMBConfigSection extends ConfigSection {
      * Enable or disable use of TCP socket keep-alives on client socket connections
      *
      * @param ena boolean
-     * @return int
+     * @return ConfigurationListener.Sts
      * @throws InvalidConfigurationException Failed to set the client socket keep-alive value
      */
-    public final int setSocketKeepAlive(boolean ena)
+    public final ConfigurationListener.Sts setSocketKeepAlive(boolean ena)
         throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.SMBSocketKeepAlive, new Boolean(ena));
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.SMBSocketKeepAlive, new Boolean(ena));
         m_clientKeepAlive = ena;
 
         //  Return the change status
@@ -1412,14 +1412,14 @@ public class SMBConfigSection extends ConfigSection {
      * Set the maximum virtual circuits per session
      *
      * @param maxVC int
-     * @return int
+     * @return ConfigurationListener.Sts
      * @throws InvalidConfigurationException Failed to set the maximum virtual circuits per session
      */
-    public final int setMaximumVirtualCircuits(int maxVC)
+    public final ConfigurationListener.Sts setMaximumVirtualCircuits(int maxVC)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.SMBMaxVirtualCircuit, new Integer(maxVC));
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.SMBMaxVirtualCircuit, new Integer(maxVC));
         m_virtualCircuitLimit = maxVC;
 
         //  Return the change status

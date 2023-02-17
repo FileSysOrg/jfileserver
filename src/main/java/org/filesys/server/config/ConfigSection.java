@@ -81,20 +81,20 @@ public class ConfigSection {
      *
      * @param id     int
      * @param newVal Object
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error setting the configuration change
      */
-    protected final int fireConfigurationChange(int id, Object newVal)
+    protected final ConfigurationListener.Sts fireConfigurationChange(int id, Object newVal)
             throws InvalidConfigurationException {
 
         // Listeners are registered with the main server configuration container
-        int sts = -1;
+        ConfigurationListener.Sts sts = ConfigurationListener.Sts.Ignored;
 
         if (m_config != null)
             sts = m_config.fireConfigurationChange(id, newVal);
 
         // Check if the configuration change was accepted
-        if (sts >= ConfigurationListener.StsAccepted)
+        if (sts.ordinal() >= ConfigurationListener.Sts.Accepted.ordinal())
             setUpdated(true);
 
         //  Return the status

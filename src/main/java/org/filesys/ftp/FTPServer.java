@@ -659,13 +659,13 @@ public class FTPServer extends NetworkFileServer implements Runnable, Configurat
      * @param id     int
      * @param config ServerConfiguration
      * @param newVal Object
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error during configuration change
      */
-    public int configurationChanged(int id, ServerConfiguration config, Object newVal)
+    public ConfigurationListener.Sts configurationChanged(int id, ServerConfiguration config, Object newVal)
             throws InvalidConfigurationException {
 
-        int sts = StsIgnored;
+        ConfigurationListener.Sts sts = Sts.Ignored;
 
         try {
 
@@ -689,14 +689,14 @@ public class FTPServer extends NetworkFileServer implements Runnable, Configurat
                     }
 
                     //	Indicate that the setting was accepted
-                    sts = StsAccepted;
+                    sts = Sts.Accepted;
                     break;
 
                 //	Debug enable/disable
                 case ConfigId.FTPDebugEnable:
                     Boolean dbg = (Boolean) newVal;
                     setDebug(dbg.booleanValue());
-                    sts = StsAccepted;
+                    sts = Sts.Accepted;
                     break;
 
                 //	Changes that can be accepted without restart
@@ -709,18 +709,18 @@ public class FTPServer extends NetworkFileServer implements Runnable, Configurat
                 case ConfigId.UsersList:
                 case ConfigId.DebugDevice:
                 case ConfigId.FTPSrvSessionTimeout:
-                    sts = StsAccepted;
+                    sts = Sts.Accepted;
                     break;
 
                 //	Changes that affect new sessions only
                 case ConfigId.FTPDebugFlags:
-                    sts = StsNewSessionsOnly;
+                    sts = Sts.NewSessionsOnly;
                     break;
 
                 //	Changes that require a restart
                 case ConfigId.FTPBindAddress:
                 case ConfigId.FTPPort:
-                    sts = StsRestartRequired;
+                    sts = Sts.RestartRequired;
                     break;
             }
         }

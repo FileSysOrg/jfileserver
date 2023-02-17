@@ -167,6 +167,13 @@ public class ServerConfiguration implements ServerConfigurationAccessor {
         return m_serverList.numberOfServers();
     }
 
+    /**
+     * Return the network server list
+     *
+     * @return NetworkServerList
+     */
+    public final NetworkServerList getServerList() { return m_serverList; }
+
     /* (non-Javadoc)
      * @see ServerConfigurationAccessor#isServerRunning()
      */
@@ -281,10 +288,10 @@ public class ServerConfiguration implements ServerConfigurationAccessor {
      *
      * @param id     int
      * @param newVal Object
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error setting the configuration change
      */
-    protected final int fireConfigurationChange(int id, Object newVal)
+    protected final ConfigurationListener.Sts fireConfigurationChange(int id, Object newVal)
             throws InvalidConfigurationException {
 
         //	Set the configuration updated flag
@@ -292,10 +299,10 @@ public class ServerConfiguration implements ServerConfigurationAccessor {
 
         //	Check if there are any listeners registered
         if (hasConfigurationListeners() == false)
-            return ConfigurationListener.StsIgnored;
+            return ConfigurationListener.Sts.Ignored;
 
         //	Inform each registered listener of the change
-        int sts = ConfigurationListener.StsIgnored;
+        ConfigurationListener.Sts sts = ConfigurationListener.Sts.Ignored;
 
         for (int i = 0; i < m_listeners.size(); i++) {
 
@@ -303,10 +310,10 @@ public class ServerConfiguration implements ServerConfigurationAccessor {
             ConfigurationListener cl = m_listeners.get(i);
 
             //	Inform the listener of the configuration change
-            int clSts = cl.configurationChanged(id, this, newVal);
+            ConfigurationListener.Sts clSts = cl.configurationChanged(id, this, newVal);
 
             //	Keep the highest status
-            if (clSts > sts)
+            if (clSts.ordinal() > sts.ordinal())
                 sts = clSts;
         }
 

@@ -257,10 +257,10 @@ public class HomeShareMapper implements ShareMapper, ConfigurationListener {
      * @param id     int
      * @param config Serverconfiguration
      * @param newVal Object
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error changing the configuration
      */
-    public int configurationChanged(int id, ServerConfiguration config, Object newVal)
+    public ConfigurationListener.Sts configurationChanged(int id, ServerConfiguration config, Object newVal)
             throws InvalidConfigurationException {
 
         // Check if the filesystems configuration section has been added
@@ -271,10 +271,10 @@ public class HomeShareMapper implements ShareMapper, ConfigurationListener {
                 m_filesysConfig = (FilesystemsConfigSection) newVal;
 
             // Return a dummy status
-            return ConfigurationListener.StsAccepted;
+            return ConfigurationListener.Sts.Accepted;
         }
 
         // Return a dummy status
-        return ConfigurationListener.StsIgnored;
+        return ConfigurationListener.Sts.Ignored;
     }
 }

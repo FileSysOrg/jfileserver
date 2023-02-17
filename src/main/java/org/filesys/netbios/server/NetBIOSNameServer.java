@@ -1712,13 +1712,13 @@ public class NetBIOSNameServer extends NetworkServer implements Runnable, Config
      * @param id     int
      * @param config ServerConfiguration
      * @param newVal Object
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error changing the configuration
      */
-    public int configurationChanged(int id, ServerConfiguration config, Object newVal)
+    public ConfigurationListener.Sts configurationChanged(int id, ServerConfiguration config, Object newVal)
             throws InvalidConfigurationException {
 
-        int sts = StsIgnored;
+        ConfigurationListener.Sts sts = Sts.Ignored;
 
         try {
 
@@ -1742,7 +1742,7 @@ public class NetBIOSNameServer extends NetworkServer implements Runnable, Config
                     }
 
                     //	Indicate that the setting was accepted
-                    sts = StsAccepted;
+                    sts = Sts.Accepted;
                     break;
 
                 //	Debug enable
@@ -1752,7 +1752,7 @@ public class NetBIOSNameServer extends NetworkServer implements Runnable, Config
                     Boolean b = (Boolean) newVal;
                     setDebug(b.booleanValue());
 
-                    sts = StsAccepted;
+                    sts = Sts.Accepted;
                     break;
 
                 //	Settings that require a restart
@@ -1760,7 +1760,7 @@ public class NetBIOSNameServer extends NetworkServer implements Runnable, Config
                 case ConfigId.NetBIOSSessionPort:
                 case ConfigId.NetBIOSBindAddress:
                 case ConfigId.SMBBroadcastMask:
-                    sts = StsRestartRequired;
+                    sts = Sts.RestartRequired;
                     break;
             }
         }

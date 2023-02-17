@@ -19,10 +19,7 @@
 
 package org.filesys.app;
 
-import org.filesys.server.config.ConfigId;
-import org.filesys.server.config.ConfigSection;
-import org.filesys.server.config.InvalidConfigurationException;
-import org.filesys.server.config.ServerConfiguration;
+import org.filesys.server.config.*;
 import org.filesys.smb.util.DriveMappingList;
 
 /**
@@ -81,14 +78,14 @@ public class DriveMappingsConfigSection extends ConfigSection {
    * Add a list of mapped drives
    *
    * @param mappedDrives DriveMappingList
-   * @return int
+   * @return ConfigurationListener.Sts
    * @exception InvalidConfigurationException Set configuration failed
    */
-  public final int setMappedDrives(DriveMappingList mappedDrives)
+  public final ConfigurationListener.Sts setMappedDrives(DriveMappingList mappedDrives)
     throws InvalidConfigurationException {
       
     //  Inform listeners, validate the configuration change
-    int sts = fireConfigurationChange(ConfigId.SMBMappedDrives, mappedDrives);
+    ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.SMBMappedDrives, mappedDrives);
     m_mappedDrives = mappedDrives;
     
     //  Return the change status

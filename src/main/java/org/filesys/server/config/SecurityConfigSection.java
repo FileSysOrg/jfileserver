@@ -219,14 +219,14 @@ public class SecurityConfigSection extends ConfigSection {
      *
      * @param aclMgrClass String
      * @param params      ConfigElement
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error setting the access control manager class
      */
-    public final int setAccessControlManager(String aclMgrClass, ConfigElement params)
+    public final ConfigurationListener.Sts setAccessControlManager(String aclMgrClass, ConfigElement params)
             throws InvalidConfigurationException {
 
         //  Validate the access control manager class
-        int sts = ConfigurationListener.StsIgnored;
+        ConfigurationListener.Sts sts = ConfigurationListener.Sts.Ignored;
         AccessControlManager aclMgr = null;
 
         try {
@@ -264,14 +264,14 @@ public class SecurityConfigSection extends ConfigSection {
      * Set the access control manager to be used to control per share access
      *
      * @param aclMgr the access control manager to be used to control per share access
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error setting the access control manager class
      */
-    public final int setAccessControlManager(AccessControlManager aclMgr)
+    public final ConfigurationListener.Sts setAccessControlManager(AccessControlManager aclMgr)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.SecurityACLManager, aclMgr);
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.SecurityACLManager, aclMgr);
 
         //  Set the server access control manager
         m_aclManager = aclMgr;
@@ -284,14 +284,14 @@ public class SecurityConfigSection extends ConfigSection {
      * Set the JCE provider
      *
      * @param providerClass String
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error setting the JCE provider class
      */
-    public final int setJCEProvider(String providerClass)
+    public final ConfigurationListener.Sts setJCEProvider(String providerClass)
             throws InvalidConfigurationException {
 
         //  Validate the JCE provider class
-        int sts = ConfigurationListener.StsIgnored;
+        ConfigurationListener.Sts sts = ConfigurationListener.Sts.Ignored;
 
         try {
 
@@ -327,14 +327,14 @@ public class SecurityConfigSection extends ConfigSection {
      *
      * @param mapperClass String
      * @param params      ConfigElement
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error setting the share mapper class
      */
-    public final int setShareMapper(String mapperClass, ConfigElement params)
+    public final ConfigurationListener.Sts setShareMapper(String mapperClass, ConfigElement params)
             throws InvalidConfigurationException {
 
         //  Validate the share mapper class
-        int sts = ConfigurationListener.StsIgnored;
+        ConfigurationListener.Sts sts = ConfigurationListener.Sts.Ignored;
 
         try {
 
@@ -369,13 +369,13 @@ public class SecurityConfigSection extends ConfigSection {
      * Set the share mapper
      *
      * @param shareMapper pre-initialized share mapper
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error setting the share mapper class
      */
-    public final int setShareMapper(ShareMapper shareMapper) throws InvalidConfigurationException {
+    public final ConfigurationListener.Sts setShareMapper(ShareMapper shareMapper) throws InvalidConfigurationException {
 
         // Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.ShareMapper, shareMapper);
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.ShareMapper, shareMapper);
 
         // Set the share mapper
         m_shareMapper = shareMapper;
@@ -388,14 +388,14 @@ public class SecurityConfigSection extends ConfigSection {
      * Set the user account list.
      *
      * @param users UserAccountList
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error setting the user account list
      */
-    public final int setUserAccounts(UserAccountList users)
+    public final ConfigurationListener.Sts setUserAccounts(UserAccountList users)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.UsersList, users);
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.UsersList, users);
         m_userList = users;
 
         //  Return the change status
@@ -407,14 +407,14 @@ public class SecurityConfigSection extends ConfigSection {
      *
      * @param usersClass String
      * @param params     ConfigElement
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error setting the users interface class
      */
-    public final int setUsersInterface(String usersClass, ConfigElement params)
+    public final ConfigurationListener.Sts setUsersInterface(String usersClass, ConfigElement params)
             throws InvalidConfigurationException {
 
         //  Validate the users interface access class
-        int sts = ConfigurationListener.StsIgnored;
+        ConfigurationListener.Sts sts = ConfigurationListener.Sts.Ignored;
         UsersInterface usersIface = null;
 
         try {
@@ -452,14 +452,14 @@ public class SecurityConfigSection extends ConfigSection {
      * Set the users interface to provide user account information
      *
      * @param usersIface UsersInterface
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error setting the users interface class
      */
-    public final int setUsersInterface( UsersInterface usersIface)
+    public final ConfigurationListener.Sts setUsersInterface( UsersInterface usersIface)
         throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.SecurityUsersInterface, usersIface);
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.SecurityUsersInterface, usersIface);
 
         //  Set the users interface and initialization parameters
         m_usersInterface = usersIface;
@@ -472,14 +472,14 @@ public class SecurityConfigSection extends ConfigSection {
      * Set the global access control list
      *
      * @param acls AccessControlList
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error setting the global access control list
      */
-    public final int setGlobalAccessControls(AccessControlList acls)
+    public final ConfigurationListener.Sts setGlobalAccessControls(AccessControlList acls)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.SecurityGlobalACLs, acls);
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.SecurityGlobalACLs, acls);
         m_globalACLs = acls;
 
         //  Return the change status

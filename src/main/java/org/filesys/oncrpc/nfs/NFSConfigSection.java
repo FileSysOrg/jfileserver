@@ -232,14 +232,14 @@ public class NFSConfigSection extends ConfigSection {
      * Set the NFS port mapper enable flag
      *
      * @param ena boolean
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error setting the port mapper enable flag
      */
-    public final int setNFSPortMapper(boolean ena)
+    public final ConfigurationListener.Sts setNFSPortMapper(boolean ena)
             throws InvalidConfigurationException {
 
         //  Check if the value has changed
-        int sts = ConfigurationListener.StsIgnored;
+        ConfigurationListener.Sts sts = ConfigurationListener.Sts.Ignored;
 
         if (m_nfsPortMapper != ena) {
 
@@ -256,14 +256,14 @@ public class NFSConfigSection extends ConfigSection {
      * Set the NFS debug flags
      *
      * @param dbg EnumSet&lt;NFSSrvSession.Dbg&gt;
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error setting the debug flags
      */
-    public final int setNFSDebug(EnumSet<NFSSrvSession.Dbg> dbg)
+    public final ConfigurationListener.Sts setNFSDebug(EnumSet<NFSSrvSession.Dbg> dbg)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.NFSDebugFlags, dbg);
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.NFSDebugFlags, dbg);
         m_nfsDebug = dbg;
 
         //  Return the change status
@@ -274,14 +274,14 @@ public class NFSConfigSection extends ConfigSection {
      * Set the port mapper port
      *
      * @param port int
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error setting the port mapper port
      */
-    public final int setPortMapperPort(int port)
+    public final ConfigurationListener.Sts setPortMapperPort(int port)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.NFSPortMapPort, new Integer(port));
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.NFSPortMapPort, new Integer(port));
         m_portMapperPort = port;
 
         //  Return the change status
@@ -292,14 +292,14 @@ public class NFSConfigSection extends ConfigSection {
      * Set the mount server port
      *
      * @param port int
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error setting the mount server port
      */
-    public final int setMountServerPort(int port)
+    public final ConfigurationListener.Sts setMountServerPort(int port)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.NFSMountPort, new Integer(port));
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.NFSMountPort, new Integer(port));
         m_mountServerPort = port;
 
         //  Return the change status
@@ -310,14 +310,14 @@ public class NFSConfigSection extends ConfigSection {
      * Set the NFS server port
      *
      * @param port int
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error setting the server port
      */
-    public final int setNFSServerPort(int port)
+    public final ConfigurationListener.Sts setNFSServerPort(int port)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.NFSServerPort, new Integer(port));
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.NFSServerPort, new Integer(port));
         m_nfsServerPort = port;
 
         //  Return the change status
@@ -328,14 +328,14 @@ public class NFSConfigSection extends ConfigSection {
      * Set the enabled NFS verison(s)
      *
      * @param nfsVersions EnumSet&lt;NFSVersion&gt;
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error setting the NFS versions
      */
-    public final int setEnabledNFSVersions(EnumSet<NFSVersion> nfsVersions)
+    public final ConfigurationListener.Sts setEnabledNFSVersions(EnumSet<NFSVersion> nfsVersions)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.NFSVersions, nfsVersions);
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.NFSVersions, nfsVersions);
         m_nfsVersions = nfsVersions;
 
         //  Return the change status
@@ -346,14 +346,14 @@ public class NFSConfigSection extends ConfigSection {
      * Set the RPC registration port
      *
      * @param port int
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error setting the RPC registration port
      */
-    public final int setRPCRegistrationPort(int port)
+    public final ConfigurationListener.Sts setRPCRegistrationPort(int port)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.NFSRPCRegistrationPort, new Integer(port));
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.NFSRPCRegistrationPort, new Integer(port));
         m_rpcRegisterPort = port;
 
         //  Return the change status
@@ -364,14 +364,14 @@ public class NFSConfigSection extends ConfigSection {
      * Enable/disable port mapper debug output
      *
      * @param dbg boolean
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error setting the debug enable flag
      */
-    public final int setPortMapperDebug(boolean dbg)
+    public final ConfigurationListener.Sts setPortMapperDebug(boolean dbg)
             throws InvalidConfigurationException {
 
         //  Check if the value has changed
-        int sts = ConfigurationListener.StsIgnored;
+        ConfigurationListener.Sts sts = ConfigurationListener.Sts.Ignored;
 
         if (m_portMapDebug != dbg) {
 
@@ -388,14 +388,14 @@ public class NFSConfigSection extends ConfigSection {
      * Enable/disable mount server debug output
      *
      * @param dbg boolean
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error setting the mount server debug flag
      */
-    public final int setMountServerDebug(boolean dbg)
+    public final ConfigurationListener.Sts setMountServerDebug(boolean dbg)
             throws InvalidConfigurationException {
 
         //  Check if the value has changed
-        int sts = ConfigurationListener.StsIgnored;
+        ConfigurationListener.Sts sts = ConfigurationListener.Sts.Ignored;
 
         if (m_portMapDebug != dbg) {
 
@@ -414,14 +414,14 @@ public class NFSConfigSection extends ConfigSection {
      *
      * @param authClass String
      * @param params    ConfigElement
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error setting the RPC authenticator
      */
-    public final int setRpcAuthenticator(String authClass, ConfigElement params)
+    public final ConfigurationListener.Sts setRpcAuthenticator(String authClass, ConfigElement params)
             throws InvalidConfigurationException {
 
         //  Validate the RPC authenticator class
-        int sts = ConfigurationListener.StsIgnored;
+        ConfigurationListener.Sts sts = ConfigurationListener.Sts.Ignored;
         RpcAuthenticator auth = null;
 
         try {
@@ -460,14 +460,14 @@ public class NFSConfigSection extends ConfigSection {
      * server and NFS server)
      *
      * @param auth RpcAuthenticator
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error setting the RPC authenticator
      */
-    public final int setRpcAuthenticator(RpcAuthenticator auth)
+    public final ConfigurationListener.Sts setRpcAuthenticator(RpcAuthenticator auth)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.NFSRpcAuthenticator, auth);
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.NFSRpcAuthenticator, auth);
 
         //  Set the RPC authenticator
         m_rpcAuthenticator = auth;
@@ -480,14 +480,14 @@ public class NFSConfigSection extends ConfigSection {
      * Set the NFS file cache I/O timer, in milliseconds
      *
      * @param ioTimer long
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error setting the file cache timer
      */
-    public final int setNFSFileCacheIOTimer(long ioTimer)
+    public final ConfigurationListener.Sts setNFSFileCacheIOTimer(long ioTimer)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.NFSFileCacheIOTimer, new Long(ioTimer));
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.NFSFileCacheIOTimer, new Long(ioTimer));
         m_nfsFileCacheIOTimer = ioTimer;
 
         //  Return the change status
@@ -498,14 +498,14 @@ public class NFSConfigSection extends ConfigSection {
      * Set the NFS file cache close timer, in milliseconds
      *
      * @param closeTimer long
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error setting the file cache close timer
      */
-    public final int setNFSFileCacheCloseTimer(long closeTimer)
+    public final ConfigurationListener.Sts setNFSFileCacheCloseTimer(long closeTimer)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.NFSFileCacheCloseTimer, new Long(closeTimer));
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.NFSFileCacheCloseTimer, new Long(closeTimer));
         m_nfsFileCacheCloseTimer = closeTimer;
 
         //  Return the change status
@@ -516,14 +516,14 @@ public class NFSConfigSection extends ConfigSection {
      * Set the NFS file cache debug enable flag
      *
      * @param ena boolean
-     * @return int
+     * @return ConfigurationListener.Sts
      * @exception InvalidConfigurationException Error setting the file cache debug flag
      */
-    public final int setNFSFileCacheDebug(boolean ena)
+    public final ConfigurationListener.Sts setNFSFileCacheDebug(boolean ena)
             throws InvalidConfigurationException {
 
         //  Check if the value has changed
-        int sts = ConfigurationListener.StsIgnored;
+        ConfigurationListener.Sts sts = ConfigurationListener.Sts.Ignored;
 
         if (m_nfsFileCacheDebug != ena) {
 
@@ -540,14 +540,14 @@ public class NFSConfigSection extends ConfigSection {
      * Set the disable NIO code flag
      *
      * @param disableNIO boolean
-     * @return int
+     * @return ConfigurationListener.Sts
      * @throws InvalidConfigurationException Failed to set the disable NIO flag
      */
-    public final int setDisableNIOCode(boolean disableNIO)
+    public final ConfigurationListener.Sts setDisableNIOCode(boolean disableNIO)
             throws InvalidConfigurationException {
 
         //  Inform listeners, validate the configuration change
-        int sts = fireConfigurationChange(ConfigId.NFSDisableNIO, new Boolean(disableNIO));
+        ConfigurationListener.Sts sts = fireConfigurationChange(ConfigId.NFSDisableNIO, new Boolean(disableNIO));
         m_disableNIO = disableNIO;
 
         //  Return the change status
