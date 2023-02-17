@@ -35,7 +35,7 @@ public class LocalFileState extends FileState {
     private static final long serialVersionUID = 1L;
 
     //	File identifier
-    private int m_fileId = UnknownFileId;
+    private long m_fileId = UnknownFileId;
 
     //	File data status
     private DataStatus m_dataStatus = DataStatus.Available;
@@ -73,9 +73,9 @@ public class LocalFileState extends FileState {
     /**
      * Get the file id
      *
-     * @return int
+     * @return long
      */
-    public int getFileId() {
+    public long getFileId() {
         return m_fileId;
     }
 
@@ -91,9 +91,9 @@ public class LocalFileState extends FileState {
     /**
      * Set the file identifier
      *
-     * @param id int
+     * @param id long
      */
-    public void setFileId(int id) {
+    public void setFileId(long id) {
         m_fileId = id;
     }
 

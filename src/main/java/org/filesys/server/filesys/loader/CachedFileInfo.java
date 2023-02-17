@@ -31,8 +31,8 @@ import org.filesys.server.filesys.cache.FileState;
 public class CachedFileInfo {
 
     //	File id and stream id
-    private int m_fid;
-    private int m_stid;
+    private long m_fid;
+    private long m_stid;
 
     //	Temporary file path
     private String m_tempPath;
@@ -46,12 +46,12 @@ public class CachedFileInfo {
     /**
      * Class constructor
      *
-     * @param fid      int
-     * @param stid     int
+     * @param fid      long
+     * @param stid     long
      * @param tempPath String
      * @param virtPath String
      */
-    public CachedFileInfo(int fid, int stid, String tempPath, String virtPath) {
+    public CachedFileInfo(long fid, long stid, String tempPath, String virtPath) {
         m_fid = fid;
         m_stid = stid;
         m_tempPath = tempPath;
@@ -61,18 +61,18 @@ public class CachedFileInfo {
     /**
      * Return the file id
      *
-     * @return int
+     * @return long
      */
-    public final int getFileId() {
+    public final long getFileId() {
         return m_fid;
     }
 
     /**
      * Return the stream id
      *
-     * @return int
+     * @return long
      */
-    public final int getStreamId() {
+    public final long getStreamId() {
         return m_stid;
     }
 

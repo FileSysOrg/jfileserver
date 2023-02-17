@@ -97,6 +97,9 @@ public class JavaNIODeviceContext extends DiskDeviceContext {
             File rootDir = new File(path.getValue());
             setDeviceName( rootDir.getAbsolutePath());
 
+            // Generate a unique id for the device using the local path
+            generateUniqueId( path.hashCode());
+
             // Get the large file size, for special delete/truncate processing
             ConfigElement largeSize = args.getChild( "LargeFileSize");
             if ( largeSize != null) {
@@ -128,7 +131,7 @@ public class JavaNIODeviceContext extends DiskDeviceContext {
                 }
             }
             else {
-
+/*
                 // Use/create a folder within the shared folder as the trashcan folder
                 File trashDir = new File( rootDir, TrashcanFolderName);
                 if ( trashDir.exists() == false) {
@@ -140,6 +143,8 @@ public class JavaNIODeviceContext extends DiskDeviceContext {
 
                 // Set the trashcan path
                 m_trashDir = trashDir;
+*/
+                m_trashDir = null;
             }
 
             // Check if debug output is enabled

@@ -177,17 +177,17 @@ public class TreeConnection {
     /**
      * Return the specified network file.
      *
-     * @param fid int
+     * @param fid long
      * @return NetworkFile
      */
-    public synchronized NetworkFile findFile(int fid) {
+    public synchronized NetworkFile findFile(long fid) {
 
         //  Check if the file id and file array are valid
         if (m_files == null || fid >= m_files.length || fid < 0)
             return null;
 
         //  Get the required file details
-        return m_files[fid];
+        return m_files[(int) fid];
     }
 
     /**
@@ -322,10 +322,10 @@ public class TreeConnection {
     /**
      * Remove a network file from the list of open files for this connection.
      *
-     * @param idx  int
+     * @param idx  long
      * @param sess SrvSession
      */
-    public synchronized void removeFile(int idx, SrvSession sess) {
+    public synchronized void removeFile(long idx, SrvSession sess) {
 
         //  Range check the file index
         if (m_files == null || idx >= m_files.length)
@@ -334,12 +334,12 @@ public class TreeConnection {
         //	Inform listeners of the file closure
         NetworkFileServer fileSrv = (NetworkFileServer) sess.getServer();
         if (fileSrv != null)
-            fileSrv.fireCloseFileEvent(sess, m_files[idx]);
+            fileSrv.fireCloseFileEvent(sess, m_files[(int) idx]);
 
         //  Remove the file and update the open file count.
-        if (m_files[idx] != null)
-            m_files[idx].setProtocolId(-1);
-        m_files[idx] = null;
+        if (m_files[(int) idx] != null)
+            m_files[(int) idx].setProtocolId(-1);
+        m_files[(int) idx] = null;
         m_fileCount--;
     }
 

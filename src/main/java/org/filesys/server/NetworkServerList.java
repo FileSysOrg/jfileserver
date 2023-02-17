@@ -20,6 +20,7 @@
 package org.filesys.server;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -27,7 +28,7 @@ import java.util.List;
  *
  * @author gkspencer
  */
-public class NetworkServerList {
+public class NetworkServerList implements Iterable<NetworkServer> {
 
     //	List of network servers
     private List<NetworkServer> m_servers;
@@ -37,6 +38,11 @@ public class NetworkServerList {
      */
     public NetworkServerList() {
         m_servers = new ArrayList<NetworkServer>();
+    }
+
+    @Override
+    public Iterator<NetworkServer> iterator() {
+        return m_servers.listIterator();
     }
 
     /**

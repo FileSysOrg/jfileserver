@@ -39,44 +39,44 @@ public interface NamedFileLoader {
      * Create a directory
      *
      * @param dir String
-     * @param fid int
+     * @param fid long
      * @param parentId Parent directory file id
      * @throws IOException Failed to create the directory
      */
-    public void createDirectory(String dir, int fid, int parentId)
+    public void createDirectory(String dir, long fid, long parentId)
             throws IOException;
 
     /**
      * Delete a directory
      *
      * @param dir String
-     * @param fid int
+     * @param fid long
      * @throws IOException Failed to delete the directory
      */
-    public void deleteDirectory(String dir, int fid)
+    public void deleteDirectory(String dir, long fid)
             throws IOException;
 
     /**
      * Rename a file or directory
      *
      * @param curName String
-     * @param fid     int
+     * @param fid     long
      * @param newName String
      * @param fstate  FileState
      * @param isdir   boolean
      * @throws IOException Failed to rename the file or directory
      */
-    public void renameFileDirectory(String curName, int fid, String newName, FileState fstate, boolean isdir)
+    public void renameFileDirectory(String curName, long fid, String newName, FileState fstate, boolean isdir)
             throws IOException;
 
     /**
      * Change file attributes/settings
      *
      * @param path  String
-     * @param fid   int
+     * @param fid   long
      * @param finfo FileInfo
      * @throws IOException Failed to set the file attributes
      */
-    public void setFileInformation(String path, int fid, FileInfo finfo)
+    public void setFileInformation(String path, long fid, FileInfo finfo)
             throws IOException;
 }

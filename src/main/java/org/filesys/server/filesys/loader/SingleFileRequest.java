@@ -31,8 +31,8 @@ import org.filesys.server.filesys.cache.FileState;
 public class SingleFileRequest extends FileStateFileRequest {
 
     //	File id and stream id
-    private int m_fid;
-    private int m_stid;
+    private long m_fid;
+    private long m_stid;
 
     //	Unique request id
     private int m_seqNo = -1;
@@ -47,13 +47,13 @@ public class SingleFileRequest extends FileStateFileRequest {
      * Class constructor
      *
      * @param typ      RequestType
-     * @param fid      int
-     * @param stid     int
+     * @param fid      long
+     * @param stid     long
      * @param tempPath String
      * @param virtPath String
      * @param state    FileState
      */
-    public SingleFileRequest(RequestType typ, int fid, int stid, String tempPath, String virtPath, FileState state) {
+    public SingleFileRequest(RequestType typ, long fid, long stid, String tempPath, String virtPath, FileState state) {
         super(typ, state);
 
         m_fid = fid;
@@ -66,13 +66,13 @@ public class SingleFileRequest extends FileStateFileRequest {
      * Class constructor
      *
      * @param typ      RequestType
-     * @param fid      int
-     * @param stid     int
+     * @param fid      long
+     * @param stid     long
      * @param segInfo  FileSegmentInfo
      * @param virtPath String
      * @param state    FileState
      */
-    public SingleFileRequest(RequestType typ, int fid, int stid, FileSegmentInfo segInfo, String virtPath, FileState state) {
+    public SingleFileRequest(RequestType typ, long fid, long stid, FileSegmentInfo segInfo, String virtPath, FileState state) {
         super(typ, state);
 
         m_fid = fid;
@@ -88,14 +88,14 @@ public class SingleFileRequest extends FileStateFileRequest {
      * Class constructor
      *
      * @param typ      RequestType
-     * @param fid      int
-     * @param stid     int
+     * @param fid      long
+     * @param stid     long
      * @param tempPath String
      * @param virtPath String
      * @param seq      int
      * @param state    FileState
      */
-    public SingleFileRequest(RequestType typ, int fid, int stid, String tempPath, String virtPath, int seq, FileState state) {
+    public SingleFileRequest(RequestType typ, long fid, long stid, String tempPath, String virtPath, int seq, FileState state) {
         super(typ, state);
 
         m_fid = fid;
@@ -108,18 +108,18 @@ public class SingleFileRequest extends FileStateFileRequest {
     /**
      * Return the file identifier
      *
-     * @return int
+     * @return long
      */
-    public final int getFileId() {
+    public final long getFileId() {
         return m_fid;
     }
 
     /**
      * Return the stream identifier, zero for the main file stream
      *
-     * @return int
+     * @return long
      */
-    public final int getStreamId() {
+    public final long getStreamId() {
         return m_stid;
     }
 

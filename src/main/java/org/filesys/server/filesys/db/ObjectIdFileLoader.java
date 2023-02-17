@@ -628,8 +628,8 @@ public abstract class ObjectIdFileLoader implements FileLoader, BackgroundFileLo
         BackgroundLoadSave.Status loadSts = BackgroundLoadSave.Status.Requeue;
         String objectId = null;
 
-        int fileId = loadReq.getFileId();
-        int strmId = loadReq.getStreamId();
+        long fileId = loadReq.getFileId();
+        long strmId = loadReq.getStreamId();
 
         try {
 
@@ -810,26 +810,26 @@ public abstract class ObjectIdFileLoader implements FileLoader, BackgroundFileLo
     /**
      * Load the file data
      *
-     * @param fileId   int
-     * @param streamId int
+     * @param fileId   ilong
+     * @param streamId long
      * @param objectId String
      * @param fileSeg  FileSegment
      * @exception IOException I/O error
      */
-    public abstract void loadFileData(int fileId, int streamId, String objectId, FileSegment fileSeg)
+    public abstract void loadFileData(long fileId, long streamId, String objectId, FileSegment fileSeg)
             throws IOException;
 
     /**
      * Save file data
      *
-     * @param fileId   int
-     * @param streamId int
+     * @param fileId   long
+     * @param streamId long
      * @param fileSeg  FileSegment
      * @param attrs    NameValueList
      * @return String
      * @exception IOException I/O error
      */
-    public abstract String saveFileData(int fileId, int streamId, FileSegment fileSeg, NameValueList attrs)
+    public abstract String saveFileData(long fileId, long streamId, FileSegment fileSeg, NameValueList attrs)
             throws IOException;
 
     /**

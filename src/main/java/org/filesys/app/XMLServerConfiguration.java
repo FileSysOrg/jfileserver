@@ -36,6 +36,7 @@ import org.filesys.oncrpc.nfs.NFSSrvSession;
 import org.filesys.oncrpc.nfs.v3.NFS3RpcProcessor;
 import org.filesys.server.config.InvalidConfigurationException;
 import org.filesys.server.filesys.cache.hazelcast.ClusterConfigSection;
+import org.filesys.server.filesys.event.FSEventsConfigSection;
 import org.springframework.extensions.config.ConfigElement;
 import org.springframework.extensions.config.element.ConfigElementAdapter;
 import org.w3c.dom.Document;
@@ -83,6 +84,9 @@ public class XMLServerConfiguration extends SMBOnlyXMLServerConfiguration {
 
 		// Reset the current configuration to the default settings
 		removeAllConfigSections();
+
+		// Add the global filesystem event handler configuration section
+		addConfigSection( new FSEventsConfigSection( this));
 
 		// Parse the XML configuration document
 		try {
@@ -259,7 +263,7 @@ public class XMLServerConfiguration extends SMBOnlyXMLServerConfiguration {
 			else {
 
 				// Validate the bind address
-				String bindText = getText(elem);
+				String bindText = getTextWithEnvVars(elem);
 
 				try {
 
@@ -279,7 +283,7 @@ public class XMLServerConfiguration extends SMBOnlyXMLServerConfiguration {
 		elem = findChildNode("port", ftp.getChildNodes());
 		if ( elem != null) {
 			try {
-				ftpConfig.setFTPPort(Integer.parseInt(getText(elem)));
+				ftpConfig.setFTPPort(Integer.parseInt(getTextWithEnvVars(elem)));
 				if ( ftpConfig.getFTPPort() <= 0 || ftpConfig.getFTPPort() >= 65535)
 					throw new InvalidConfigurationException("FTP server port out of valid range");
 			}
@@ -328,7 +332,7 @@ public class XMLServerConfiguration extends SMBOnlyXMLServerConfiguration {
 		if ( elem != null) {
 
 			// Get the root path
-			String rootPath = getText(elem);
+			String rootPath = getTextWithEnvVars(elem);
 
 			// Validate the root path
 			try {
@@ -400,7 +404,7 @@ public class XMLServerConfiguration extends SMBOnlyXMLServerConfiguration {
 		if ( elem != null) {
 
 			// Check for FTP debug flags
-			String flags = elem.getAttribute("flags");
+			String flags = getAttributeWithEnvVars(elem, "flags");
 			EnumSet<FTPSrvSession.Dbg> ftpDbg = EnumSet.<FTPSrvSession.Dbg>noneOf( FTPSrvSession.Dbg.class);
 
 			if ( flags != null) {

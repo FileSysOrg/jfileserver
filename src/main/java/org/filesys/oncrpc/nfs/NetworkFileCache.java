@@ -46,7 +46,7 @@ public class NetworkFileCache {
     public static final long ClosedFileTimeout  = 30000L;   // 30 seconds
 
     // Network file cache, key is the file id
-    private Hashtable<Integer, FileEntry> m_fileCache;
+    private Hashtable<Long, FileEntry> m_fileCache;
 
     // File expiry thread
     private FileExpiry m_expiryThread;
@@ -250,12 +250,12 @@ public class NetworkFileCache {
                 synchronized (m_fileCache) {
 
                     // Enumerate the cache entries
-                    Enumeration<Integer> enm = m_fileCache.keys();
+                    Enumeration<Long> enm = m_fileCache.keys();
 
                     while (enm.hasMoreElements()) {
 
                         // Get the current key
-                        Integer fileId = enm.nextElement();
+                        Long fileId = enm.nextElement();
 
                         // Get the file entry and check if it has expired
                         FileEntry fentry = m_fileCache.get(fileId);
@@ -414,7 +414,7 @@ public class NetworkFileCache {
     public NetworkFileCache(String name) {
 
         // Create the file cache
-        m_fileCache = new Hashtable<Integer, FileEntry>();
+        m_fileCache = new Hashtable<Long, FileEntry>();
 
         // Start the file expiry thread
         m_expiryThread = new FileExpiry(name);
@@ -439,40 +439,37 @@ public class NetworkFileCache {
     public synchronized final void addFile(NetworkFile file,
                                            TreeConnection conn, NFSSrvSession sess) {
         synchronized (m_fileCache) {
-            m_fileCache.put(new Integer(file.getFileId()), new FileEntry(file, conn, sess));
+            m_fileCache.put(new Long(file.getFileId()), new FileEntry(file, conn, sess));
         }
     }
 
     /**
      * Remove a file from the cache
      *
-     * @param id int
+     * @param id long
      */
-    public synchronized final void removeFile(int id) {
+    public synchronized final void removeFile(long id) {
 
         // Create the search key
-        Integer fileId = new Integer(id);
-
         synchronized (m_fileCache) {
-            m_fileCache.remove(fileId);
+            m_fileCache.remove( id);
         }
     }
 
     /**
      * Find a file via the file id
      *
-     * @param id   int
+     * @param id   long
      * @param sess SrvSession
      * @return NetworkFile
      */
-    public synchronized final NetworkFile findFile(int id, SrvSession sess) {
+    public synchronized final NetworkFile findFile(long id, SrvSession sess) {
 
-        // Create the search key
-        Integer fileId = new Integer(id);
+        // Find the file entry
         FileEntry fentry = null;
 
         synchronized (m_fileCache) {
-            fentry = m_fileCache.get(fileId);
+            fentry = m_fileCache.get( id);
         }
 
         // Return the file, or null if not found
@@ -510,12 +507,12 @@ public class NetworkFileCache {
     public final void closeAllFiles() {
 
         // Enumerate the cache entries
-        Enumeration<Integer> keys = m_fileCache.keys();
+        Enumeration<Long> keys = m_fileCache.keys();
 
         while (keys.hasMoreElements()) {
 
             // Get the current key and lookup the matching value
-            Integer key = keys.nextElement();
+            Long key = keys.nextElement();
             FileEntry entry = m_fileCache.get(key);
 
             // Expire the file entry
@@ -571,12 +568,12 @@ public class NetworkFileCache {
         Debug.println("NetworkFileCache entries=" + numberOfEntries());
 
         // Enumerate the cache entries
-        Enumeration<Integer> keys = m_fileCache.keys();
+        Enumeration<Long> keys = m_fileCache.keys();
 
         while (keys.hasMoreElements()) {
 
             // Get the current key and lookup the matching value
-            Integer key = keys.nextElement();
+            Long key = keys.nextElement();
             FileEntry entry = m_fileCache.get(key);
 
             // Dump the entry details

@@ -19,6 +19,7 @@
 
 package org.filesys.server.filesys.cache.cluster;
 
+import org.filesys.server.filesys.event.FSEventsHandler;
 import org.filesys.server.locking.OpLockManager;
 import org.filesys.server.thread.ThreadRequestPool;
 import org.filesys.smb.server.notify.NotifyChangeHandler;
@@ -103,11 +104,11 @@ public interface ClusterInterface {
     public OpLockManager getOpLockManager();
 
     /**
-     * Return the change notification handler, if configured for the filesystem
+     * Return the filesystem events handler, if configured for the filesystem
      *
-     * @return NotifyChangeHandler
+     * @return FSEventsHandler
      */
-    public NotifyChangeHandler getNotifyChangeHandler();
+    public FSEventsHandler getFSEventsHandler();
 
     /**
      * Set the send none existent file/folder states to the cluster
@@ -124,11 +125,11 @@ public interface ClusterInterface {
     public void setOpLockManager(OpLockManager oplockMgr);
 
     /**
-     * Set the change notification handler
+     * Set the filesystem events handler
      *
-     * @param notifyHandler NotifyChangeHandler
+     * @param eventHandler FSEventsHandler
      */
-    public void setNotifyChangeHandler(NotifyChangeHandler notifyHandler);
+    public void setFSEventsHandler(FSEventsHandler eventHandler);
 
     /**
      * Set the cluster node list

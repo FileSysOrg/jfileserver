@@ -31,33 +31,33 @@ public interface DBObjectIdInterface {
     /**
      * Create a file id to object id mapping
      *
-     * @param fileId   int
-     * @param streamId int
+     * @param fileId   long
+     * @param streamId long
      * @param objectId String
      * @exception DBException Database error
      */
-    public void saveObjectId(int fileId, int streamId, String objectId)
+    public void saveObjectId(long fileId, long streamId, String objectId)
             throws DBException;
 
     /**
      * Load the object id for the specified file id
      *
-     * @param fileId   int
-     * @param streamId int
+     * @param fileId   long
+     * @param streamId long
      * @return String
      * @exception DBException Database error
      */
-    public String loadObjectId(int fileId, int streamId)
+    public String loadObjectId(long fileId, long streamId)
             throws DBException;
 
     /**
      * Delete a file id/object id mapping
      *
-     * @param fileId   int
-     * @param streamId int
+     * @param fileId   long
+     * @param streamId long
      * @param objectId String
      * @exception DBException Database error
      */
-    public void deleteObjectId(int fileId, int streamId, String objectId)
+    public void deleteObjectId(long fileId, long streamId, String objectId)
             throws DBException;
 }

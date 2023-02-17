@@ -54,13 +54,13 @@ public abstract class CachedNetworkFile extends DBNetworkFile {
      * Class constructor
      *
      * @param name    String
-     * @param fid     int
-     * @param stid    int
-     * @param did     int
+     * @param fid     long
+     * @param stid    long
+     * @param did     long
      * @param state   FileStateProxy
      * @param loader  FileLoader
      */
-    public CachedNetworkFile(String name, int fid, int stid, int did, FileStateProxy state, FileLoader loader) {
+    public CachedNetworkFile(String name, long fid, long stid, long did, FileStateProxy state, FileLoader loader) {
         super(name, fid, stid, did);
 
         // Save the file state

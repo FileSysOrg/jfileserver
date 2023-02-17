@@ -101,7 +101,7 @@ public class SMBRequestHandler extends RequestHandler implements Runnable {
         // Set the debug output enable
         setDebug(debug);
 
-        // Start the request handler in a seperate thread
+        // Start the request handler in a separate thread
         m_thread = new Thread(this);
         m_thread.setName("SMBRequestHandler_" + ++_handlerId);
         m_thread.setDaemon(false);
@@ -297,7 +297,7 @@ public class SMBRequestHandler extends RequestHandler implements Runnable {
                         int remCnt = runIdleSessionsReaper();
 
                         // DEBUG
-                        if (remCnt > 0 && Debug.EnableError && hasDebug())
+                        if (remCnt > 0) // && Debug.EnableError && hasDebug())
                             Debug.println("[SMB] Idle session reaper removed " + remCnt + " sessions");
                     }
                     catch (Throwable ex) {

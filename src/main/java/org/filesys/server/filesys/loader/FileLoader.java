@@ -61,16 +61,16 @@ public interface FileLoader {
      * Create a network file for the specified file
      *
      * @param params FileOpenParams
-     * @param fid    int
-     * @param stid   int
-     * @param did    int
+     * @param fid    long
+     * @param stid   long
+     * @param did    long
      * @param create boolean
      * @param dir    boolean
      * @return NetworkFile
      * @throws IOException I/O error
      * @throws FileNotFoundException File not found
      */
-    public NetworkFile openFile(FileOpenParams params, int fid, int stid, int did, boolean create, boolean dir)
+    public NetworkFile openFile(FileOpenParams params, long fid, long stid, long did, boolean create, boolean dir)
             throws IOException, FileNotFoundException;
 
     /**
@@ -87,11 +87,11 @@ public interface FileLoader {
      * Delete the specified file data
      *
      * @param fname String
-     * @param fid   int
-     * @param stid  int
+     * @param fid   long
+     * @param stid  long
      * @throws IOException I/O error
      */
-    public void deleteFile(String fname, int fid, int stid)
+    public void deleteFile(String fname, long fid, long stid)
             throws IOException;
 
     /**

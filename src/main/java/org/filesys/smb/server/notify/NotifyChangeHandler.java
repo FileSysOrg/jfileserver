@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2006-2010 Alfresco Software Limited.
- * Copyright (C) 2018 GK Spencer
+ * Copyright (C) 2018-2021 GK Spencer
  *
  * This file is part of Alfresco
  *
@@ -23,41 +23,39 @@ package org.filesys.smb.server.notify;
 import org.filesys.debug.Debug;
 import org.filesys.server.filesys.DiskDeviceContext;
 import org.filesys.server.filesys.FileName;
-import org.filesys.server.filesys.NotifyAction;
 import org.filesys.server.filesys.NotifyChange;
+import org.filesys.server.filesys.event.ChangeEvent;
+import org.filesys.server.filesys.event.ChangeEventHandler;
+import org.filesys.server.filesys.event.ChangeEventList;
+import org.filesys.server.filesys.event.FSChange;
 import org.filesys.smb.server.SMBSrvPacket;
 import org.filesys.smb.server.SMBSrvSession;
 
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
- * Notify Change Handler Class
+ * SMB Notify Change Event Handler Class
+ *
+ * <p>Receives change events from the core server to be sent to SMB clients as asynchronous change notifications</p>
  *
  * @author gkspencer
  */
-public class NotifyChangeHandler implements Runnable {
+public class NotifyChangeHandler extends ChangeEventHandler {
 
-    //	Change notification request list and global filter mask
+    // Change event handler unique name
+    public static final String Name = "SMB";
+
+    //	Change notification request list
     private NotifyRequestList m_notifyList;
-    private Set<NotifyChange> m_globalNotifyMask = EnumSet.noneOf( NotifyChange.class);
+
+    // Set of filesystem change events that this handler is interested in
+    private Set<FSChange> m_fsChanges = EnumSet.noneOf( FSChange.class);
 
     //	Associated disk device context
     private DiskDeviceContext m_diskCtx;
 
-    //	Change notification processing thread
-    private Thread m_procThread;
-
-    //	Change events queue
-    private NotifyChangeEventList m_eventList;
-
     //	Debug output enable
     private boolean m_debug = false;
-
-    //	Shutdown request flag
-    private boolean m_shutdown;
 
     /**
      * Class constructor
@@ -65,20 +63,18 @@ public class NotifyChangeHandler implements Runnable {
      * @param diskCtx DiskDeviceContext
      */
     public NotifyChangeHandler(DiskDeviceContext diskCtx) {
+        super(NotifyChangeHandler.Name, Priority.Normal);
 
         //	Save the associated disk context details
         m_diskCtx = diskCtx;
+    }
 
-        //	Allocate the events queue
-        m_eventList = new NotifyChangeEventList();
+    @Override
+    public void registerFilesystem(DiskDeviceContext diskCtx) throws Exception {
+    }
 
-        //	Create the processing thread
-        m_procThread = new Thread(this);
-
-        m_procThread.setDaemon(true);
-        m_procThread.setName("Notify_" + m_diskCtx.getDeviceName());
-
-        m_procThread.start();
+    @Override
+    public void unregisterFilesystem(DiskDeviceContext diskCtx) throws Exception {
     }
 
     /**
@@ -96,8 +92,8 @@ public class NotifyChangeHandler implements Runnable {
         req.setDiskContext(m_diskCtx);
         m_notifyList.addRequest(req);
 
-        //	Regenerate the global notify change filter mask
-        m_globalNotifyMask = m_notifyList.getGlobalFilter();
+        //	Regenerate the global change set
+        m_fsChanges = m_notifyList.getGlobalFSChangeFilter();
     }
 
     /**
@@ -124,9 +120,9 @@ public class NotifyChangeHandler implements Runnable {
         //	Remove the request from the list
         m_notifyList.removeRequest(req);
 
-        //	Regenerate the global notify change filter mask
+        //	Regenerate the global change set
         if (updateMask == true)
-            m_globalNotifyMask = m_notifyList.getGlobalFilter();
+            m_fsChanges = m_notifyList.getGlobalFSChangeFilter();
     }
 
     /**
@@ -139,80 +135,8 @@ public class NotifyChangeHandler implements Runnable {
         //	Remove all requests owned by the session
         m_notifyList.removeAllRequestsForSession(sess);
 
-        //	Recalculate the global notify change filter mask
-        m_globalNotifyMask = m_notifyList.getGlobalFilter();
-    }
-
-    /**
-     * Determine if the filter has file name change notification, triggered if a file is created, renamed or deleted
-     *
-     * @return boolean
-     */
-    public final boolean hasFileNameChange() {
-        return hasFilterFlag(NotifyChange.FileName);
-    }
-
-    /**
-     * Determine if the filter has directory name change notification, triggered if a directory is created or deleted.
-     *
-     * @return boolean
-     */
-    public final boolean hasDirectoryNameChange() {
-        return hasFilterFlag(NotifyChange.DirectoryName);
-    }
-
-    /**
-     * Determine if the filter has attribute change notification
-     *
-     * @return boolean
-     */
-    public final boolean hasAttributeChange() {
-        return hasFilterFlag(NotifyChange.Attributes);
-    }
-
-    /**
-     * Determine if the filter has file size change notification
-     *
-     * @return boolean
-     */
-    public final boolean hasFileSizeChange() {
-        return hasFilterFlag(NotifyChange.Size);
-    }
-
-    /**
-     * Determine if the filter has last write time change notification
-     *
-     * @return boolean
-     */
-    public final boolean hasFileWriteTimeChange() {
-        return hasFilterFlag(NotifyChange.LastWrite);
-    }
-
-    /**
-     * Determine if the filter has last access time change notification
-     *
-     * @return boolean
-     */
-    public final boolean hasFileAccessTimeChange() {
-        return hasFilterFlag(NotifyChange.LastAccess);
-    }
-
-    /**
-     * Determine if the filter has creation time change notification
-     *
-     * @return boolean
-     */
-    public final boolean hasFileCreateTimeChange() {
-        return hasFilterFlag(NotifyChange.Creation);
-    }
-
-    /**
-     * Determine if the filter has the security descriptor change notification
-     *
-     * @return boolean
-     */
-    public final boolean hasSecurityDescriptorChange() {
-        return hasFilterFlag(NotifyChange.Security);
+        //	Recalculate the global change set
+        m_fsChanges = m_notifyList.getGlobalFSChangeFilter();
     }
 
     /**
@@ -225,12 +149,12 @@ public class NotifyChangeHandler implements Runnable {
     }
 
     /**
-     * Return the global notify filter mask
+     * Return the global change set
      *
-     * @return Set of NotifyChange
+     * @return Set&lt;FSChange&gt;
      */
-    public final Set<NotifyChange> getGlobalNotifyMask() {
-        return m_globalNotifyMask;
+    public final Set<FSChange> getGlobalChangeSet() {
+        return m_fsChanges;
     }
 
     /**
@@ -243,159 +167,6 @@ public class NotifyChangeHandler implements Runnable {
     }
 
     /**
-     * Check if the change filter has the specified flag enabled
-     *
-     * @param flag NotifyChange
-     * @return boolean
-     */
-    private final boolean hasFilterFlag(NotifyChange flag) {
-        return m_globalNotifyMask.contains( flag);
-    }
-
-    /**
-     * File changed notification
-     *
-     * @param action NotifyAction
-     * @param path   String
-     */
-    public final void notifyFileChanged(NotifyAction action, String path) {
-
-        //	Check if file change notifications are enabled
-        if (getGlobalNotifyMask().isEmpty() || hasFileNameChange() == false)
-            return;
-
-        //	Queue the change notification
-        queueNotification(new NotifyChangeEvent(NotifyChange.FileName, action, path, false));
-    }
-
-    /**
-     * File/directory renamed notification
-     *
-     * @param oldName String
-     * @param newName String
-     */
-    public final void notifyRename(String oldName, String newName) {
-
-        //	Check if file change notifications are enabled
-        if (getGlobalNotifyMask().isEmpty() || (hasFileNameChange() == false && hasDirectoryNameChange() == false))
-            return;
-
-        //	Queue the change notification event
-        queueNotification(new NotifyChangeEvent(NotifyChange.FileName, NotifyAction.RenamedNewName, newName, oldName, false));
-    }
-
-    /**
-     * Directory changed notification
-     *
-     * @param action NotifyAction
-     * @param path   String
-     */
-    public final void notifyDirectoryChanged(NotifyAction action, String path) {
-
-        //	Check if file change notifications are enabled
-        if (getGlobalNotifyMask().isEmpty() || hasDirectoryNameChange() == false)
-            return;
-
-        //	Queue the change notification event
-        queueNotification(new NotifyChangeEvent(NotifyChange.DirectoryName, action, path, true));
-    }
-
-    /**
-     * Attributes changed notification
-     *
-     * @param path  String
-     * @param isdir boolean
-     */
-    public final void notifyAttributesChanged(String path, boolean isdir) {
-
-        //	Check if file change notifications are enabled
-        if (getGlobalNotifyMask().isEmpty() || hasAttributeChange() == false)
-            return;
-
-        //	Queue the change notification event
-        queueNotification(new NotifyChangeEvent(NotifyChange.Attributes, NotifyAction.Modified, path, isdir));
-    }
-
-    /**
-     * File size changed notification
-     *
-     * @param path String
-     */
-    public final void notifyFileSizeChanged(String path) {
-
-        //	Check if file change notifications are enabled
-        if (getGlobalNotifyMask().isEmpty() || hasFileSizeChange() == false)
-            return;
-
-        //	Send the change notification
-        queueNotification(new NotifyChangeEvent(NotifyChange.Size, NotifyAction.Modified, path, false));
-    }
-
-    /**
-     * Last write time changed notification
-     *
-     * @param path  String
-     * @param isdir boolean
-     */
-    public final void notifyLastWriteTimeChanged(String path, boolean isdir) {
-
-        //	Check if file change notifications are enabled
-        if (getGlobalNotifyMask().isEmpty() || hasFileWriteTimeChange() == false)
-            return;
-
-        //	Send the change notification
-        queueNotification(new NotifyChangeEvent(NotifyChange.LastWrite, NotifyAction.Modified, path, isdir));
-    }
-
-    /**
-     * Last access time changed notification
-     *
-     * @param path  String
-     * @param isdir boolean
-     */
-    public final void notifyLastAccessTimeChanged(String path, boolean isdir) {
-
-        //	Check if file change notifications are enabled
-        if (getGlobalNotifyMask().isEmpty() || hasFileAccessTimeChange() == false)
-            return;
-
-        //	Send the change notification
-        queueNotification(new NotifyChangeEvent(NotifyChange.LastAccess, NotifyAction.Modified, path, isdir));
-    }
-
-    /**
-     * Creation time changed notification
-     *
-     * @param path  String
-     * @param isdir boolean
-     */
-    public final void notifyCreationTimeChanged(String path, boolean isdir) {
-
-        //	Check if file change notifications are enabled
-        if (getGlobalNotifyMask().isEmpty() || hasFileCreateTimeChange() == false)
-            return;
-
-        //	Send the change notification
-        queueNotification(new NotifyChangeEvent(NotifyChange.Creation, NotifyAction.Modified, path, isdir));
-    }
-
-    /**
-     * Security descriptor changed notification
-     *
-     * @param path  String
-     * @param isdir boolean
-     */
-    public final void notifySecurityDescriptorChanged(String path, boolean isdir) {
-
-        //	Check if file change notifications are enabled
-        if (getGlobalNotifyMask().isEmpty() || hasSecurityDescriptorChange() == false)
-            return;
-
-        //	Send the change notification
-        queueNotification(new NotifyChangeEvent(NotifyChange.Security, NotifyAction.Modified, path, isdir));
-    }
-
-    /**
      * Enable debug output
      *
      * @param ena boolean
@@ -405,19 +176,38 @@ public class NotifyChangeHandler implements Runnable {
     }
 
     /**
-     * Shutdown the change notification processing thread
+     * Convert a filesystem change type to a change notification filter type
+     *
+     * @param fsChange FSChange
+     * @param dir boolean
+     * @return Set&lt;NotifyChange&gt;
      */
-    public final void shutdownRequest() {
+    protected final Set<NotifyChange> convertToNotifyChange( FSChange fsChange, boolean dir) {
 
-        //	Check if the processing thread is valid
-        if (m_procThread != null) {
+        Set<NotifyChange> notifyChange = EnumSet.noneOf( NotifyChange.class);
 
-            //	Set the shutdown flag
-            m_shutdown = true;
-
-            //	Wakeup the processing thread
-            m_procThread.interrupt();
+        switch ( fsChange) {
+            case Created:
+                notifyChange.add( NotifyChange.Creation);
+                notifyChange.add( dir ? NotifyChange.DirectoryName : NotifyChange.FileName);
+                break;
+            case Deleted:
+            case Modified:
+            case Renamed:
+                notifyChange.add( dir ? NotifyChange.DirectoryName : NotifyChange.FileName);
+                break;
+            case Attributes:
+                notifyChange.add( NotifyChange.Attributes);
+                break;
+            case LastWrite:
+                notifyChange.add( NotifyChange.LastWrite);
+                break;
+            case Security:
+                notifyChange.add( NotifyChange.Security);
+                break;
         }
+
+        return notifyChange;
     }
 
     /**
@@ -426,7 +216,7 @@ public class NotifyChangeHandler implements Runnable {
      * @param req     NotifyRequest
      * @param evtList NotifyChangeEventList
      */
-    public final void sendBufferedNotifications(NotifyRequest req, NotifyChangeEventList evtList) {
+    public final void sendBufferedNotifications(NotifyRequest req, ChangeEventList evtList) {
 
         //	DEBUG
         if (Debug.EnableInfo && hasDebug())
@@ -466,16 +256,16 @@ public class NotifyChangeHandler implements Runnable {
             for (int i = 0; i < evtList.numberOfEvents(); i++) {
 
                 //	Get the current event from the list
-                NotifyChangeEvent evt = evtList.getEventAt(i);
+                ChangeEvent evt = evtList.getEventAt(i);
 
                 //	Get the relative file name for the event
-                String relName = FileName.makeRelativePath(req.getWatchPath(), evt.getFileName());
+                String relName = FileName.makeRelativePath(req.getWatchPath(), evt.getPath());
                 if (relName == null)
                     relName = evt.getShortFileName();
 
                 //	DEBUG
                 if (Debug.EnableInfo && hasDebug())
-                    Debug.println("[Notify]   Notify evtPath=" + evt.getFileName() + ", reqPath=" + req.getWatchPath() + ", relative=" + relName);
+                    Debug.println("[Notify]   Notify evtPath=" + evt.getPath() + ", reqPath=" + req.getWatchPath() + ", relative=" + relName);
 
                 // Build the change notification response
                 SMBSrvPacket smbPkt = req.getSession().getProtocolHandler().buildChangeNotificationResponse( evt, req);
@@ -506,48 +296,26 @@ public class NotifyChangeHandler implements Runnable {
     }
 
     /**
-     * Queue a change notification event for processing
-     *
-     * @param evt NotifyChangeEvent
-     */
-    protected final void queueNotification(NotifyChangeEvent evt) {
-
-        //	DEBUG
-        if (Debug.EnableInfo && hasDebug())
-            Debug.println("[Notify] Queue notification event=" + evt.toString());
-
-        //	Queue the notification event to the main notification handler thread
-        synchronized (m_eventList) {
-
-            //	Add the event to the list
-            m_eventList.addEvent(evt);
-
-            //	Notify the processing thread that there are events to process
-            m_eventList.notifyAll();
-        }
-    }
-
-    /**
      * Send change notifications to sessions with notification enabled that match the change event.
      *
      * @param evt NotifyChangeEvent
      * @return int
      */
-    protected final int sendChangeNotification(NotifyChangeEvent evt) {
+    protected final int sendChangeNotification(ChangeEvent evt) {
 
         //	DEBUG
         if (Debug.EnableInfo && hasDebug())
-            Debug.println("[Notify] sendChangeNotification event=" + evt);
+            Debug.println("[SMBNotify] sendChangeNotification event=" + evt);
 
         //	Get a list of notification requests that match the type/path
-        List<NotifyRequest> reqList = findMatchingRequests(evt.getFilter(), evt.getFileName(), evt.isDirectory());
+        List<NotifyRequest> reqList = findMatchingRequests( convertToNotifyChange( evt.isChange(), evt.isDirectory()), evt.getPath(), evt.isDirectory());
 
         if (reqList == null || reqList.size() == 0)
             return 0;
 
         //	DEBUG
         if (Debug.EnableInfo && hasDebug()) {
-            Debug.println("[Notify]   Found " + reqList.size() + " matching change listeners");
+            Debug.println("[SMBNotify]   Found " + reqList.size() + " matching change listeners");
 
             for ( NotifyRequest req : reqList)
                 Debug.println( "   Request=" + req);
@@ -648,7 +416,7 @@ public class NotifyChangeHandler implements Runnable {
 
             //	DEBUG
             if (Debug.EnableInfo && hasDebug())
-                Debug.println("[Notify] findMatchingRequests() req=" + curReq.toString());
+                Debug.println("[SMBNotify] findMatchingRequests() req=" + curReq.toString());
 
             //	Check if the request has expired
             if (curReq.hasExpired(curTime)) {
@@ -658,11 +426,11 @@ public class NotifyChangeHandler implements Runnable {
 
                 //	DEBUG
                 if (Debug.EnableInfo && hasDebug()) {
-                    Debug.println("[Notify] Removed expired request req=" + curReq.toString());
+                    Debug.println("[SMBNotify] Removed expired request req=" + curReq.toString());
 
                     if (curReq.getBufferedEventList() != null) {
-                        NotifyChangeEventList bufList = curReq.getBufferedEventList();
-                        Debug.println("[Notify]   Buffered events = " + bufList.numberOfEvents());
+                        ChangeEventList bufList = curReq.getBufferedEventList();
+                        Debug.println("[SMBNotify]   Buffered events = " + bufList.numberOfEvents());
                         for (int b = 0; b < bufList.numberOfEvents(); b++)
                             Debug.println("    " + (b + 1) + ": " + bufList.getEventAt(b));
                     }
@@ -681,7 +449,7 @@ public class NotifyChangeHandler implements Runnable {
 
                 //	DEBUG
                 if (Debug.EnableInfo && hasDebug())
-                    Debug.println("[Notify]   hasFilter typ=" + filter + ", watchTree=" + curReq.hasWatchTree() + ", watchPath=" + curReq.getWatchPath() +
+                    Debug.println("[SMBNotify]   hasFilter typ=" + filter + ", watchTree=" + curReq.hasWatchTree() + ", watchPath=" + curReq.getWatchPath() +
                             ", matchPath=" + matchPath + ", isDir=" + isdir + ", addr=" + curReq.getSession().getRemoteAddress());
 
                 //	Check if the path matches or is a subdirectory and the whole tree is being watched
@@ -723,18 +491,18 @@ public class NotifyChangeHandler implements Runnable {
 
                     //	DEBUG
                     if (Debug.EnableInfo && hasDebug())
-                        Debug.println("[Notify]   Added request to matching list");
+                        Debug.println("[SMBNotify]   Added request to matching list");
                 }
                 else if ( Debug.EnableInfo && hasDebug()) {
 
                     // DEBUG
-                    Debug.println("[Notify] Match failed for filter=" + filter + ", path=" + path + ", isDir=" + isdir + ", req=" + curReq);
+                    Debug.println("[SMBNotify] Match failed for filter=" + filter + ", path=" + path + ", isDir=" + isdir + ", req=" + curReq);
                 }
             }
             else if (Debug.EnableInfo && hasDebug()) {
 
                 // DEBUG
-                Debug.println("[Notify] Not matched filter typ=" + filter + ", watchTree=" + curReq.hasWatchTree() + ", watchPath=" + curReq.getWatchPath() +
+                Debug.println("[SMBNotify] Not matched filter typ=" + filter + ", watchTree=" + curReq.hasWatchTree() + ", watchPath=" + curReq.getWatchPath() +
                         ", matchPath=" + matchPath + ", isDir=" + isdir + ", addr=" + curReq.getSession().getRemoteAddress());
             }
 
@@ -742,67 +510,42 @@ public class NotifyChangeHandler implements Runnable {
             idx++;
         }
 
-        //	If requests were removed from the queue the global filter mask must be recalculated
+        //	If requests were removed from the queue the global change set must be recalculated
         if (removedReq == true)
-            m_globalNotifyMask = m_notifyList.getGlobalFilter();
+            m_fsChanges = m_notifyList.getGlobalFSChangeFilter();
 
         //	Return the matching request list
         return reqList;
     }
 
-    /**
-     * Asynchronous change notification processing thread
-     */
-    public void run() {
+    @Override
+    public boolean wantAllFSEvents() {
+        return false;
+    }
 
-        //	Loop until shutdown
-        while (m_shutdown == false) {
+    @Override
+    public boolean wantFSEvent(FSChange typ, boolean dir, DiskDeviceContext diskCtx) {
 
-            //	Wait for some events to process
-            synchronized (m_eventList) {
-                try {
-                    m_eventList.wait();
-                }
-                catch (InterruptedException ex) {
-                }
-            }
+        // Check if this handler is waiting for any event types
+        if ( m_fsChanges.isEmpty())
+            return false;
 
-            //	Check if the shutdown flag has been set
-            if (m_shutdown == true)
-                break;
+        // Make sure the device matches
+        if ( diskCtx.getUniqueId() != m_diskCtx.getUniqueId())
+            return false;
 
-            //	Loop until all pending events have been processed
-            while (m_eventList.numberOfEvents() > 0) {
+        // Check if the handler will process the event
+        return m_fsChanges.contains( typ);
+    }
 
-                //	Remove the event at the head of the queue
-                NotifyChangeEvent evt = null;
+    @Override
+    public void handleFSEvent(ChangeEvent event, DiskDeviceContext diskCtx) {
 
-                synchronized (m_eventList) {
-                    evt = m_eventList.removeEventAt(0);
-                }
-
-                //	Check if the event is valid
-                if (evt == null)
-                    break;
-
-                try {
-
-                    //	Send out change notifications to clients that match the filter/path
-                    int cnt = sendChangeNotification(evt);
-
-                    //	DEBUG
-                    if (Debug.EnableInfo && hasDebug())
-                        Debug.println("[Notify] Change notify event=" + evt.toString() + ", clients=" + cnt);
-                }
-                catch (Throwable ex) {
-                    Debug.println("NotifyChangeHandler thread");
-                    Debug.println(ex);
-                }
-            }
-        }
+        //	Send out change notifications to clients that match the filter/path
+        int cnt = sendChangeNotification(event);
 
         //	DEBUG
         if (Debug.EnableInfo && hasDebug())
-            Debug.println("NotifyChangeHandler thread exit");
+            Debug.println("[SMBNotify] Change notify event=" + event + ", clients=" + cnt);
     }
 }

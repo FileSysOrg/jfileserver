@@ -26,6 +26,7 @@ import org.filesys.server.auth.acl.AccessControl;
 import org.filesys.server.auth.acl.AccessControlManager;
 import org.filesys.server.core.InvalidDeviceInterfaceException;
 import org.filesys.server.filesys.*;
+import org.filesys.server.filesys.event.FSChange;
 import org.filesys.util.HexDump;
 
 import java.io.FileNotFoundException;
@@ -699,9 +700,9 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
 
                     //	Pack the file handle
                     if (finfo.isDirectory())
-                        NFSHandle.packDirectoryHandle(shareId, finfo.getFileId(), rpc, NFS3.FileHandleSize);
+                        NFSHandle.packDirectoryHandle(shareId, finfo.getFileIdInt(), rpc, NFS3.FileHandleSize);
                     else
-                        NFSHandle.packFileHandle(shareId, getFileIdForHandle(handle), finfo.getFileId(), rpc, NFS3.FileHandleSize);
+                        NFSHandle.packFileHandle(shareId, getFileIdForHandle(handle), finfo.getFileIdInt(), rpc, NFS3.FileHandleSize);
 
                     //	Pack the file attributes
                     packPostOpAttr(nfsSess, finfo, shareId, rpc);
@@ -1381,7 +1382,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
                     respRpc.packInt(NFS3.StatusCode.Success.intValue());
 
                     if (finfo.isDirectory())
-                        packDirectoryHandle(shareId, finfo.getFileId(), respRpc);
+                        packDirectoryHandle(shareId, finfo.getFileIdInt(), respRpc);
                     else
                         packFileHandle(shareId, getFileIdForHandle(handle), finfo.getFileId(), respRpc);
 
@@ -1408,8 +1409,8 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
                     //	Notify change listeners that a new file has been created
                     DiskDeviceContext diskCtx = (DiskDeviceContext) conn.getContext();
 
-                    if (diskCtx.hasChangeHandler())
-                        diskCtx.getChangeHandler().notifyFileChanged(NotifyAction.Added, filePath);
+                    if (diskCtx.hasFSEventsHandler())
+                        diskCtx.getFSEventsHandler().queueFileChanged(FSChange.Created, postInfo, diskCtx);
                 }
             }
         }
@@ -1537,9 +1538,9 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
                 disk.createDirectory(nfsSess, conn, params);
 
                 //	Get file information for the new directory
-                FileInfo finfo = disk.getFileInformation(nfsSess, conn, dirPath);
+                FileInfo fInfo = disk.getFileInformation(nfsSess, conn, dirPath);
 
-                if (finfo != null) {
+                if (fInfo != null) {
 
                     // Allocate a larger response RPC packet, associate with the request RPC
                     respRpc = nfsSess.getNFSServer().getPacketPool().allocateAssociatedPacket( RespSizeMkDir, rpc, -1);
@@ -1548,15 +1549,15 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
                     respRpc.buildResponseHeader();
                     respRpc.packInt(NFS3.StatusCode.Success.intValue());
 
-                    packDirectoryHandle(shareId, finfo.getFileId(), respRpc);
+                    packDirectoryHandle(shareId, fInfo.getFileIdInt(), respRpc);
 
                     //	Pack the file attributes
-                    packPostOpAttr(nfsSess, finfo, shareId, respRpc);
+                    packPostOpAttr(nfsSess, fInfo, shareId, respRpc);
 
                     //	Add a cache entry for the path
                     ShareDetails details = nfsSess.getNFSServer().findShareDetails( shareId);
 
-                    details.getFileIdCache().addPath(finfo.getFileId(), dirPath);
+                    details.getFileIdCache().addPath(fInfo.getFileId(), dirPath);
 
                     //	Pack the post operation details for the parent directory
                     packWccData(respRpc, preInfo);
@@ -1565,12 +1566,12 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
                     //	Notify change listeners that a new directory has been created
                     DiskDeviceContext diskCtx = (DiskDeviceContext) conn.getContext();
 
-                    if (diskCtx.hasChangeHandler())
-                        diskCtx.getChangeHandler().notifyFileChanged(NotifyAction.Added, dirPath);
+                    if (diskCtx.hasFSEventsHandler())
+                        diskCtx.getFSEventsHandler().queueFileChanged(FSChange.Created, fInfo, diskCtx);
 
                     //	DEBUG
                     if (Debug.EnableInfo && nfsSess.hasDebug(NFSSrvSession.Dbg.DIRECTORY))
-                        nfsSess.debugPrintln("Mkdir path=" + dirPath + ", finfo=" + finfo.toString());
+                        nfsSess.debugPrintln("Mkdir path=" + dirPath + ", finfo=" + fInfo.toString());
                 }
             }
         }
@@ -1922,15 +1923,15 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             } else {
 
                 //	Get the file information for the file to be deleted
-                FileInfo finfo = disk.getFileInformation(nfsSess, conn, delPath);
+                FileInfo fInfo = disk.getFileInformation(nfsSess, conn, delPath);
 
                 //	Delete the file
                 disk.deleteFile(nfsSess, conn, delPath);
 
                 //	Remove the path from the cache
-                if (finfo != null) {
-                    details.getFileIdCache().deletePath(finfo.getFileId());
-                    nfsSess.getFileCache().removeFile(finfo.getFileId());
+                if (fInfo != null) {
+                    details.getFileIdCache().deletePath(fInfo.getFileId());
+                    nfsSess.getFileCache().removeFile(fInfo.getFileId());
                 }
 
                 //	Get the post-operation details for the directory
@@ -1945,8 +1946,8 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
 
                 //	Check if there are any file/directory change notify requests active
                 DiskDeviceContext diskCtx = (DiskDeviceContext) conn.getContext();
-                if (diskCtx.hasChangeHandler())
-                    diskCtx.getChangeHandler().notifyFileChanged(NotifyAction.Removed, delPath);
+                if (diskCtx.hasFSEventsHandler())
+                    diskCtx.getFSEventsHandler().queueFileChanged(FSChange.Deleted, fInfo, diskCtx);
             }
         }
         catch (BadHandleException ex) {
@@ -2060,22 +2061,22 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             } else {
 
                 //	Get the file information for the directory to be deleted
-                FileInfo finfo = disk.getFileInformation(nfsSess, conn, delPath);
+                FileInfo fInfo = disk.getFileInformation(nfsSess, conn, delPath);
 
                 //	Delete the directory
                 disk.deleteDirectory(nfsSess, conn, delPath);
 
                 //	Remove the path from the cache
-                if (finfo != null)
-                    details.getFileIdCache().deletePath(finfo.getFileId());
+                if (fInfo != null)
+                    details.getFileIdCache().deletePath(fInfo.getFileId());
 
                 //	Pack the post operation attributes for the parent directory
                 packPostOpAttr(nfsSess, conn, handle, rpc);
 
                 //	Check if there are any file/directory change notify requests active
                 DiskDeviceContext diskCtx = (DiskDeviceContext) conn.getContext();
-                if (diskCtx.hasChangeHandler())
-                    diskCtx.getChangeHandler().notifyFileChanged(NotifyAction.Removed, delPath);
+                if (diskCtx.hasFSEventsHandler() && fInfo != null)
+                    diskCtx.getFSEventsHandler().queueFileChanged(FSChange.Deleted, fInfo, diskCtx);
             }
         }
         catch (BadHandleException ex) {
@@ -2274,8 +2275,8 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
 
                 //	Check if there are any file/directory change notify requests active
                 DiskDeviceContext diskCtx = (DiskDeviceContext) conn.getContext();
-                if (diskCtx.hasChangeHandler())
-                    diskCtx.getChangeHandler().notifyRename(oldPath, newPath);
+                if (diskCtx.hasFSEventsHandler())
+                    diskCtx.getFSEventsHandler().queueRename(oldPath, newPath, finfo, diskCtx);
 
                 //	Get the post-operation details for the parent directories
                 FileInfo postFromInfo = disk.getFileInformation(nfsSess, conn, fromPath);
@@ -2531,7 +2532,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
 
                 //	Add the search directory details, the '.' directory
                 respRpc.packInt(Rpc.True);
-                respRpc.packLong(dinfo.getFileIdLong() + FILE_ID_OFFSET);
+                respRpc.packLong(dinfo.getFileId() + FILE_ID_OFFSET);
                 respRpc.packString(".");
                 respRpc.packLong(COOKIE_DOT_DIRECTORY);
 
@@ -2541,7 +2542,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
 
                 //	Add the parent of the search directory, the '..' directory
                 respRpc.packInt(Rpc.True);
-                respRpc.packLong(parentInfo.getFileIdLong() + FILE_ID_OFFSET);
+                respRpc.packLong(parentInfo.getFileId() + FILE_ID_OFFSET);
                 respRpc.packString("..");
                 respRpc.packLong(COOKIE_DOTDOT_DIRECTORY);
 
@@ -2572,7 +2573,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
 
                 //	Fill in the entry details
                 respRpc.packInt(Rpc.True);
-                respRpc.packLong(finfo.getFileIdLong() + FILE_ID_OFFSET);
+                respRpc.packLong(finfo.getFileId() + FILE_ID_OFFSET);
                 respRpc.packUTF8String(finfo.getFileName());
                 respRpc.packLong(search.getResumeId() + searchMask);
 
@@ -2813,7 +2814,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
 
                 //	Add the search directory details, the '.' directory
                 respRpc.packInt(Rpc.True);
-                respRpc.packLong(dinfo.getFileIdLong() + FILE_ID_OFFSET);
+                respRpc.packLong(dinfo.getFileId() + FILE_ID_OFFSET);
                 respRpc.packString(".");
                 respRpc.packLong(COOKIE_DOT_DIRECTORY);
 
@@ -2822,7 +2823,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
                 packAttributes3(respRpc, dinfo, shareId);
 
                 //	Fill in the file handle
-                packDirectoryHandle(shareId, dinfo.getFileId(), rpc);
+                packDirectoryHandle(shareId, dinfo.getFileIdInt(), rpc);
 
                 //	Get the file information for the parent directory
                 String parentPath = generatePath(path, "..");
@@ -2830,7 +2831,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
 
                 //	Add the parent of the search directory, the '..' directory
                 respRpc.packInt(Rpc.True);
-                respRpc.packLong(parentInfo.getFileIdLong() + FILE_ID_OFFSET);
+                respRpc.packLong(parentInfo.getFileId() + FILE_ID_OFFSET);
                 respRpc.packString("..");
                 respRpc.packLong(COOKIE_DOTDOT_DIRECTORY);
 
@@ -2839,7 +2840,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
                 packAttributes3(respRpc, parentInfo, shareId);
 
                 //	Fill in the file handle
-                packDirectoryHandle(shareId, parentInfo.getFileId(), respRpc);
+                packDirectoryHandle(shareId, parentInfo.getFileIdInt(), respRpc);
 
                 //	Update the entry count and current used reply buffer count
                 entCnt = 2;
@@ -2868,7 +2869,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
 
                 //	Fill in the entry details
                 respRpc.packInt(Rpc.True);
-                respRpc.packLong(finfo.getFileIdLong() + FILE_ID_OFFSET);
+                respRpc.packLong(finfo.getFileId() + FILE_ID_OFFSET);
                 respRpc.packUTF8String(finfo.getFileName());
                 respRpc.packLong(search.getResumeId() + searchMask);
 
@@ -2878,9 +2879,9 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
 
                 //	Fill in the file or directory handle
                 if (finfo.isDirectory())
-                    packDirectoryHandle(shareId, finfo.getFileId(), respRpc);
+                    packDirectoryHandle(shareId, finfo.getFileIdInt(), respRpc);
                 else
-                    packFileHandle(shareId, dinfo.getFileId(), finfo.getFileId(), respRpc);
+                    packFileHandle(shareId, dinfo.getFileIdInt(), finfo.getFileIdInt(), respRpc);
 
                 //	Check if the relative path should be added to the file id cache
                 if (details.hasFileIdSupport() == false && fileCache.findPath(finfo.getFileId()) == null) {
@@ -3416,10 +3417,10 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
      * Pack a directory handle
      *
      * @param shareId int
-     * @param dirId   int
+     * @param dirId   long
      * @param rpc     RpcPacket
      */
-    protected final void packDirectoryHandle(int shareId, int dirId, RpcPacket rpc) {
+    protected final void packDirectoryHandle(int shareId, long dirId, RpcPacket rpc) {
 
         //	Indicate that a handle follows, pack the handle
         rpc.packInt(Rpc.True);
@@ -3430,11 +3431,11 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
      * Pack a directory handle
      *
      * @param shareId int
-     * @param dirId   int
-     * @param fileId  int
+     * @param dirId   long
+     * @param fileId  long
      * @param rpc     RpcPacket
      */
-    protected final void packFileHandle(int shareId, int dirId, int fileId, RpcPacket rpc) {
+    protected final void packFileHandle(int shareId, long dirId, long fileId, RpcPacket rpc) {
 
         //	Indicate that a handle follows, pack the handle
         rpc.packInt(Rpc.True);
@@ -3481,8 +3482,8 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
         //	Check if this is a share handle
         String path = null;
 
-        int dirId = -1;
-        int fileId = -1;
+        long dirId = -1;
+        long fileId = -1;
 
         if (NFSHandle.isShareHandle(handle)) {
 
@@ -3571,8 +3572,8 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
         //  Check if this is a share handle
         String path = null;
 
-        int dirId = -1;
-        int fileId = -1;
+        long dirId = -1;
+        long fileId = -1;
 
         if (NFSHandle.isDirectoryHandle(handle)) {
 
@@ -3634,14 +3635,14 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
      * Get the file id from the specified handle
      *
      * @param handle byte[]
-     * @return String
+     * @return long
      * @exception BadHandleException Bad NFS handle
      */
-    protected final int getFileIdForHandle(byte[] handle)
+    protected final long getFileIdForHandle(byte[] handle)
             throws BadHandleException {
 
         //	Check the handle type
-        int fileId = -1;
+        long fileId = -1;
 
         if (NFSHandle.isShareHandle(handle)) {
 
@@ -3684,7 +3685,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             throw new BadHandleException("Not a file handle");
 
         //	Get the file id from the handle
-        int fileId = getFileIdForHandle(handle);
+        long fileId = getFileIdForHandle(handle);
 
         //	Get the per session network file cache, use this to synchronize
         NetworkFileCache fileCache = nfsSess.getFileCache();
@@ -3754,7 +3755,7 @@ public class NFS3RpcProcessor implements RpcSessionProcessor {
             return null;
 
         //  Get the file id from the handle
-        int fileId = getFileIdForHandle(handle);
+        long fileId = getFileIdForHandle(handle);
 
         //  Get the per session network file cache, use this to synchronize
         NetworkFileCache fileCache = nfsSess.getFileCache();

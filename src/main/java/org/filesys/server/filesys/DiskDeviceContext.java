@@ -23,6 +23,8 @@ import org.filesys.server.core.DeviceContext;
 import org.filesys.server.core.DeviceContextException;
 import org.filesys.server.filesys.cache.FileStateCache;
 import org.filesys.server.filesys.cache.FileStateCacheListener;
+import org.filesys.server.filesys.event.ChangeEventHandler;
+import org.filesys.server.filesys.event.FSEventsHandler;
 import org.filesys.server.filesys.quota.QuotaManager;
 import org.filesys.server.locking.LockManager;
 import org.filesys.server.locking.OpLockManager;
@@ -36,9 +38,9 @@ import org.filesys.smb.server.notify.NotifyRequest;
  */
 public class DiskDeviceContext extends DeviceContext {
 
-    //	Change notification handler and flag to indicate if file server should generate notifications
-    private NotifyChangeHandler m_changeHandler;
-    private boolean m_filesysNotifications = true;
+    //	Filesystem events handler and flag to indicate if file server should generate events
+    private FSEventsHandler m_fsEventsHandler;
+    private boolean m_fsEvents = true;
 
     //	Volume information
     private VolumeInfo m_volumeInfo;
@@ -52,13 +54,16 @@ public class DiskDeviceContext extends DeviceContext {
     //	Filesystem attributes, required to enable features such as compression and encryption
     private int m_filesysAttribs;
 
-    //	Disk device attributes, can be used to make the device appear as a removeable, read-only,
+    //	Disk device attributes, can be used to make the device appear as a removable, read-only,
     //	or write-once device for example.
     private int m_deviceAttribs;
 
     // File state cache
     private FileStateCache m_stateCache;
     private boolean m_requireStateCache;
+
+    // Allow cloud sync for this filesystem
+    private boolean m_allowSync;
 
     /**
      * Class constructor
@@ -84,6 +89,33 @@ public class DiskDeviceContext extends DeviceContext {
      */
     public DiskDeviceContext(String devName, String shareName) {
         super(devName, shareName);
+    }
+
+    /**
+     * Class constructor
+     *
+     * @param devName String
+     * @param devSpecific int
+     */
+    public DiskDeviceContext(String devName, int devSpecific) {
+        super(devName);
+
+        // Generate a unique id for the device
+        generateUniqueId( devSpecific);
+    }
+
+    /**
+     * Class constructor
+     *
+     * @param devName   String
+     * @param shareName String
+     * @param devSpecific int
+     */
+    public DiskDeviceContext(String devName, String shareName, int devSpecific) {
+        super(devName, shareName);
+
+        // Generate a unique id for the device
+        generateUniqueId( devSpecific);
     }
 
     /**
@@ -141,9 +173,23 @@ public class DiskDeviceContext extends DeviceContext {
     }
 
     /**
+     * Check if this filesystem allows cloud sync
+     *
+     * @return boolean
+     */
+    public final boolean allowsCloudSync() { return m_allowSync; }
+
+    /**
+     * Set/clear the allow cloud sync setting
+     *
+     * @param cloudSync boolean
+     */
+    public final void setAllowCloudSync(boolean cloudSync) { m_allowSync = cloudSync; }
+
+    /**
      * Return the filesystem type, either FileSystem.TypeFAT or FileSystem.TypeNTFS.
      * <p>
-     * Defaults to FileSystem.FAT but will be overridden if the filesystem driver implements the
+     * Defaults to FileSystem.TypeFAT but will be overridden if the filesystem driver implements the
      * NTFSStreamsInterface.
      *
      * @return String
@@ -171,20 +217,13 @@ public class DiskDeviceContext extends DeviceContext {
     }
 
     /**
-     * Enable/disable the change notification handler for this device
+     * Enable/disable the filesystem events handler for this device
      *
-     * @param ena boolean
+     * @param evtHandler FSEventsHandler
      */
-    public final void enableChangeHandler(boolean ena) {
-        if (ena == true)
-            m_changeHandler = new NotifyChangeHandler(this);
-        else {
-
-            //	Shutdown the change handler, if valid
-            if (m_changeHandler != null)
-                m_changeHandler.shutdownRequest();
-            m_changeHandler = null;
-        }
+    public final void setFSEventsHandler(FSEventsHandler evtHandler) {
+        m_fsEventsHandler = evtHandler;
+        m_fsEvents = evtHandler != null;
     }
 
     /**
@@ -196,26 +235,26 @@ public class DiskDeviceContext extends DeviceContext {
         super.CloseContext();
 
         // Close the change notification handler
-        if (hasChangeHandler())
-            enableChangeHandler(false);
+        if (hasFSEventsHandler())
+            m_fsEventsHandler.unregisterFilesystem( this);
     }
 
     /**
-     * Determine if the disk context has a change notification handler
+     * Determine if the disk context has a filesystem events handler
      *
      * @return boolean
      */
-    public final boolean hasChangeHandler() {
-        return m_changeHandler != null ? true : false;
+    public final boolean hasFSEventsHandler() {
+        return m_fsEventsHandler != null ? true : false;
     }
 
     /**
-     * Return the change notification handler
+     * Return the filesystem events handler
      *
-     * @return NotifyChangeHandler
+     * @return FSEventsHandler
      */
-    public final NotifyChangeHandler getChangeHandler() {
-        return m_changeHandler;
+    public final FSEventsHandler getFSEventsHandler() {
+        return m_fsEventsHandler;
     }
 
     /**
@@ -224,19 +263,25 @@ public class DiskDeviceContext extends DeviceContext {
      * @return boolean
      */
     public final boolean hasFileServerNotifications() {
-        if (m_changeHandler == null)
+        if (m_fsEventsHandler == null)
             return false;
-        return m_filesysNotifications;
+        return m_fsEvents;
     }
 
     /**
-     * Add a request to the change notification list
+     * Add a request to the SMB change event handler
      *
      * @param req NotifyRequest
      */
     public final void addNotifyRequest(NotifyRequest req) {
-        if ( m_changeHandler != null)
-            m_changeHandler.addNotifyRequest(req);
+        if ( m_fsEventsHandler != null) {
+
+            // Get the SMB change events handler
+            NotifyChangeHandler smbHandler = (NotifyChangeHandler) m_fsEventsHandler.findHandler( NotifyChangeHandler.Name);
+
+            if ( smbHandler != null)
+                smbHandler.addNotifyRequest( req);
+        }
     }
 
     /**
@@ -245,8 +290,14 @@ public class DiskDeviceContext extends DeviceContext {
      * @param req NotifyRequest
      */
     public final void removeNotifyRequest(NotifyRequest req) {
-        if ( m_changeHandler != null)
-            m_changeHandler.removeNotifyRequest(req);
+        if ( m_fsEventsHandler != null) {
+
+            // Get the SMB change events handler
+            NotifyChangeHandler smbHandler = (NotifyChangeHandler) m_fsEventsHandler.findHandler(NotifyChangeHandler.Name);
+
+            if (smbHandler != null)
+                smbHandler.removeNotifyRequest(req);
+        }
     }
 
     /**
@@ -313,12 +364,12 @@ public class DiskDeviceContext extends DeviceContext {
     }
 
     /**
-     * Enable/disable file server change notifications
+     * Enable/disable file server events for this filesystem
      *
      * @param ena boolean
      */
     public final void setFileServerNotifications(boolean ena) {
-        m_filesysNotifications = ena;
+        m_fsEvents = ena;
     }
 
     /**

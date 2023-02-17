@@ -40,6 +40,7 @@ import org.filesys.server.filesys.*;
 import org.filesys.server.filesys.postprocess.PostRequestProcessor;
 import org.filesys.server.thread.ThreadRequestPool;
 import org.filesys.smb.*;
+import org.filesys.smb.server.notify.NotifyChangeHandler;
 import org.filesys.smb.server.notify.NotifyRequest;
 import org.filesys.smb.server.notify.NotifyRequestList;
 import org.filesys.util.HexDump;
@@ -356,8 +357,12 @@ public class SMBSrvSession extends SrvSession<SMBSrvSession.Dbg> implements Runn
 
 					// Get the current change notification request and remove from the global notify list
 					NotifyRequest curReq = m_notifyList.getRequest(i);
-					if (curReq.getDiskContext().hasChangeHandler())
-						curReq.getDiskContext().getChangeHandler().removeNotifyRequests(this);
+					if (curReq.getDiskContext().hasFSEventsHandler()) {
+						NotifyChangeHandler notifyHandler = (NotifyChangeHandler) curReq.getDiskContext().getFSEventsHandler().findHandler(NotifyChangeHandler.Name);
+
+						if (notifyHandler != null)
+							notifyHandler.removeNotifyRequests(this);
+					}
 				}
 			}
 
@@ -384,6 +389,9 @@ public class SMBSrvSession extends SrvSession<SMBSrvSession.Dbg> implements Runn
 			m_pktHandler.closeHandler();
 			if (Debug.EnableInfo && hasDebug(SMBSrvSession.Dbg.STATE))
 				debugPrintln("Closed packet handler for client: " + m_pktHandler.getClientName());
+
+			// Notify the server that the session has been closed
+			getSMBServer().sessionClosed( this);
 		}
 		catch (Exception ex) {
 //			Debug.println(ex);
@@ -419,7 +427,6 @@ public class SMBSrvSession extends SrvSession<SMBSrvSession.Dbg> implements Runn
 			// Cleanup the disconnected sessions virtual circuits, open files, searches as the client will not currently
 			// try to re-use them
 			cleanupSession();
-
 		}
 
 		try {
@@ -1449,8 +1456,11 @@ public class SMBSrvSession extends SrvSession<SMBSrvSession.Dbg> implements Runn
 		}
 
 		// Check if the session has been closed, either cleanly or due to an exception
-		if (m_state == SessionState.NETBIOS_HANGUP && isPersistentSession() == false) {
+		if (m_state == SessionState.NETBIOS_HANGUP) { // && isPersistentSession() == false) {
 
+			// Close the session, or move to the disconnected list
+			closeSession();
+/**
 			// Cleanup the session, make sure all resources are released
 			cleanupSession();
 
@@ -1460,9 +1470,7 @@ public class SMBSrvSession extends SrvSession<SMBSrvSession.Dbg> implements Runn
 
 			// Close the session
 			closeSocket();
-
-			// Notify the server that the session has closed
-			getSMBServer().sessionClosed(this);
+**/
 		}
 
 		// Clear any user context

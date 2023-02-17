@@ -99,12 +99,12 @@ public class DBQuotaManager implements QuotaManager {
      *
      * @param sess  SrvSession
      * @param tree  TreeConnection
-     * @param fid   int
+     * @param fid   long
      * @param path  String
      * @param alloc long
      * @throws IOException I/O error
      */
-    public synchronized void releaseSpace(SrvSession sess, TreeConnection tree, int fid, String path, long alloc)
+    public synchronized void releaseSpace(SrvSession sess, TreeConnection tree, long fid, String path, long alloc)
             throws IOException {
 
         //	Check if the allocation is valid

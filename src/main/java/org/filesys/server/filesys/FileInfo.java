@@ -90,10 +90,10 @@ public class FileInfo {
 	private long m_allocSize;
 
 	// File identifier 
-	private int m_fileId = -1;
+	private long m_fileId = -1L;
 	
 	// parent directory id
-	private int m_dirId = -1;
+	private long m_dirId = -1L;
 
 	// User/group id
 	private int m_gid = -1;
@@ -410,19 +410,28 @@ public class FileInfo {
 	/**
 	 * Get the file identifier
 	 *
-	 * @return int
+	 * @return long
 	 */
-	public final int getFileId() {
+	public final long getFileId() {
 		return m_fileId;
 	}
 
 	/**
 	 * Get the file identifier
 	 *
+	 * @return int
+	 */
+	public final int getFileIdInt() {
+		return (int) (m_fileId & 0xFFFFFFFFL);
+	}
+
+	/**
+	 * Get the parent directory identifier
+	 *
 	 * @return long
 	 */
-	public final long getFileIdLong() {
-		return m_fileId & 0xFFFFFFFFL;
+	public final long getDirectoryId() {
+		return m_dirId;
 	}
 
 	/**
@@ -430,17 +439,8 @@ public class FileInfo {
 	 *
 	 * @return int
 	 */
-	public final int getDirectoryId() {
-		return m_dirId;
-	}
-
-	/**
-	 * Get the parent directory identifier
-	 *
-	 * @return long
-	 */
-	public final long getDirectoryIdLong() {
-		return m_dirId & 0xFFFFFFFFL;
+	public final int getDirectoryIdInt() {
+		return (int) (m_dirId & 0xFFFFFFFFL);
 	}
 
 	/**
@@ -757,7 +757,11 @@ public class FileInfo {
 	 * @param attr int
 	 */
 	public final void setFileAttributes(int attr) {
+
 		m_attr = attr;
+
+		if ( isDirectory())
+			setFileType( FileType.Directory);
 	}
 
 	/**
@@ -792,18 +796,18 @@ public class FileInfo {
 	/**
 	 * Set the file identifier
 	 *
-	 * @param id int
+	 * @param id long
 	 */
-	public final void setFileId(int id) {
+	public final void setFileId(long id) {
 		m_fileId = id;
 	}
 
 	/**
 	 * Set the parent directory id
 	 *
-	 * @param id int
+	 * @param id long
 	 */
-	public final void setDirectoryId(int id) {
+	public final void setDirectoryId(long id) {
 		m_dirId = id;
 	}
 

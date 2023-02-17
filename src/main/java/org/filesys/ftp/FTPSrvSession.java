@@ -60,6 +60,7 @@ import org.filesys.server.core.ShareType;
 import org.filesys.server.core.SharedDevice;
 import org.filesys.server.core.SharedDeviceList;
 import org.filesys.server.filesys.*;
+import org.filesys.server.filesys.event.FSChange;
 import org.filesys.util.MemorySize;
 import org.filesys.util.UTF8Normalizer;
 import org.filesys.util.WildCard;
@@ -1973,8 +1974,8 @@ public class FTPSrvSession extends SrvSession<FTPSrvSession.Dbg> implements Runn
                 // Notify change listeners that a new file has been created
                 DiskDeviceContext diskCtx = (DiskDeviceContext) tree.getContext();
 
-                if (diskCtx.hasChangeHandler())
-                    diskCtx.getChangeHandler().notifyFileChanged(NotifyAction.Added, ftpPath.getSharePath());
+                if (diskCtx.hasFSEventsHandler())
+                    diskCtx.getFSEventsHandler().queueFileChanged(FSChange.Created, netFile, diskCtx);
 
                 // Send the intermediate response
                 sendFTPResponse(150, "File status okay, about to open data connection");
@@ -2217,13 +2218,16 @@ public class FTPSrvSession extends SrvSession<FTPSrvSession.Dbg> implements Runn
 
             if (sts == FileStatus.FileExists) {
 
+                // Get the details of the file being deleted
+                FileInfo fInfo = disk.getFileInformation(this, tree, ftpPath.getSharePath());
+
                 // Delete the file
                 disk.deleteFile(this, tree, ftpPath.getSharePath());
 
                 // Check if there are any file/directory change notify requests active
                 DiskDeviceContext diskCtx = (DiskDeviceContext) tree.getContext();
-                if (diskCtx.hasChangeHandler())
-                    diskCtx.getChangeHandler().notifyFileChanged(NotifyAction.Removed, ftpPath.getSharePath());
+                if (diskCtx.hasFSEventsHandler() && fInfo != null)
+                    diskCtx.getFSEventsHandler().queueFileChanged(FSChange.Deleted, fInfo, diskCtx);
 
                 // DEBUG
                 if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.FILE))
@@ -2399,13 +2403,16 @@ public class FTPSrvSession extends SrvSession<FTPSrvSession.Dbg> implements Runn
                     ((sts == FileStatus.FileExists) & m_renameFrom.getSharePath().equalsIgnoreCase(ftpPath.getSharePath()))
                     ) {
 
+                // Get file information for the file/directory being renamed
+                FileInfo fInfo = disk.getFileInformation( this, tree, m_renameFrom.getSharePath());
+
                 // Rename the file/directory
                 disk.renameFile(this, tree, m_renameFrom.getSharePath(), ftpPath.getSharePath());
 
                 // Check if there are any file/directory change notify requests active
                 DiskDeviceContext diskCtx = (DiskDeviceContext) tree.getContext();
-                if (diskCtx.hasChangeHandler())
-                    diskCtx.getChangeHandler().notifyRename(m_renameFrom.getSharePath(), ftpPath.getSharePath());
+                if (diskCtx.hasFSEventsHandler())
+                    diskCtx.getFSEventsHandler().queueRename(m_renameFrom.getSharePath(), ftpPath.getSharePath(), fInfo, diskCtx);
 
                 // DEBUG
                 if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.FILE))
@@ -2497,8 +2504,14 @@ public class FTPSrvSession extends SrvSession<FTPSrvSession.Dbg> implements Runn
                 // Notify change listeners that a new directory has been created
                 DiskDeviceContext diskCtx = (DiskDeviceContext) tree.getContext();
 
-                if (diskCtx.hasChangeHandler())
-                    diskCtx.getChangeHandler().notifyFileChanged(NotifyAction.Added, ftpPath.getSharePath());
+                if (diskCtx.hasFSEventsHandler()) {
+
+                    // Get teh details of the new folder
+                    FileInfo fInfo = disk.getFileInformation(this, tree, ftpPath.getSharePath());
+
+                    if (fInfo != null)
+                        diskCtx.getFSEventsHandler().queueFileChanged(FSChange.Created, fInfo, diskCtx);
+                }
 
                 // DEBUG
                 if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.DIRECTORY))
@@ -2582,13 +2595,17 @@ public class FTPSrvSession extends SrvSession<FTPSrvSession.Dbg> implements Runn
 
             if (sts == FileStatus.DirectoryExists) {
 
+                // Get the details of the directory
+                FileInfo fInfo = disk.getFileInformation(this, tree, ftpPath.getSharePath());
+
                 // Delete the new directory
                 disk.deleteDirectory(this, tree, ftpPath.getSharePath());
 
                 // Check if there are any file/directory change notify requests active
                 DiskDeviceContext diskCtx = (DiskDeviceContext) tree.getContext();
-                if (diskCtx.hasChangeHandler())
-                    diskCtx.getChangeHandler().notifyFileChanged(NotifyAction.Removed, ftpPath.getSharePath());
+
+                if (diskCtx.hasFSEventsHandler() && fInfo != null)
+                    diskCtx.getFSEventsHandler().queueFileChanged(FSChange.Deleted, fInfo, diskCtx);
 
                 // DEBUG
                 if (Debug.EnableInfo && hasDebug(FTPSrvSession.Dbg.DIRECTORY))

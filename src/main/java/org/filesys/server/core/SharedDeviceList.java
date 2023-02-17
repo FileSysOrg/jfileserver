@@ -21,13 +21,14 @@ package org.filesys.server.core;
 
 import java.util.Enumeration;
 import java.util.Hashtable;
+import java.util.Iterator;
 
 /**
  * <p>List of shared devices.
  *
  * @author gkspencer
  */
-public class SharedDeviceList {
+public class SharedDeviceList implements Iterable<SharedDevice> {
 
     //	Shared device list
     private Hashtable<String, SharedDevice> m_shares;
@@ -188,6 +189,11 @@ public class SharedDeviceList {
      */
     public final void removeAllShares() {
         m_shares.clear();
+    }
+
+    @Override
+    public Iterator<SharedDevice> iterator() {
+        return m_shares.values().iterator();
     }
 
     /**

@@ -119,175 +119,175 @@ public interface DBInterface {
     /**
      * Check if a file/folder exists
      *
-     * @param dirId int
+     * @param dirId long
      * @param fname String
      * @return FileStatus
      * @exception DBException Database error
      */
-    public FileStatus fileExists(int dirId, String fname)
+    public FileStatus fileExists(long dirId, String fname)
             throws DBException;
 
     /**
      * Create a file record for a new file or folder
      *
      * @param fname  String
-     * @param dirId  int
+     * @param dirId  long
      * @param params FileOpenParams
      * @param retain boolean
-     * @return int
+     * @return long
      * @exception DBException Database error
      * @throws FileExistsException File record already exists
      */
-    public int createFileRecord(String fname, int dirId, FileOpenParams params, boolean retain)
+    public long createFileRecord(String fname, long dirId, FileOpenParams params, boolean retain)
             throws DBException, FileExistsException;
 
     /**
      * Create a stream record for a new file stream
      *
      * @param sname String
-     * @param fid   int
-     * @return int
+     * @param fid   long
+     * @return long
      * @exception DBException Database error
      */
-    public int createStreamRecord(String sname, int fid)
+    public long createStreamRecord(String sname, long fid)
             throws DBException;
 
     /**
      * Delete a file or folder record
      *
-     * @param dirId    int
-     * @param fid      int
+     * @param dirId    long
+     * @param fid      long
      * @param markOnly boolean
      * @exception DBException Database error
      * @exception IOException I/O error
      * @exception DirectoryNotEmptyException Directory is not empty
      */
-    public void deleteFileRecord(int dirId, int fid, boolean markOnly)
+    public void deleteFileRecord(long dirId, long fid, boolean markOnly)
             throws DBException, IOException, DirectoryNotEmptyException;
 
     /**
      * Delete a file stream record
      *
-     * @param fid      int
-     * @param stid     int
+     * @param fid      long
+     * @param stid     long
      * @param markOnly boolean
      * @exception DBException Database error
      */
-    public void deleteStreamRecord(int fid, int stid, boolean markOnly)
+    public void deleteStreamRecord(long fid, long stid, boolean markOnly)
             throws DBException;
 
     /**
      * Set file information for a file or folder
      *
-     * @param dirId int
-     * @param fid   int
+     * @param dirId long
+     * @param fid   long
      * @param finfo FileInfo
      * @exception DBException Database error
      */
-    public void setFileInformation(int dirId, int fid, FileInfo finfo)
+    public void setFileInformation(long dirId, long fid, FileInfo finfo)
             throws DBException;
 
     /**
      * Set information for a file stream
      *
-     * @param dirId int
-     * @param fid   int
-     * @param stid  int
+     * @param dirId long
+     * @param fid   long
+     * @param stid  long
      * @param sinfo StreamInfo
      * @exception DBException Database error
      */
-    public void setStreamInformation(int dirId, int fid, int stid, StreamInfo sinfo)
+    public void setStreamInformation(long dirId, long fid, long stid, StreamInfo sinfo)
             throws DBException;
 
     /**
      * Get the id for a file/folder, or -1 if the file/folder does not exist.
      *
-     * @param dirid    int
+     * @param dirid    long
      * @param fname    String
      * @param dirOnly  boolean
      * @param caseLess boolean
-     * @return int
+     * @return long
      * @exception DBException Database error
      */
-    public int getFileId(int dirid, String fname, boolean dirOnly, boolean caseLess)
+    public long getFileId(long dirid, String fname, boolean dirOnly, boolean caseLess)
             throws DBException;
 
     /**
      * Get information for a file or folder
      *
-     * @param dirId     int
-     * @param fid       int
+     * @param dirId     long
+     * @param fid       long
      * @param infoLevel DBInterface.FileInfoLevel
      * @return DBFileInfo
      * @exception DBException Database error
      */
-    public DBFileInfo getFileInformation(int dirId, int fid, DBInterface.FileInfoLevel infoLevel)
+    public DBFileInfo getFileInformation(long dirId, long fid, DBInterface.FileInfoLevel infoLevel)
             throws DBException;
 
     /**
      * Get information for a file stream
      *
-     * @param fid       int
-     * @param stid      int
+     * @param fid       long
+     * @param stid      long
      * @param infoLevel DBInterface.StreamInfoLevel
      * @return StreamInfo
      * @exception DBException Database error
      */
-    public StreamInfo getStreamInformation(int fid, int stid, DBInterface.StreamInfoLevel infoLevel)
+    public StreamInfo getStreamInformation(long fid, long stid, DBInterface.StreamInfoLevel infoLevel)
             throws DBException;
 
     /**
      * Return the list of streams for the specified file
      *
-     * @param fid       int
+     * @param fid       long
      * @param infoLevel DBInterface.StreamInfoLevel
      * @return StreamInfoList
      * @exception DBException Database error
      */
-    public StreamInfoList getStreamsList(int fid, DBInterface.StreamInfoLevel infoLevel)
+    public StreamInfoList getStreamsList(long fid, DBInterface.StreamInfoLevel infoLevel)
             throws DBException;
 
     /**
      * Rename a file or folder, may also change the parent directory.
      *
-     * @param dirId   int
-     * @param fid     int
+     * @param dirId   long
+     * @param fid     long
      * @param newName String
-     * @param newDir  int
+     * @param newDir  long
      * @exception DBException Database error
      * @exception FileNotFoundException File not found
      */
-    public void renameFileRecord(int dirId, int fid, String newName, int newDir)
+    public void renameFileRecord(long dirId, long fid, String newName, long newDir)
             throws DBException, FileNotFoundException;
 
     /**
      * Rename a file stream
      *
-     * @param dirId   int
-     * @param fid     int
-     * @param stid    int
+     * @param dirId   long
+     * @param fid     long
+     * @param stid    long
      * @param newName String
      * @exception DBException Database error
      */
-    public void renameStreamRecord(int dirId, int fid, int stid, String newName)
+    public void renameStreamRecord(long dirId, long fid, long stid, String newName)
             throws DBException;
 
     /**
      * Return the retention period expiry date/time for the specified file, or zero if the file/folder
      * is not under retention.
      *
-     * @param dirId int
-     * @param fid   int
+     * @param dirId long
+     * @param fid   long
      * @return RetentionDetails
      * @exception DBException Database error
      */
-    public RetentionDetails getFileRetentionDetails(int dirId, int fid)
+    public RetentionDetails getFileRetentionDetails(long dirId, long fid)
             throws DBException;
 
     /**
      * Start a directory search
      *
-     * @param dirid      int
+     * @param dirid      long
      * @param searchPath String
      * @param attrib     int
      * @param infoLevel  DBInterfcae.FileInfoLevel
@@ -295,28 +295,28 @@ public interface DBInterface {
      * @return DBSearchContext
      * @exception DBException Database error
      */
-    public DBSearchContext startSearch(int dirid, String searchPath, int attrib, DBInterface.FileInfoLevel infoLevel, int maxRecords)
+    public DBSearchContext startSearch(long dirid, String searchPath, int attrib, DBInterface.FileInfoLevel infoLevel, int maxRecords)
             throws DBException;
 
     /**
      * Return the data for a symbolic link
      *
-     * @param dirId int
-     * @param fid   int
+     * @param dirId long
+     * @param fid   long
      * @return String
      * @exception DBException Database error
      */
-    public String readSymbolicLink(int dirId, int fid)
+    public String readSymbolicLink(long dirId, long fid)
             throws DBException;
 
     /**
      * Delete a symbolic link record
      *
-     * @param dirId int
-     * @param fid   int
+     * @param dirId long
+     * @param fid   long
      * @exception DBException Database error
      */
-    public void deleteSymbolicLinkRecord(int dirId, int fid)
+    public void deleteSymbolicLinkRecord(long dirId, long fid)
             throws DBException;
 
     /**
@@ -325,4 +325,11 @@ public interface DBInterface {
      * @return long
      */
     public long getUsedFileSpace();
+
+    /**
+     * Return a unique id for this database interface, usually generated from the DSN
+     *
+     * @return int
+     */
+    public int getUniqueId();
 }

@@ -31,8 +31,8 @@ import org.filesys.server.filesys.cache.FileState;
 public class DeleteFileRequest extends FileRequest {
 
     //  File id and stream id
-    private int m_fid;
-    private int m_stid;
+    private long m_fid;
+    private long m_stid;
 
     //  Temporary file path
     private String m_tempPath;
@@ -46,13 +46,13 @@ public class DeleteFileRequest extends FileRequest {
     /**
      * Class constructor
      *
-     * @param fid      int
-     * @param stid     int
+     * @param fid      long
+     * @param stid     long
      * @param tempPath String
      * @param virtPath String
      * @param state    FileState
      */
-    public DeleteFileRequest(int fid, int stid, String tempPath, String virtPath, FileState state) {
+    public DeleteFileRequest(long fid, long stid, String tempPath, String virtPath, FileState state) {
         super(RequestType.Delete);
 
         m_fid = fid;
@@ -65,18 +65,18 @@ public class DeleteFileRequest extends FileRequest {
     /**
      * Return the file identifier
      *
-     * @return int
+     * @return long
      */
-    public final int getFileId() {
+    public final long getFileId() {
         return m_fid;
     }
 
     /**
      * Return the stream identifier, zero for the main file stream
      *
-     * @return int
+     * @return long
      */
-    public final int getStreamId() {
+    public final long getStreamId() {
         return m_stid;
     }
 

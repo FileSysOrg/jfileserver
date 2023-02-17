@@ -32,5 +32,37 @@ public enum FileType {
     Directory,
     SymbolicLink,
     HardLink,
-    Device
+    Device,
+
+    Invalid;
+
+    /**
+     * Convert an integer to a file type
+     *
+     * @param ival int
+     * @return FileType
+     */
+    public static FileType fromInt(int ival) {
+        FileType ftyp = FileType.Invalid;
+
+        switch ( ival) {
+            case 0:
+                ftyp = FileType.RegularFile;
+                break;
+            case 1:
+                ftyp = FileType.Directory;
+                break;
+            case 2:
+                ftyp = FileType.SymbolicLink;
+                break;
+            case 3:
+                ftyp = FileType.HardLink;
+                break;
+            case 4:
+                ftyp = FileType.Device;
+                break;
+        }
+
+        return ftyp;
+    }
 }

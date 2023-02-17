@@ -58,7 +58,7 @@ public abstract class FileState implements Serializable {
     public final static long RenameTimeout  = 1 * 60000L;   // 1 minute
     public final static long DeleteTimeout  = 15000L;        // 15 seconds
 
-    public final static int UnknownFileId   = -1;
+    public final static long UnknownFileId   = -1L;
 
     //	File data status codes
     public enum DataStatus {
@@ -211,9 +211,9 @@ public abstract class FileState implements Serializable {
     /**
      * Get the file id
      *
-     * @return int
+     * @return long
      */
-    public abstract int getFileId();
+    public abstract long getFileId();
 
     /**
      * Return the shared access mode
@@ -397,9 +397,9 @@ public abstract class FileState implements Serializable {
     /**
      * Set the file identifier
      *
-     * @param id int
+     * @param id long
      */
-    public abstract void setFileId(int id);
+    public abstract void setFileId(long id);
 
     /**
      * Set the file state expiry time

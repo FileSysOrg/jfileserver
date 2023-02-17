@@ -38,10 +38,10 @@ public class DirectoryNetworkFile extends DBNetworkFile {
      * Class constructor
      *
      * @param name String
-     * @param fid  int
-     * @param did  int
+     * @param fid  long
+     * @param did  long
      */
-    public DirectoryNetworkFile(String name, int fid, int did) {
+    public DirectoryNetworkFile(String name, long fid, long did) {
         super(name, fid, 0, did);
         setAttributes(FileAttribute.Directory);
     }
@@ -50,11 +50,11 @@ public class DirectoryNetworkFile extends DBNetworkFile {
      * Class constructor
      *
      * @param name       String
-     * @param fid        int
-     * @param did        int
+     * @param fid        long
+     * @param did        long
      * @param stateProxy FileState
      */
-    public DirectoryNetworkFile(String name, int fid, int did, FileStateProxy stateProxy) {
+    public DirectoryNetworkFile(String name, long fid, long did, FileStateProxy stateProxy) {
         super(name, fid, 0, did);
         setFileState(stateProxy);
         setAttributes(FileAttribute.Directory);

@@ -792,6 +792,13 @@ public abstract class JdbcDBInterface implements DBInterface, DBConnectionPoolLi
         return m_sqlDebug;
     }
 
+    @Override
+    public int getUniqueId() {
+
+        // Use the DSN string to generate the unique id for the database interface
+        return m_dsn.hashCode();
+    }
+
     /**
      * Set the DSN string
      *
@@ -983,7 +990,7 @@ public abstract class JdbcDBInterface implements DBInterface, DBConnectionPoolLi
 
                 // DEBUG
                 if (hasDebug())
-                    Debug.println("JDBCInterface: Requeueing pending save requests, count=" + saveReqQueue.numberOfRequests());
+                    Debug.println("JDBCInterface: Requeue pending save requests, count=" + saveReqQueue.numberOfRequests());
 
                 // Queue the save requests
                 FileRequest fileReq = null;
@@ -999,7 +1006,7 @@ public abstract class JdbcDBInterface implements DBInterface, DBConnectionPoolLi
 
                         // DEBUG
                         if (hasDebug())
-                            Debug.println("JDBCInterface: Requeued save " + fileReq);
+                            Debug.println("JDBCInterface: Requeue save " + fileReq);
 
                         // Update the file size for the file being saved, the close method may not have updated the final file size
                         // due to the database being offline

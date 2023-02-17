@@ -103,8 +103,8 @@ public abstract class NetworkFile {
     };
 
     // File identifier and parent directory identifier
-    protected int m_fid;
-    protected int m_dirId;
+    protected long m_fid;
+    protected long m_dirId;
 
     // Unique file identifier
     protected long m_uniqueId;
@@ -117,7 +117,7 @@ public abstract class NetworkFile {
 
     // Stream name and id
     protected String m_streamName;
-    protected int m_streamId;
+    protected long m_streamId;
 
     // Full name, relative to the share
     protected String m_fullName;
@@ -168,19 +168,19 @@ public abstract class NetworkFile {
     /**
      * Create a network file object with the specified file identifier.
      *
-     * @param fid int
+     * @param fid long
      */
-    public NetworkFile(int fid) {
+    public NetworkFile(long fid) {
         m_fid = fid;
     }
 
     /**
      * Create a network file with the specified file and parent directory ids
      *
-     * @param fid int
-     * @param did int
+     * @param fid long
+     * @param did long
      */
-    public NetworkFile(int fid, int did) {
+    public NetworkFile(long fid, long did) {
         m_fid = fid;
         m_dirId = did;
     }
@@ -188,11 +188,11 @@ public abstract class NetworkFile {
     /**
      * Create a network file with the specified file id, stream id and parent directory id
      *
-     * @param fid  int
-     * @param stid int
-     * @param did  int
+     * @param fid  long
+     * @param stid long
+     * @param did  long
      */
-    public NetworkFile(int fid, int stid, int did) {
+    public NetworkFile(long fid, long stid, long did) {
         m_fid = fid;
         m_streamId = stid;
         m_dirId = did;
@@ -210,9 +210,9 @@ public abstract class NetworkFile {
     /**
      * Return the parent directory identifier
      *
-     * @return int
+     * @return long
      */
-    public final int getDirectoryId() {
+    public final long getDirectoryId() {
         return m_dirId;
     }
 
@@ -228,11 +228,18 @@ public abstract class NetworkFile {
     /**
      * Return the file identifier.
      *
-     * @return int
+     * @return long
      */
-    public final int getFileId() {
+    public final long getFileId() {
         return m_fid;
     }
+
+    /**
+     * Return the file id as an integer value
+     *
+     * @return int
+     */
+    public final int getFileIdInt() { return (int) (m_fid & 0xFFFFFFFFL); }
 
     /**
      * Get the file size, in bytes.
@@ -326,9 +333,9 @@ public abstract class NetworkFile {
     /**
      * Return the stream id, zero indicates the main file stream
      *
-     * @return int
+     * @return long
      */
-    public final int getStreamId() {
+    public final long getStreamId() {
         return m_streamId;
     }
 
@@ -597,18 +604,18 @@ public abstract class NetworkFile {
     /**
      * Set the parent directory identifier
      *
-     * @param dirId int
+     * @param dirId long
      */
-    public final void setDirectoryId(int dirId) {
+    public final void setDirectoryId(long dirId) {
         m_dirId = dirId;
     }
 
     /**
      * Set the file identifier.
      *
-     * @param fid int
+     * @param fid long
      */
-    public final void setFileId(int fid) {
+    public final void setFileId(long fid) {
         m_fid = fid;
     }
 
@@ -687,9 +694,9 @@ public abstract class NetworkFile {
     /**
      * Set the stream id
      *
-     * @param id int
+     * @param id long
      */
-    public final void setStreamId(int id) {
+    public final void setStreamId(long id) {
         m_streamId = id;
     }
 
@@ -893,13 +900,11 @@ public abstract class NetworkFile {
     /**
      * Set the unique id using the file and directory id
      *
-     * @param fid int
-     * @param did int
+     * @param fid long
+     * @param did long
      */
-    protected final void setUniqueId(int fid, int did) {
-        long ldid = did;
-        long lfid = fid;
-        m_uniqueId = (ldid << 32) + lfid;
+    protected final void setUniqueId(long fid, long did) {
+        m_uniqueId = (did << 32) + fid;
     }
 
     /**

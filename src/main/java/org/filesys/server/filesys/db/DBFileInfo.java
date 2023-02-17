@@ -43,10 +43,10 @@ public class DBFileInfo extends FileInfo {
      *
      * @param name     String
      * @param fullName String
-     * @param fid      int
-     * @param did      int
+     * @param fid      long
+     * @param did      long
      */
-    public DBFileInfo(String name, String fullName, int fid, int did) {
+    public DBFileInfo(String name, String fullName, long fid, long did) {
         super();
         setFileName(name);
         setFullName(fullName);

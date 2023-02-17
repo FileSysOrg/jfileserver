@@ -46,6 +46,8 @@ import org.filesys.server.filesys.cache.cluster.ClusterInterface;
 import org.filesys.server.filesys.cache.cluster.ClusterNode;
 import org.filesys.server.filesys.cache.cluster.ClusterNodeList;
 import org.filesys.server.filesys.cache.cluster.PerNodeState;
+import org.filesys.server.filesys.event.FSChange;
+import org.filesys.server.filesys.event.FSEventsHandler;
 import org.filesys.server.locking.LocalOpLockDetails;
 import org.filesys.server.locking.OpLockDetails;
 import org.filesys.server.locking.OpLockManager;
@@ -140,8 +142,8 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
     // Local oplock manager
     protected OpLockManager m_oplockManager;
 
-    // Change notification handler, if configured for the filesystem
-    protected NotifyChangeHandler m_notifyHandler;
+    // Filesystem events handler, if configured for the filesystem
+    protected FSEventsHandler m_fsEventsHandler;
 
     // Option to send state updates for files/folders that do not exist
     protected boolean m_sendNotExist = false;
@@ -2129,21 +2131,21 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
     }
 
     /**
-     * Check if the change notification handler is set
+     * Check if the filesystem events handler is set
      *
      * @return boolean
      */
-    public boolean hasNotifyChangeHandler() {
-        return m_notifyHandler != null ? true : false;
+    public boolean hasFSEventsHandler() {
+        return m_fsEventsHandler != null ? true : false;
     }
 
     /**
-     * Return the change notification handler, if configured for the filesystem
+     * Return the filesystem evens handler, if configured for the filesystem
      *
-     * @return NotifyChangeHandler
+     * @return FSEventsHandler
      */
-    public NotifyChangeHandler getNotifyChangeHandler() {
-        return m_notifyHandler;
+    public FSEventsHandler getFSEventsHandler() {
+        return m_fsEventsHandler;
     }
 
     /**
@@ -2165,12 +2167,12 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
     }
 
     /**
-     * Set the change notification handler
+     * Set the filesystem events handler
      *
-     * @param notifyHandler NotifyChangeHandler
+     * @param eventHandler FSEventsHandler
      */
-    public void setNotifyChangeHandler(NotifyChangeHandler notifyHandler) {
-        m_notifyHandler = notifyHandler;
+    public void setFSEventsHandler(FSEventsHandler eventHandler) {
+        m_fsEventsHandler = eventHandler;
     }
 
     /**
@@ -2585,7 +2587,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
             }
 
             // Send out change notifications
-            if (hasNotifyChangeHandler()) {
+            if (hasFSEventsHandler()) {
 
                 // Check for a file status update
                 if (msg.hasUpdate(ClusterFileState.UpdateFileStatus) && msg.getStatusChangeReason() != FileState.ChangeReason.None) {
@@ -2593,22 +2595,22 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
                     // Get the file status reason
                     FileState.ChangeReason reasonCode = msg.getStatusChangeReason();
                     String path = msg.getPath();
-
+/** TODO: Need to sort cluster fs events
                     switch (reasonCode) {
                         case FileCreated:
-                            getNotifyChangeHandler().notifyFileChanged(NotifyAction.Added, path);
+                            getFSEventsHandler().queueFileChanged(FSChange.Created, path);
                             break;
                         case FolderCreated:
-                            getNotifyChangeHandler().notifyDirectoryChanged(NotifyAction.Added, path);
+                            getFSEventsHandler().queueDirectoryChanged(FSChange.Created, path);
                             break;
                         case FileDeleted:
-                            getNotifyChangeHandler().notifyFileChanged(NotifyAction.Removed, path);
+                            getFSEventsHandler().queueFileChanged(FSChange.Deleted, path);
                             break;
                         case FolderDeleted:
-                            getNotifyChangeHandler().notifyDirectoryChanged(NotifyAction.Removed, path);
+                            getFSEventsHandler().queueFileChanged(FSChange.Deleted, path);
                             break;
                     }
-
+**/
                     // DEBUG
                     if (hasDebugLevel(DebugClusterMessage))
                         Debug.println("Sent change notification path=" + path + ", reason=" + reasonCode.name());
@@ -2659,10 +2661,11 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
             }
 
             // Send out a change notification
-            if (hasNotifyChangeHandler()) {
+            if (hasFSEventsHandler()) {
 
+                // TODO: Need to fix this
                 // Inform local SMB clients of the rename
-                getNotifyChangeHandler().notifyRename(msg.getOldPath(), msg.getNewPath());
+//                getFSEventsHandler().queueRename(msg.getOldPath(), msg.getNewPath(), null);
 
                 // DEBUG
                 if (hasDebugLevel(DebugClusterMessage))

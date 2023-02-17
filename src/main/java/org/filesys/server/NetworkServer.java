@@ -417,6 +417,11 @@ public abstract class NetworkServer {
     }
 
     /**
+     * Perform pre server start processing, if required
+     */
+    public void preStartServer() {};
+
+    /**
      * Start the network server
      */
     public abstract void startServer();

@@ -45,7 +45,7 @@ public enum NotifyChange {
     private final int changeTyp;
 
     /**
-     * Enum condstructor
+     * Enum constructor
      *
      * @param typ int
      */
@@ -60,6 +60,9 @@ public enum NotifyChange {
     public static final Set<NotifyChange> setFromInt(int ival) {
 
         Set<NotifyChange> changeSet = EnumSet.noneOf( NotifyChange.class);
+        if ( ival == 0)
+            return changeSet;
+
         int mask = 0x0001;
 
         while ( mask <= 0x0800) {

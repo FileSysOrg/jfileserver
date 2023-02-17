@@ -32,7 +32,7 @@ import java.util.Date;
 public class RetentionDetails {
 
     //	File id
-    private int m_fid;
+    private long m_fid;
 
     //	Retention start/end date/time
     private long m_startRetain;
@@ -41,10 +41,10 @@ public class RetentionDetails {
     /**
      * Class constructor
      *
-     * @param fid     int
+     * @param fid     long
      * @param endTime long
      */
-    public RetentionDetails(int fid, long endTime) {
+    public RetentionDetails(long fid, long endTime) {
         m_fid = fid;
 
         m_startRetain = -1L;
@@ -54,11 +54,11 @@ public class RetentionDetails {
     /**
      * Class constructor
      *
-     * @param fid       int
+     * @param fid       long
      * @param startTime long
      * @param endTime   long
      */
-    public RetentionDetails(int fid, long startTime, long endTime) {
+    public RetentionDetails(long fid, long startTime, long endTime) {
         m_fid = fid;
 
         m_startRetain = startTime;
@@ -68,9 +68,9 @@ public class RetentionDetails {
     /**
      * Return the file id
      *
-     * @return int
+     * @return long
      */
-    public final int getFileId() {
+    public final long getFileId() {
         return m_fid;
     }
 

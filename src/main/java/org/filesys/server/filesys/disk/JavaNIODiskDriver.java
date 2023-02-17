@@ -318,7 +318,7 @@ public class JavaNIODiskDriver implements DiskInterface {
         if ( Files.exists( filePath) && Files.isDirectory( filePath) == false) {
 
             // If the file size is below the large file threshold then delete the file
-            if ( Files.size( filePath) < ctx.getLargeFileSize()) {
+            if ( Files.size( filePath) < ctx.getLargeFileSize() || ctx.hasTrashFolder() == false) {
 
                 // Delete the file
                 Files.delete( filePath);

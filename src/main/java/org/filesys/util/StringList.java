@@ -22,6 +22,7 @@ package org.filesys.util;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.StringTokenizer;
 import java.util.Vector;
 
 /**
@@ -165,5 +166,36 @@ public class StringList {
 
         //	Return the string
         return str.toString();
+    }
+
+    /**
+     * Create a string list from a comma delimited list of strings
+     *
+     * @param str String
+     * @param upCase boolean
+     * @return StringList
+     */
+    public static StringList fromCommaList(String str, boolean upCase) {
+
+        // Check for a null or empty string
+        if ( str == null || str.isEmpty())
+            return new StringList();
+
+        // Parse the comma delimeted strings into a list
+        StringList strList = new StringList();
+        StringTokenizer tokens = new StringTokenizer( str, ",");
+
+        while ( tokens.hasMoreTokens()) {
+
+            // Get the current token, strip and whitespace
+            String token = tokens.nextToken().trim();
+
+            if ( upCase)
+                token = token.toUpperCase();
+
+            strList.addString( token);
+        }
+
+        return strList;
     }
 }

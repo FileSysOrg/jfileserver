@@ -233,7 +233,7 @@ public abstract class SrvSession <T extends Enum<T>> {
      *
      * @return boolean
      */
-    public final boolean hasClientInformation() {
+    public boolean hasClientInformation() {
         return m_clientInfo.get() != null ? true : false;
     }
 
@@ -242,7 +242,7 @@ public abstract class SrvSession <T extends Enum<T>> {
      *
      * @return ClientInfo
      */
-    public final ClientInfo getClientInformation() {
+    public ClientInfo getClientInformation() {
         return m_clientInfo.get();
     }
 
@@ -375,7 +375,7 @@ public abstract class SrvSession <T extends Enum<T>> {
      *
      * @param client ClientInfo
      */
-    public final void setClientInformation(ClientInfo client) {
+    public void setClientInformation(ClientInfo client) {
         m_clientInfo.set(client);
     }
 

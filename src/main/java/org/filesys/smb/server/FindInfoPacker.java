@@ -387,7 +387,7 @@ public class FindInfoPacker {
         //	Pack the file id
         int startPos = buf.getPosition();
         buf.putZeros(4);
-        buf.putInt(EnableFileIdPacking ? info.getFileId() : 0);
+        buf.putInt(EnableFileIdPacking ? info.getFileIdInt() : 0);
 
         //	Pack the file name length
         int nameLen = info.getFileName().length();
@@ -434,7 +434,7 @@ public class FindInfoPacker {
         //	Pack the file id
         int startPos = buf.getPosition();
         buf.putZeros(4);
-        buf.putInt(EnableFileIdPacking ? info.getFileId() : 0);
+        buf.putInt(EnableFileIdPacking ? info.getFileIdInt() : 0);
 
         //  Pack the creation date/time
         if (info.hasCreationDateTime()) {
@@ -515,7 +515,7 @@ public class FindInfoPacker {
         //	Pack the file id
         int startPos = buf.getPosition();
         buf.putZeros(4);
-        buf.putInt(EnableFileIdPacking ? info.getFileId() : 0);
+        buf.putInt(EnableFileIdPacking ? info.getFileIdInt() : 0);
 
         //  Pack the creation date/time
         if (info.hasCreationDateTime()) {
@@ -602,7 +602,7 @@ public class FindInfoPacker {
         //	Pack the file id
         int startPos = buf.getPosition();
         buf.putZeros(4);
-        buf.putInt(EnableFileIdPacking ? info.getFileId() : 0);
+        buf.putInt(EnableFileIdPacking ? info.getFileIdInt() : 0);
 
         //  Pack the creation date/time
         if (info.hasCreationDateTime()) {
@@ -747,7 +747,7 @@ public class FindInfoPacker {
         buf.putShort(0);
 
         // Pack the file id
-        buf.putLong(info.getFileIdLong());
+        buf.putLong(info.getFileId());
 
         //	Pack the long file name string
         buf.putString(info.getFileName(), uni, false);
@@ -797,7 +797,7 @@ public class FindInfoPacker {
         //	Pack the file id
         int startPos = buf.getPosition();
         buf.putZeros(4);
-        buf.putInt(EnableFileIdPacking ? info.getFileId() : 0);
+        buf.putInt(EnableFileIdPacking ? info.getFileIdInt() : 0);
 
         //  Pack the creation date/time
         if (info.hasCreationDateTime()) {
@@ -1026,7 +1026,7 @@ public class FindInfoPacker {
         buf.putInt(0);
 
         //  Pack the file id
-        buf.putInt(EnableFileIdPacking ? info.getFileId() : 0);
+        buf.putInt(EnableFileIdPacking ? info.getFileIdInt() : 0);
         buf.putInt(0);
 
         //  Pack the short file name length (8.3 name)

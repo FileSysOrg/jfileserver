@@ -27,6 +27,8 @@ import org.filesys.server.filesys.DiskDeviceContext;
 import org.filesys.server.filesys.FileName;
 import org.filesys.server.filesys.NetworkFile;
 import org.filesys.server.filesys.NotifyChange;
+import org.filesys.server.filesys.event.ChangeEvent;
+import org.filesys.server.filesys.event.ChangeEventList;
 import org.filesys.smb.server.SMBSrvSession;
 
 
@@ -70,7 +72,7 @@ public class NotifyRequest {
     private DiskDeviceContext m_diskCtx;
 
     //	Buffered event list
-    private NotifyChangeEventList m_bufferedEvents;
+    private ChangeEventList m_bufferedEvents;
 
     //	Notify request completed flag
     private boolean m_completed;
@@ -434,7 +436,7 @@ public class NotifyRequest {
      *
      * @return NotifyChangeEventList
      */
-    public final NotifyChangeEventList getBufferedEventList() {
+    public final ChangeEventList getBufferedEventList() {
         return m_bufferedEvents;
     }
 
@@ -443,7 +445,7 @@ public class NotifyRequest {
      *
      * @param evt NotifyChangeEvent
      */
-    public final void addEvent(NotifyChangeEvent evt) {
+    public final void addEvent(ChangeEvent evt) {
 
         //	Check if the notify enum flag is set, if so then do not buffer any events
         if (hasNotifyEnum())
@@ -451,7 +453,7 @@ public class NotifyRequest {
 
         //	Check if the buffered event list has been allocated
         if (m_bufferedEvents == null)
-            m_bufferedEvents = new NotifyChangeEventList();
+            m_bufferedEvents = new ChangeEventList();
 
         //	Add the event if the list has not reached the maximum buffered event count
         if (m_bufferedEvents.numberOfEvents() < getMaximumQueueLength()) {

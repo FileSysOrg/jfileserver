@@ -89,7 +89,7 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
     private static final String LineSeperator = System.getProperty("line.separator");
 
     // NTLM flags mask, used to mask out features that are not supported
-    private static final int NTLM_UNSUPPORTED_FLAGS = NTLM.Flag56Bit + NTLM.Flag128Bit + NTLM.FlagLanManKey + NTLM.FlagNegotiateNTLM +
+    private static final int NTLM_UNSUPPORTED_FLAGS =  NTLM.Flag56Bit + NTLM.Flag128Bit + NTLM.FlagLanManKey + NTLM.FlagNegotiateNTLM +
                                                       NTLM.FlagNegotiateUnicode;
 
     // NTLM flags to be sent back to the client

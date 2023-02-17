@@ -29,7 +29,7 @@ import org.filesys.server.core.NoPooledMemoryException;
 import org.filesys.server.filesys.*;
 import org.filesys.server.locking.LocalOpLockDetails;
 import org.filesys.smb.Dialect;
-import org.filesys.smb.server.notify.NotifyChangeEvent;
+import org.filesys.server.filesys.event.ChangeEvent;
 import org.filesys.smb.server.notify.NotifyRequest;
 
 /**
@@ -151,7 +151,7 @@ public abstract class ProtocolHandler {
      * @param req NotifyRequest
      * @return SMBSrvPacket
      */
-    public SMBSrvPacket buildChangeNotificationResponse(NotifyChangeEvent evt, NotifyRequest req) {
+    public SMBSrvPacket buildChangeNotificationResponse(ChangeEvent evt, NotifyRequest req) {
         return null;
     }
 

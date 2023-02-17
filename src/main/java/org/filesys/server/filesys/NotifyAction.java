@@ -17,6 +17,8 @@
 
 package org.filesys.server.filesys;
 
+import org.filesys.server.filesys.event.FSChange;
+
 /**
  * Change Notification Actions Enum Class
  *
@@ -47,4 +49,34 @@ public enum NotifyAction {
      * @return int
      */
     public final int intValue() { return actionTyp; }
+
+    /**
+     * Convert a filesystem change into a change notification action
+     *
+     * @param fsChange FSChange
+     * @return NotifyAction
+     */
+    public static final NotifyAction fromFSChange(FSChange fsChange) {
+
+        NotifyAction notifyAction = Added;
+
+        switch ( fsChange) {
+            case Created:
+                notifyAction = Added;
+                break;
+            case Deleted:
+                notifyAction = Removed;
+                break;
+            case Modified:
+            case Attributes:
+            case LastWrite:
+                notifyAction = Modified;
+                break;
+            case Renamed:
+                notifyAction = RenamedNewName;
+                break;
+        }
+
+        return notifyAction;
+    }
 }

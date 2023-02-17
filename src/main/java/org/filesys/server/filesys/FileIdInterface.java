@@ -38,11 +38,11 @@ public interface FileIdInterface {
      *
      * @param sess   SrvSession
      * @param tree   TreeConnection
-     * @param dirid  int
-     * @param fileid int
+     * @param dirid  long
+     * @param fileid long
      * @return String
      * @throws FileNotFoundException File not found
      */
-    public String buildPathForFileId(SrvSession sess, TreeConnection tree, int dirid, int fileid)
+    public String buildPathForFileId(SrvSession sess, TreeConnection tree, long dirid, long fileid)
             throws FileNotFoundException;
 }

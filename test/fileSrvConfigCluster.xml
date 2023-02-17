@@ -95,7 +95,7 @@
     <shares>
         <diskshare name="JFILESHARE" comment="Test share">
             <driver>
-                <class>org.filesys.smb.server.disk.JavaNIODiskDriver</class>
+                <class>org.filesys.server.filesys.disk.JavaNIODiskDriver</class>
                 <LocalPath>.</LocalPath>
             </driver>
         </diskshare>

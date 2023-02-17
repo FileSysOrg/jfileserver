@@ -323,13 +323,13 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
         }
 
         //  Find the parent directory id for the new directory
-        int dirId = findParentDirectoryId(dbCtx, params.getPath(), true);
+        long dirId = findParentDirectoryId(dbCtx, params.getPath(), true);
         if (dirId == -1)
             throw new IOException("Cannot find parent directory");
 
         //  Create the new directory entry
         FileAccessToken accessToken = null;
-        int fid = -1;
+        long fid = -1;
 
         try {
 
@@ -449,7 +449,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
         }
 
         //  Split the path string and find the directory id to attach the file to
-        int dirId = findParentDirectoryId(dbCtx, params.getPath(), true);
+        long dirId = findParentDirectoryId(dbCtx, params.getPath(), true);
         if (dirId == -1)
             throw new IOException("Cannot find parent directory");
 
@@ -495,7 +495,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
             }
 
             //  Create a new file record
-            int fid = dbCtx.getDBInterface().createFileRecord(fname, dirId, params, retain);
+            long fid = dbCtx.getDBInterface().createFileRecord(fname, dirId, params, retain);
 
             //  Indicate that the file exists
             fstate.setFileStatus(FileStatus.FileExists, FileState.ChangeReason.FileCreated);
@@ -1209,8 +1209,8 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
                 throw new AccessDeniedException("File retention active");
 
             //  Get the file id of the existing file
-            int fid = fstate.getFileId();
-            int dirId = -1;
+            long fid = fstate.getFileId();
+            long dirId = -1;
 
             if (fid == -1) {
 
@@ -1252,7 +1252,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
             }
 
             //  Get the new file/directory name
-            int newDirId = findParentDirectoryId(dbCtx, newName, true);
+            long newDirId = findParentDirectoryId(dbCtx, newName, true);
             if (newDirId == -1)
                 throw new FileNotFoundException(newName);
             String[] newPaths = FileName.splitPath(newName);
@@ -1484,7 +1484,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
         }
 
         //  Get the directory id for the last directory in the path
-        int dirId = findParentDirectoryId(dbCtx, searchPath, true);
+        long dirId = findParentDirectoryId(dbCtx, searchPath, true);
         if (dirId == -1)
             throw new FileNotFoundException("Invalid path");
 
@@ -1774,7 +1774,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
             m_debug = true;
 
         //  Create the database device context
-        DBDeviceContext ctx = new DBDeviceContext(args);
+        DBDeviceContext ctx = new DBDeviceContext(shareName, args);
 
         //  Return the database device context
         return ctx;
@@ -1824,7 +1824,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
         }
 
         //  Split the path string and find the parent directory id
-        int dirId = findParentDirectoryId(dbCtx, path, true);
+        long dirId = findParentDirectoryId(dbCtx, path, true);
         if (dirId == -1)
             return null;
 
@@ -1844,7 +1844,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
             filePath = paths[0] + paths[1];
 
         //  Get the file id for the specified file
-        int fid = getFileId(filePath, fname, dirId, dbCtx);
+        long fid = getFileId(filePath, fname, dirId, dbCtx);
         if (fid == -1) {
 
             // Set the file status as not existing
@@ -1893,11 +1893,11 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
      *
      * @param path  String
      * @param name  String
-     * @param dirId int
+     * @param dirId long
      * @param dbCtx DBDeviceContext
-     * @return int
+     * @return long
      */
-    protected final int getFileId(String path, String name, int dirId, DBDeviceContext dbCtx) {
+    protected final long getFileId(String path, String name, long dirId, DBDeviceContext dbCtx) {
 
         //  Check if the file is in the cache
         FileStateCache cache = dbCtx.getStateCache();
@@ -1931,7 +1931,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
         }
 
         //  Get the file id from the database
-        int fileId = -1;
+        long fileId = -1;
 
         try {
 
@@ -1975,9 +1975,9 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
      * @param ctx      DBDeviceContext
      * @param path     String
      * @param filePath boolean
-     * @return int
+     * @return long
      */
-    protected final int findParentDirectoryId(DBDeviceContext ctx, String path, boolean filePath) {
+    protected final long findParentDirectoryId(DBDeviceContext ctx, String path, boolean filePath) {
 
         //  Split the path
         String[] paths = null;
@@ -2016,7 +2016,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
         }
 
         //  Get the directory id list
-        int[] ids = findParentDirectoryIdList(ctx, path, filePath);
+        long[] ids = findParentDirectoryIdList(ctx, path, filePath);
         if (ids == null)
             return -1;
 
@@ -2038,9 +2038,9 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
      * @param ctx      DBDeviceContext
      * @param path     String
      * @param filePath boolean
-     * @return int[]
+     * @return long[]
      */
-    protected final int[] findParentDirectoryIdList(DBDeviceContext ctx, String path, boolean filePath) {
+    protected final long[] findParentDirectoryIdList(DBDeviceContext ctx, String path, boolean filePath) {
 
         //  Validate the paths and check for the root path
         String[] paths = FileName.splitAllPaths(path);
@@ -2049,7 +2049,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
             return null;
         if (paths[0].compareTo("*.*") == 0 || paths[0].compareTo("*") == 0 ||
                 (filePath == true && paths.length == 1)) {
-            int[] ids = {0};
+            long[] ids = {0L};
             return ids;
         }
         if (paths[0].startsWith("\\")) {
@@ -2065,13 +2065,13 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
 
         //  If there are no paths to check then return the root directory id
         if (endIdx <= 1 && paths[0].length() == 0) {
-            int[] ids = new int[1];
+            long[] ids = new long[1];
             ids[0] = 0;
             return ids;
         }
 
         //  Allocate the directory id list
-        int[] ids = new int[paths.length];
+        long[] ids = new long[paths.length];
         for (int i = 0; i < ids.length; i++)
             ids[i] = -1;
 
@@ -2083,8 +2083,8 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
         FileState fstate = null;
 
         //  Traverse the path list, initialize the directory id to the root id
-        int dirId = 0;
-        int parentId = -1;
+        long dirId = 0;
+        long parentId = -1;
         int idx = 0;
 
         try {
@@ -2156,12 +2156,12 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
      * Return file information about the specified file, using the internal file id
      *
      * @param path  String
-     * @param dirId int
-     * @param fid   int
+     * @param dirId long
+     * @param fid   long
      * @param dbCtx DBDeviceContext
      * @return DBFileInfo
      */
-    public DBFileInfo getFileInfo(String path, int dirId, int fid, DBDeviceContext dbCtx) {
+    public DBFileInfo getFileInfo(String path, long dirId, long fid, DBDeviceContext dbCtx) {
 
         //  Check if the file is in the cache
         FileState state = getFileState(path, dbCtx, true);
@@ -2542,7 +2542,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
             accessToken = dbCtx.getStateCache().grantFileAccess(params, fstate, FileStatus.FileExists);
 
             //  Create a new stream record
-            int stid = dbCtx.getDBInterface().createStreamRecord(params.getStreamName(), finfo.getFileId());
+            long stid = dbCtx.getDBInterface().createStreamRecord(params.getStreamName(), finfo.getFileId());
 
             //  Create a network file to hold details of the new stream
             file = (DBNetworkFile) dbCtx.getFileLoader().openFile(params, finfo.getFileId(), stid, finfo.getDirectoryId(), true, false);
@@ -3026,12 +3026,12 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
      *
      * @param sess   SrvSession
      * @param tree   TreeConnection
-     * @param dirid  int
-     * @param fileid int
+     * @param dirid  long
+     * @param fileid long
      * @return String
      * @throws FileNotFoundException File not found
      */
-    public String buildPathForFileId(SrvSession sess, TreeConnection tree, int dirid, int fileid)
+    public String buildPathForFileId(SrvSession sess, TreeConnection tree, long dirid, long fileid)
             throws FileNotFoundException {
 
         // Access the JDBC context
@@ -3043,8 +3043,8 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
         try {
 
             //  Loop, walking backwards up the tree until we hit root
-            int curFid = fileid;
-            int curDid = dirid;
+            long curFid = fileid;
+            long curDid = dirid;
 
             FileInfo finfo = null;
 
@@ -3133,8 +3133,8 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
             FileState fstate = getFileState(path, dbCtx, true);
 
             //  Get the file id of the existing file
-            int fid = fstate.getFileId();
-            int dirId = -1;
+            long fid = fstate.getFileId();
+            long dirId = -1;
 
             if (fid == -1) {
 

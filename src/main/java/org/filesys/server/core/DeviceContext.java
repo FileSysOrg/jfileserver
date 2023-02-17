@@ -43,6 +43,9 @@ public class DeviceContext {
     // Shared device name
     private String m_shareName;
 
+    // Unique id for this device context
+    private long m_uniqueId;
+
     // Enable debug output
     private boolean m_debug;
 
@@ -90,6 +93,13 @@ public class DeviceContext {
     public final String getShareName() {
         return m_shareName;
     }
+
+    /**
+     * Return the unique id for the device context
+     *
+     * @return long
+     */
+    public final long getUniqueId() { return m_uniqueId; }
 
     /**
      * Determine if the device context has any configuration parameters
@@ -141,9 +151,7 @@ public class DeviceContext {
      *
      * @param name java.lang.String
      */
-    public final void setDeviceName(String name) {
-        m_devName = name;
-    }
+    public final void setDeviceName(String name) { m_devName = name; }
 
     /**
      * Set the shared device name
@@ -177,15 +185,29 @@ public class DeviceContext {
     }
 
     /**
+     * Generate a unique id for the device context
+     *
+     * @param devSpecific int
+     */
+    protected final void generateUniqueId(int devSpecific) {
+        long shareHash = (long) m_shareName.hashCode();
+        m_uniqueId = ((shareHash << 32) + (((long) devSpecific) & 0xFFFFFFFFL)) & 0x7FFFFFFFFFFFFFFFL;
+    }
+
+    /**
      * Return the context as a string
      *
      * @return String
      */
     public String toString() {
-        StringBuffer str = new StringBuffer();
+        StringBuilder str = new StringBuilder();
 
-        str.append("[");
+        str.append("[Device=");
         str.append(getDeviceName());
+        str.append(",share=");
+        str.append(getShareName());
+        str.append(",id=0x");
+        str.append( Long.toHexString( getUniqueId()));
         str.append("]");
 
         return str.toString();

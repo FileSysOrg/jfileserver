@@ -39,14 +39,16 @@ import org.filesys.server.core.InvalidDeviceInterfaceException;
 import org.filesys.server.core.ShareType;
 import org.filesys.server.core.SharedDevice;
 import org.filesys.server.filesys.*;
+import org.filesys.server.filesys.event.FSChange;
+import org.filesys.server.filesys.event.FSEventsHandler;
 import org.filesys.server.locking.*;
 import org.filesys.smb.*;
 import org.filesys.smb.nt.LoadException;
 import org.filesys.smb.nt.NTIOCtl;
 import org.filesys.smb.nt.SaveException;
 import org.filesys.smb.nt.SecurityDescriptor;
-import org.filesys.smb.server.notify.NotifyChangeEvent;
-import org.filesys.smb.server.notify.NotifyChangeEventList;
+import org.filesys.server.filesys.event.ChangeEvent;
+import org.filesys.server.filesys.event.ChangeEventList;
 import org.filesys.smb.server.notify.NotifyChangeHandler;
 import org.filesys.smb.server.notify.NotifyRequest;
 import org.filesys.smb.server.ntfs.NTFSStreamsInterface;
@@ -1120,10 +1122,10 @@ public class NTProtocolHandler extends CoreProtocolHandler {
 
         if ( diskCtx != null && diskCtx.hasFileServerNotifications()) {
             if (netFile.getWriteCount() > 0)
-                diskCtx.getChangeHandler().notifyFileSizeChanged(netFile.getFullName());
+                diskCtx.getFSEventsHandler().queueFileSizeChanged(netFile, diskCtx, true);
 
             if (netFile.hasDeleteOnClose())
-                diskCtx.getChangeHandler().notifyFileChanged(NotifyAction.Removed, netFile.getFullName());
+                diskCtx.getFSEventsHandler().queueFileChanged(FSChange.Deleted, netFile, diskCtx);
         }
     }
 
@@ -2310,13 +2312,15 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         }
 
         // Access the disk interface and rename the requested file
-        int fid;
-        NetworkFile netFile = null;
+        FileInfo fInfo = null;
 
         try {
 
             // Access the disk interface that is associated with the shared device
             DiskInterface disk = (DiskInterface) conn.getSharedDevice().getInterface();
+
+            // Get the details of the file/folder to be renamed
+            fInfo = disk.getFileInformation( m_sess, conn, oldName);
 
             // Rename the requested file
             disk.renameFile(m_sess, conn, oldName, newName);
@@ -2380,7 +2384,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         // Check if there are any file/directory change notify requests active
         DiskDeviceContext diskCtx = (DiskDeviceContext) conn.getContext();
         if (diskCtx.hasFileServerNotifications())
-            diskCtx.getChangeHandler().notifyRename(oldName, newName);
+            diskCtx.getFSEventsHandler().queueRename(oldName, newName, fInfo, diskCtx);
     }
 
     /**
@@ -2449,8 +2453,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
             m_sess.debugPrintln("File Delete [" + treeId + "] name=" + fileName);
 
         // Access the disk interface and delete the file(s)
-        int fid;
-        NetworkFile netFile = null;
+        FileInfo fInfo = null;
         long startTime = 0L;
 
         try {
@@ -2461,6 +2464,9 @@ public class NTProtocolHandler extends CoreProtocolHandler {
 
             // Access the disk interface that is associated with the shared device
             DiskInterface disk = (DiskInterface) conn.getSharedDevice().getInterface();
+
+            // Get the details of the file being deleted
+            fInfo = disk.getFileInformation(m_sess, conn, fileName);
 
             // Delete file(s)
             disk.deleteFile(m_sess, conn, fileName);
@@ -2504,8 +2510,8 @@ public class NTProtocolHandler extends CoreProtocolHandler {
 
         // Check if there are any file/directory change notify requests active
         DiskDeviceContext diskCtx = (DiskDeviceContext) conn.getContext();
-        if (diskCtx.hasFileServerNotifications())
-            diskCtx.getChangeHandler().notifyFileChanged(NotifyAction.Removed, fileName);
+        if (diskCtx.hasFileServerNotifications() && fInfo != null)
+            diskCtx.getFSEventsHandler().queueFileChanged(FSChange.Deleted, fInfo, diskCtx);
     }
 
     /**
@@ -2574,10 +2580,15 @@ public class NTProtocolHandler extends CoreProtocolHandler {
             m_sess.debugPrintln("Directory Delete [" + treeId + "] name=" + dirName);
 
         // Access the disk interface and delete the directory
+        FileInfo fInfo = null;
+
         try {
 
             // Access the disk interface that is associated with the shared device
             DiskInterface disk = (DiskInterface) conn.getSharedDevice().getInterface();
+
+            // Get the details of the folder being deleted
+            fInfo = disk.getFileInformation(m_sess, conn, dirName);
 
             // Delete the directory
             disk.deleteDirectory(m_sess, conn, dirName);
@@ -2623,8 +2634,8 @@ public class NTProtocolHandler extends CoreProtocolHandler {
 
         // Check if there are any file/directory change notify requests active
         DiskDeviceContext diskCtx = (DiskDeviceContext) conn.getContext();
-        if (diskCtx.hasFileServerNotifications())
-            diskCtx.getChangeHandler().notifyDirectoryChanged(NotifyAction.Removed, dirName);
+        if (diskCtx.hasFileServerNotifications() && fInfo != null)
+            diskCtx.getFSEventsHandler().queueDirectoryChanged(FSChange.Deleted, fInfo, diskCtx);
     }
 
     /**
@@ -4131,24 +4142,24 @@ public class NTProtocolHandler extends CoreProtocolHandler {
 
             if (diskCtx.hasFileServerNotifications() && netFile.getFullName() != null) {
 
-                // Get the change handler
-                NotifyChangeHandler changeHandler = diskCtx.getChangeHandler();
+                // Get the filesystem events handler
+                FSEventsHandler fsEventsHandler = diskCtx.getFSEventsHandler();
 
                 // Check for file attributes and last write time changes
                 if (finfo != null) {
 
                     // File attributes changed
                     if (finfo.hasSetFlag(FileInfo.Set.Attributes))
-                        changeHandler.notifyAttributesChanged(netFile.getFullName(), netFile.isDirectory());
+                        fsEventsHandler.queueAttributesChanged(netFile, diskCtx);
 
                     // Last write time changed
                     if (finfo.hasSetFlag(FileInfo.Set.ModifyDate))
-                        changeHandler.notifyLastWriteTimeChanged(netFile.getFullName(), netFile.isDirectory());
+                        fsEventsHandler.queueLastWriteTimeChanged(netFile, diskCtx);
                 }
                 else if (infoLevl == FileInfoLevel.SetAllocationInfo || infoLevl == FileInfoLevel.SetEndOfFileInfo) {
 
                     // File size changed
-                    changeHandler.notifyFileSizeChanged(netFile.getFullName());
+                    fsEventsHandler.queueFileSizeChanged(netFile, diskCtx, false);
                 }
             }
         }
@@ -4260,7 +4271,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
 
             // Process the set file information request
             DataBuffer dataBuf = tbuf.getDataBuffer();
-            FileInfo finfo = null;
+            FileInfo fInfo = null;
 
             EnumSet<FileInfo.Set> setFlags = EnumSet.noneOf( FileInfo.Set.class);
             int attr = 0;
@@ -4271,7 +4282,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                 case FileInfoLevel.SetStandard:
 
                     // Create the file information template
-                    finfo = new FileInfo(path, 0, -1);
+                    fInfo = new FileInfo(path, 0, -1);
 
                     // Set the creation date/time, if specified
                     int smbDate = dataBuf.getShort();
@@ -4280,7 +4291,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                     boolean hasSetTime = false;
 
                     if (smbDate != 0 && smbTime != 0) {
-                        finfo.setCreationDateTime(new SMBDate(smbDate, smbTime).getTime());
+                        fInfo.setCreationDateTime(new SMBDate(smbDate, smbTime).getTime());
                         setFlags.add( FileInfo.Set.CreationDate);
                         hasSetTime = true;
                     }
@@ -4290,7 +4301,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                     smbTime = dataBuf.getShort();
 
                     if (smbDate != 0 && smbTime != 0) {
-                        finfo.setAccessDateTime(new SMBDate(smbDate, smbTime).getTime());
+                        fInfo.setAccessDateTime(new SMBDate(smbDate, smbTime).getTime());
                         setFlags.add( FileInfo.Set.AccessDate);
                         hasSetTime = true;
                     }
@@ -4300,7 +4311,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                     smbTime = dataBuf.getShort();
 
                     if (smbDate != 0 && smbTime != 0) {
-                        finfo.setModifyDateTime(new SMBDate(smbDate, smbTime).getTime());
+                        fInfo.setModifyDateTime(new SMBDate(smbDate, smbTime).getTime());
                         setFlags.add( FileInfo.Set.ModifyDate);
                         hasSetTime = true;
                     }
@@ -4308,13 +4319,13 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                     // Set the file size/allocation size
                     int fileSize = dataBuf.getInt();
                     if (fileSize != 0) {
-                        finfo.setFileSize(fileSize);
+                        fInfo.setFileSize(fileSize);
                         setFlags.add( FileInfo.Set.FileSize);
                     }
 
                     fileSize = dataBuf.getInt();
                     if (fileSize != 0) {
-                        finfo.setAllocationSize(fileSize);
+                        fInfo.setAllocationSize(fileSize);
                         setFlags.add( FileInfo.Set.AllocationSize);
                     }
 
@@ -4323,13 +4334,13 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                     int eaListLen = dataBuf.getInt();
 
                     if (hasSetTime == false && eaListLen == 0) {
-                        finfo.setFileAttributes(attr);
+                        fInfo.setFileAttributes(attr);
                         setFlags.add( FileInfo.Set.Attributes);
                     }
 
                     // Set the file information for the specified file/directory
-                    finfo.setFileInformationFlags(setFlags);
-                    disk.setFileInformation(m_sess, conn, path, finfo);
+                    fInfo.setFileInformationFlags(setFlags);
+                    disk.setFileInformation(m_sess, conn, path, fInfo);
 
                     // Debug
                     if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.INFO))
@@ -4342,13 +4353,13 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                 case FileInfoLevel.SetBasicInfo:
 
                     // Create the file information template
-                    finfo = new FileInfo(path, 0, -1);
+                    fInfo = new FileInfo(path, 0, -1);
 
                     // Set the creation date/time, if specified
                     long dateTime = NTTime.toJavaDate(dataBuf.getLong());
 
                     if (dateTime != 0L) {
-                        finfo.setCreationDateTime(dateTime);
+                        fInfo.setCreationDateTime(dateTime);
                         setFlags.add( FileInfo.Set.CreationDate);
                     }
 
@@ -4356,7 +4367,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                     dateTime = NTTime.toJavaDate(dataBuf.getLong());
 
                     if (dateTime != 0L) {
-                        finfo.setAccessDateTime(dateTime);
+                        fInfo.setAccessDateTime(dateTime);
                         setFlags.add( FileInfo.Set.AccessDate);
                     }
 
@@ -4364,7 +4375,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                     dateTime = NTTime.toJavaDate(dataBuf.getLong());
 
                     if (dateTime != 0L) {
-                        finfo.setModifyDateTime(dateTime);
+                        fInfo.setModifyDateTime(dateTime);
                         setFlags.add( FileInfo.Set.ModifyDate);
                     }
 
@@ -4372,7 +4383,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                     dateTime = NTTime.toJavaDate(dataBuf.getLong());
 
                     if (dateTime != 0L) {
-                        finfo.setChangeDateTime(dateTime);
+                        fInfo.setChangeDateTime(dateTime);
                         setFlags.add( FileInfo.Set.ChangeDate);
                     }
 
@@ -4380,13 +4391,13 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                     attr = dataBuf.getInt();
 
                     if (attr != 0) {
-                        finfo.setFileAttributes(attr);
+                        fInfo.setFileAttributes(attr);
                         setFlags.add( FileInfo.Set.Attributes);
                     }
 
                     // Set the file information for the specified file/directory
-                    finfo.setFileInformationFlags(setFlags);
-                    disk.setFileInformation(m_sess, conn, path, finfo);
+                    fInfo.setFileInformationFlags(setFlags);
+                    disk.setFileInformation(m_sess, conn, path, fInfo);
 
                     // Debug
                     if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.INFO))
@@ -4419,22 +4430,22 @@ public class NTProtocolHandler extends CoreProtocolHandler {
 
             if (diskCtx.hasFileServerNotifications() && path != null) {
 
-                // Get the change handler
-                NotifyChangeHandler changeHandler = diskCtx.getChangeHandler();
+                // Get the filesystem events handler
+                FSEventsHandler fsEventsHandler = diskCtx.getFSEventsHandler();
 
                 // Check for file attributes and last write time changes
-                if (finfo != null) {
+                if (fInfo != null) {
 
                     // Check if the path refers to a file or directory
                     FileStatus fileSts = disk.fileExists(m_sess, conn, path);
 
                     // File attributes changed
-                    if (finfo.hasSetFlag(FileInfo.Set.Attributes))
-                        changeHandler.notifyAttributesChanged(path, fileSts == FileStatus.DirectoryExists ? true : false);
+                    if (fInfo.hasSetFlag(FileInfo.Set.Attributes))
+                        fsEventsHandler.queueAttributesChanged(path, fInfo, diskCtx);
 
                     // Last write time changed
-                    if (finfo.hasSetFlag(FileInfo.Set.ModifyDate))
-                        changeHandler.notifyLastWriteTimeChanged(path, fileSts == FileStatus.DirectoryExists ? true : false);
+                    if (fInfo.hasSetFlag(FileInfo.Set.ModifyDate))
+                        fsEventsHandler.queueLastWriteTimeChanged(path, fInfo, diskCtx);
                 }
             }
         }
@@ -4656,11 +4667,8 @@ public class NTProtocolHandler extends CoreProtocolHandler {
 
         if (netFile.getWriteCount() % FileSizeChangeRate == 0 && diskCtx.hasFileServerNotifications() && netFile.getFullName() != null) {
 
-            // Get the change handler
-            NotifyChangeHandler changeHandler = diskCtx.getChangeHandler();
-
             // File size changed
-            changeHandler.notifyFileSizeChanged(netFile.getFullName());
+            diskCtx.getFSEventsHandler().queueFileSizeChanged(netFile, diskCtx, false);
         }
     }
 
@@ -5185,9 +5193,9 @@ public class NTProtocolHandler extends CoreProtocolHandler {
 
             // Check if a file or directory has been created
             if (netFile.isDirectory())
-                diskCtx.getChangeHandler().notifyDirectoryChanged(NotifyAction.Added, fileName);
+                diskCtx.getFSEventsHandler().queueDirectoryChanged(FSChange.Created, netFile, diskCtx);
             else
-                diskCtx.getChangeHandler().notifyFileChanged(NotifyAction.Added, fileName);
+                diskCtx.getFSEventsHandler().queueFileChanged(FSChange.Created, netFile, diskCtx);
         }
     }
 
@@ -5252,11 +5260,8 @@ public class NTProtocolHandler extends CoreProtocolHandler {
             m_sess.sendResponseSMB(smbPkt);
 
             // Debug
-            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.NOTIFY)) {
-                DiskDeviceContext diskCtx = (DiskDeviceContext) conn.getContext();
-                m_sess.debugPrintln("NT Cancel notify mid=" + req.getId() + ", dir=" + req.getWatchPath() + ", queue="
-                        + diskCtx.getChangeHandler().getRequestQueueSize());
-            }
+            if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.NOTIFY))
+                m_sess.debugPrintln("NT Cancel notify mid=" + req.getId() + ", dir=" + req.getWatchPath());
         }
         else {
 
@@ -5898,9 +5903,9 @@ public class NTProtocolHandler extends CoreProtocolHandler {
 
             // Check if a file or directory has been created
             if (netFile.isDirectory())
-                diskCtx.getChangeHandler().notifyDirectoryChanged(NotifyAction.Added, fileName);
+                diskCtx.getFSEventsHandler().queueDirectoryChanged(FSChange.Created, netFile, diskCtx);
             else
-                diskCtx.getChangeHandler().notifyFileChanged(NotifyAction.Added, fileName);
+                diskCtx.getFSEventsHandler().queueFileChanged(FSChange.Created, netFile, diskCtx);
         }
     }
 
@@ -6350,9 +6355,18 @@ public class NTProtocolHandler extends CoreProtocolHandler {
 
         // Check if the device has change notification enabled
         DiskDeviceContext diskCtx = (DiskDeviceContext) conn.getContext();
-        if (diskCtx.hasChangeHandler() == false) {
+        if (diskCtx.hasFSEventsHandler() == false) {
 
             // Return an error status, share does not have change notification enabled
+            m_sess.sendErrorResponseSMB(smbPkt, SMBStatus.NTNotImplemented, SMBStatus.SRVNonSpecificError, SMBStatus.ErrSrv);
+            return;
+        }
+
+        // Get teh SMB change notification handler
+        NotifyChangeHandler changeHandler = (NotifyChangeHandler) diskCtx.getFSEventsHandler().findHandler( NotifyChangeHandler.Name);
+        if ( changeHandler == null) {
+
+            // Return an error status, SMB change notifications handler is not enabled
             m_sess.sendErrorResponseSMB(smbPkt, SMBStatus.NTNotImplemented, SMBStatus.SRVNonSpecificError, SMBStatus.ErrSrv);
             return;
         }
@@ -6396,11 +6410,11 @@ public class NTProtocolHandler extends CoreProtocolHandler {
             if (req.hasBufferedEvents() || req.hasNotifyEnum()) {
 
                 // Get the buffered events from the request, clear the list from the request
-                NotifyChangeEventList bufList = req.getBufferedEventList();
+                ChangeEventList bufList = req.getBufferedEventList();
                 req.clearBufferedEvents();
 
                 // Send the buffered events
-                diskCtx.getChangeHandler().sendBufferedNotifications(req, bufList);
+                changeHandler.sendBufferedNotifications(req, bufList);
 
                 // DEBUG
                 if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.NOTIFY)) {
@@ -6430,8 +6444,8 @@ public class NTProtocolHandler extends CoreProtocolHandler {
             if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.NOTIFY)) {
                 m_sess.debugPrintln("   Added new request, " + req.toString());
                 m_sess.debugPrintln("   Global notify mask="
-                        + diskCtx.getChangeHandler().getGlobalNotifyMask() + ", reqQueue="
-                        + diskCtx.getChangeHandler().getRequestQueueSize());
+                        + changeHandler.getGlobalChangeSet() + ", reqQueue="
+                        + changeHandler.getRequestQueueSize());
             }
         }
 
@@ -6492,7 +6506,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
      * @param req NotifyRequest
      * @return SMBSrvPacket
      */
-    public SMBSrvPacket buildChangeNotificationResponse(NotifyChangeEvent evt, NotifyRequest req) {
+    public SMBSrvPacket buildChangeNotificationResponse(ChangeEvent evt, NotifyRequest req) {
 
         //	Allocate the NT transaction packet to send the asynchronous notification
         SMBSrvPacket smbPkt = new SMBSrvPacket();
@@ -6525,32 +6539,35 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         if ( req.hasNotifyEnum() == false) {
 
             //	Get the path for the event
-            String relName = evt.getFileName();
+            String relName = evt.getPath();
             if (relName == null)
                 relName = evt.getShortFileName();
 
             //	DEBUG
             if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.NOTIFY))
-                m_sess.debugPrintln("  Notify evtPath=" + evt.getFileName() + ", MID=" + req.getId() + ", reqPath=" + req.getWatchPath() + ", relative=" + relName);
+                m_sess.debugPrintln("  Notify evtPath=" + evt.getPath() + ", MID=" + req.getId() + ", reqPath=" + req.getWatchPath() + ", relative=" + relName);
+
+            // Convert the filesystem change to an SMB change notification action
+            NotifyAction action = NotifyAction.fromFSChange( evt.isChange());
 
             //	Pack the notification structure
-            parser.packInt(0);                        //	offset to next structure
-            parser.packInt(evt.getAction().intValue());            //	action
-            parser.packInt(relName.length() * 2);    //	file name length
+            parser.packInt(0);                          //	offset to next structure
+            parser.packInt(action.intValue());     //	action
+            parser.packInt(relName.length() * 2);       //	file name length
             parser.packString(relName, true, false);
 
             //	Check if the event is a file/directory rename, if so then add the old file/directory details
-            if (evt.getAction() == NotifyAction.RenamedNewName &&
-                    evt.hasOldFileName()) {
+            if (action == NotifyAction.RenamedNewName &&
+                    evt.hasOldPath()) {
 
                 //	Set the offset from the first structure to this structure
                 int newPos = DataPacker.longwordAlign(parser.getPosition());
                 DataPacker.putIntelInt(newPos - pos, parser.getBuffer(), pos);
 
                 //	Get the old file name
-                relName = FileName.makeRelativePath(req.getWatchPath(), evt.getOldFileName());
+                relName = FileName.makeRelativePath(req.getWatchPath(), evt.getOldPath());
                 if (relName == null)
-                    relName = evt.getOldFileName();
+                    relName = evt.getOldPath();
 
                 //	Add the old file/directory name details
                 parser.packInt(0);                                    //	offset to next structure

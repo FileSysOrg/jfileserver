@@ -917,7 +917,7 @@ public class JavaFileDiskDriver implements DiskInterface {
             File rootDir = new File(path.getValue());
 
             //	Create a device context using the absolute path
-            ctx = new DiskDeviceContext(rootDir.getAbsolutePath());
+            ctx = new DiskDeviceContext(rootDir.getAbsolutePath(), path.getValue().hashCode());
 
             //	Set filesystem flags
             ctx.setFilesystemAttributes(FileSystem.CasePreservedNames + FileSystem.UnicodeOnDisk);

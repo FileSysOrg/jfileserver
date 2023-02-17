@@ -50,11 +50,11 @@ public abstract class DBNetworkFile extends NetworkFile implements NetworkFileSt
      * Class constructor
      *
      * @param name String
-     * @param fid  int
-     * @param stid int
-     * @param did  int
+     * @param fid  long
+     * @param stid long
+     * @param did  long
      */
-    public DBNetworkFile(String name, int fid, int stid, int did) {
+    public DBNetworkFile(String name, long fid, long stid, long did) {
         super(fid, stid, did);
         setName(name);
 

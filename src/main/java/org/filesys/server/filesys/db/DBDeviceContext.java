@@ -359,6 +359,9 @@ public class DBDeviceContext extends DiskDeviceContext implements FileStateCache
 
             // Initialize the database interface
             getDBInterface().initializeDatabase(this, m_dbifConfig);
+
+            // Generate a unique id for this device
+            generateUniqueId(m_dbInterface.getUniqueId());
         }
         catch (InvalidConfigurationException ex) {
             throw new DeviceContextException("Database interface initialization failure, " + ex.toString());
@@ -691,6 +694,8 @@ public class DBDeviceContext extends DiskDeviceContext implements FileStateCache
         str.append(getDBInterface().getDBInterfaceName());
         str.append(",");
         str.append(getFileLoaderClass());
+        str.append(",id=0x");
+        str.append(Long.toHexString( getUniqueId()));
         str.append("]");
 
         return str.toString();

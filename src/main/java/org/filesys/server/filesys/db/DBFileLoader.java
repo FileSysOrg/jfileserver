@@ -543,15 +543,15 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
      * Create a network file for the specified file
      *
      * @param params FileOpenParams
-     * @param fid    int
-     * @param stid   int
-     * @param did    int
+     * @param fid    long
+     * @param stid   long
+     * @param did    long
      * @param create boolean
      * @param dir    boolean
      * @throws IOException I/O error
      * @throws FileNotFoundException File not found
      */
-    public NetworkFile openFile(FileOpenParams params, int fid, int stid, int did, boolean create, boolean dir)
+    public NetworkFile openFile(FileOpenParams params, long fid, long stid, long did, boolean create, boolean dir)
             throws IOException, FileNotFoundException {
 
         // Split the file name to get the name only
@@ -696,11 +696,11 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
      * Delete the specified file data
      *
      * @param fname String
-     * @param fid   int
-     * @param stid  int
+     * @param fid   long
+     * @param stid  long
      * @throws IOException I/O error
      */
-    public void deleteFile(String fname, int fid, int stid)
+    public void deleteFile(String fname, long fid, long stid)
             throws IOException {
 
         // Delete the file data from the database
@@ -2171,14 +2171,14 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
      * @param state  FileState
      * @param params FileOpenParams
      * @param fname  String
-     * @param fid    int
-     * @param stid   int
-     * @param did    int
+     * @param fid    long
+     * @param stid   long
+     * @param did    long
      * @return FileCachedNetworkFile
      * @throws IOException I/O error
      */
-    private final FileCachedNetworkFile createNetworkFile(FileState state, FileOpenParams params, String fname, int fid, int stid,
-                                                      int did)
+    private final FileCachedNetworkFile createNetworkFile(FileState state, FileOpenParams params, String fname, long fid, long stid,
+                                                      long did)
             throws IOException {
 
         // The file state is used to synchronize the creation of the file segment as there may be other sessions opening

@@ -47,8 +47,8 @@ public class NFSHandle {
     private static final int TYPE_OFFSET    = 1;
     private static final int SHARE_OFFSET   = 2;
     private static final int DIR_OFFSET     = 6;
-    private static final int FILE_OFFSET    = 10;
-    private static final int NAME_OFFSET    = 14;
+    private static final int FILE_OFFSET    = 14;
+    private static final int NAME_OFFSET    = 22;
 
     /**
      * Return the handle version
@@ -154,20 +154,20 @@ public class NFSHandle {
      * Pack a directory handle
      *
      * @param shareId int
-     * @param dirId   int
+     * @param dirId   long
      * @param handle  byte[]
      */
-    public static final void packDirectoryHandle(int shareId, int dirId, byte[] handle) {
+    public static final void packDirectoryHandle(int shareId, long dirId, byte[] handle) {
 
         //	Pack a directory handle
         handle[0] = VERSION;
         handle[1] = TYPE_DIR;
 
-        DataPacker.putInt(shareId, handle, 2);
-        DataPacker.putInt(dirId, handle, 6);
+        DataPacker.putInt(shareId, handle, SHARE_OFFSET);
+        DataPacker.putLong(dirId, handle, DIR_OFFSET);
 
         //	Null pad the handle
-        for (int i = 10; i < handle.length; i++)
+        for (int i = FILE_OFFSET; i < handle.length; i++)
             handle[i] = 0;
     }
 
@@ -175,11 +175,11 @@ public class NFSHandle {
      * Pack a directory handle
      *
      * @param shareId int
-     * @param dirId   int
+     * @param dirId   long
      * @param rpc     RpcPacket
      * @param hlen    int
      */
-    public static final void packDirectoryHandle(int shareId, int dirId, RpcPacket rpc, int hlen) {
+    public static final void packDirectoryHandle(int shareId, long dirId, RpcPacket rpc, int hlen) {
 
         //	Pack a directory handle
         rpc.packInt(hlen);
@@ -188,32 +188,32 @@ public class NFSHandle {
         rpc.packByte(TYPE_DIR);
 
         rpc.packInt(shareId);
-        rpc.packInt(dirId);
+        rpc.packLong(dirId);
 
         //	Null pad the handle
-        rpc.packNulls(hlen - 10);
+        rpc.packNulls(hlen - FILE_OFFSET);
     }
 
     /**
      * Pack a file handle
      *
      * @param shareId int
-     * @param dirId   int
-     * @param fileId  int
+     * @param dirId   long
+     * @param fileId  long
      * @param handle  byte[]
      */
-    public static final void packFileHandle(int shareId, int dirId, int fileId, byte[] handle) {
+    public static final void packFileHandle(int shareId, long dirId, long fileId, byte[] handle) {
 
         //	Pack a directory handle
         handle[0] = VERSION;
         handle[1] = TYPE_FILE;
 
-        DataPacker.putInt(shareId, handle, 2);
-        DataPacker.putInt(dirId, handle, 6);
-        DataPacker.putInt(fileId, handle, 10);
+        DataPacker.putInt(shareId, handle, SHARE_OFFSET);
+        DataPacker.putLong(dirId, handle, DIR_OFFSET);
+        DataPacker.putLong(fileId, handle, FILE_OFFSET);
 
         //	Null pad the handle
-        for (int i = 14; i < handle.length; i++)
+        for (int i = NAME_OFFSET; i < handle.length; i++)
             handle[i] = 0;
     }
 
@@ -221,12 +221,12 @@ public class NFSHandle {
      * Pack a file handle
      *
      * @param shareId int
-     * @param dirId   int
-     * @param fileId  int
+     * @param dirId   long
+     * @param fileId  long
      * @param rpc     RpcPacket
      * @param hlen    int
      */
-    public static final void packFileHandle(int shareId, int dirId, int fileId, RpcPacket rpc, int hlen) {
+    public static final void packFileHandle(int shareId, long dirId, long fileId, RpcPacket rpc, int hlen) {
 
         //	Pack a directory handle
         rpc.packInt(hlen);
@@ -235,11 +235,11 @@ public class NFSHandle {
         rpc.packByte(TYPE_FILE);
 
         rpc.packInt(shareId);
-        rpc.packInt(dirId);
-        rpc.packInt(fileId);
+        rpc.packLong(dirId);
+        rpc.packLong(fileId);
 
         //	Null pad the handle
-        rpc.packNulls(hlen - 14);
+        rpc.packNulls(hlen - NAME_OFFSET);
     }
 
     /**
@@ -256,7 +256,7 @@ public class NFSHandle {
         if (handle[1] == TYPE_SHARE || handle[1] == TYPE_DIR || handle[1] == TYPE_FILE) {
 
             //	Unpack the share id
-            shareId = DataPacker.getInt(handle, 2);
+            shareId = DataPacker.getInt(handle, SHARE_OFFSET);
         }
 
         //	Return the share id, or -1 if wrong handle type
@@ -267,17 +267,17 @@ public class NFSHandle {
      * Unpack a directory id from a handle
      *
      * @param handle byte[]
-     * @return int
+     * @return long
      */
-    public static final int unpackDirectoryId(byte[] handle) {
+    public static final long unpackDirectoryId(byte[] handle) {
 
         //	Check if the handle is a directory or file type handle
-        int dirId = -1;
+        long dirId = -1;
 
         if (handle[1] == TYPE_DIR || handle[1] == TYPE_FILE) {
 
             //	Unpack the directory id
-            dirId = DataPacker.getInt(handle, 6);
+            dirId = DataPacker.getLong(handle, DIR_OFFSET);
         }
 
         //	Return the directory id, or -1 if wrong handle type
@@ -288,17 +288,17 @@ public class NFSHandle {
      * Unpack a file id from a handle
      *
      * @param handle byte[]
-     * @return int
+     * @return long
      */
-    public static final int unpackFileId(byte[] handle) {
+    public static final long unpackFileId(byte[] handle) {
 
         //	Check if the handle is a file type handle
-        int fileId = -1;
+        long fileId = -1;
 
         if (handle[1] == TYPE_FILE) {
 
             //	Unpack the file id
-            fileId = DataPacker.getInt(handle, 10);
+            fileId = DataPacker.getLong(handle, FILE_OFFSET);
         }
 
         //	Return the file id, or -1 if wrong handle type
@@ -322,25 +322,25 @@ public class NFSHandle {
             //	Share/mountpoint type handle
             case TYPE_SHARE:
                 str.append("Share:0x");
-                str.append(Integer.toHexString(DataPacker.getInt(handle, 2)));
+                str.append(Integer.toHexString(DataPacker.getInt(handle, SHARE_OFFSET)));
                 break;
 
             //	Directory handle
             case TYPE_DIR:
                 str.append("Dir:share=0x");
-                str.append(Integer.toHexString(DataPacker.getInt(handle, 2)));
+                str.append(Integer.toHexString(DataPacker.getInt(handle, SHARE_OFFSET)));
                 str.append(",dir=0x");
-                str.append(Integer.toHexString(DataPacker.getInt(handle, 6)));
+                str.append(Long.toHexString(DataPacker.getLong(handle, DIR_OFFSET)));
                 break;
 
             //	File handle
             case TYPE_FILE:
                 str.append("File:share=0x");
-                str.append(Integer.toHexString(DataPacker.getInt(handle, 2)));
+                str.append(Integer.toHexString(DataPacker.getInt(handle, SHARE_OFFSET)));
                 str.append(",dir=0x");
-                str.append(Integer.toHexString(DataPacker.getInt(handle, 6)));
+                str.append(Long.toHexString(DataPacker.getLong(handle, DIR_OFFSET)));
                 str.append(",file=0x");
-                str.append(Integer.toHexString(DataPacker.getInt(handle, 10)));
+                str.append(Long.toHexString(DataPacker.getLong(handle, FILE_OFFSET)));
                 break;
         }
 

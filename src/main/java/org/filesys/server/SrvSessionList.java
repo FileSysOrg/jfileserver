@@ -56,7 +56,9 @@ public class SrvSessionList {
      * @param sess SrvSession
      */
     public final void addSession(SrvSession sess) {
-        m_sessions.put(sess.getSessionId(), sess);
+        synchronized ( m_sessions) {
+            m_sessions.put(sess.getSessionId(), sess);
+        }
     }
 
     /**
@@ -88,7 +90,9 @@ public class SrvSessionList {
     public final SrvSession removeSession(int id) {
 
         //	Remove the session and return the removed session
-        return m_sessions.remove(id);
+        synchronized ( m_sessions) {
+            return m_sessions.remove(id);
+        }
     }
 
     /**

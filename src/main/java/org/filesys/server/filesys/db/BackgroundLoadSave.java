@@ -1092,13 +1092,13 @@ public class BackgroundLoadSave {
     /**
      * Re-create, or attach, a file request to the file state.
      *
-     * @param fid      int
+     * @param fid      long
      * @param tempPath String
      * @param virtPath String
      * @param sts      FileSegmentInfo.State
      * @return FileState
      */
-    protected final FileState createFileStateForRequest(int fid, String tempPath, String virtPath, FileSegmentInfo.State sts) {
+    protected final FileState createFileStateForRequest(long fid, String tempPath, String virtPath, FileSegmentInfo.State sts) {
 
         // Find, or create, the file state for the file/directory
         FileState state = m_stateCache.findFileState(virtPath, false);

@@ -17,7 +17,7 @@
  * along with Alfresco. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.filesys.smb.server.notify;
+package org.filesys.server.filesys.event;
 
 
 import java.util.ArrayList;
@@ -28,17 +28,16 @@ import java.util.List;
  *
  * @author gkspencer
  */
-public class NotifyChangeEventList {
+public class ChangeEventList {
 
 	//	List of notify events
-	
-	private List<NotifyChangeEvent> m_list;
+	private List<ChangeEvent> m_list;
 	
 	/**
 	 * Default constructor
 	 */
-	public NotifyChangeEventList() {
-		m_list = new ArrayList<NotifyChangeEvent>();
+	public ChangeEventList() {
+		m_list = new ArrayList<ChangeEvent>();
 	}
 	
 	/**
@@ -56,15 +55,13 @@ public class NotifyChangeEventList {
 	 * @param idx int
 	 * @return NotifyChangeEvent
 	 */
-	public final NotifyChangeEvent getEventAt(int idx) {
+	public final ChangeEvent getEventAt(int idx) {
 		
 		//	Range check the index
-		
 		if ( idx < 0 || idx >= m_list.size())
 			return null;
 			
 		//	Return the required notify event
-		
 		return m_list.get(idx);
 	}
 	
@@ -73,7 +70,7 @@ public class NotifyChangeEventList {
 	 * 
 	 * @param evt NotifyChangeEvent
 	 */
-	public final void addEvent(NotifyChangeEvent evt) {
+	public final void addEvent(ChangeEvent evt) {
 		m_list.add(evt);
 	}
 	
@@ -83,16 +80,14 @@ public class NotifyChangeEventList {
 	 * @param idx int
 	 * @return NotifyChangeEvent
 	 */
-	public final NotifyChangeEvent removeEventAt(int idx) {
+	public final ChangeEvent removeEventAt(int idx) {
 		
 		//	Range check the index
-		
 		if ( idx < 0 || idx >= m_list.size())
 			return null;
 			
 		//	Return the required notify event
-
-    return m_list.remove( idx);
+    	return m_list.remove( idx);
 	}
 	
 	/**

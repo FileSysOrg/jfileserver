@@ -441,7 +441,7 @@ public class QueryInfoPacker {
         buf.putShort(0); // Alignment
 
         // Internal id
-        buf.putLong( info.getFileIdLong());
+        buf.putLong( info.getFileId());
 
         // EA list size
         buf.putInt(0);

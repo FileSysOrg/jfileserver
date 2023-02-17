@@ -43,8 +43,8 @@ public class StreamInfo {
     private String m_name;
 
     //	Parent file id and stream id
-    private int m_fid;
-    private int m_stid;
+    private long m_fid;
+    private long m_stid;
 
     //	Stream size/allocation size
     private long m_size;
@@ -79,10 +79,10 @@ public class StreamInfo {
      * Constructor
      *
      * @param name String
-     * @param fid  int
-     * @param stid int
+     * @param fid  long
+     * @param stid long
      */
-    public StreamInfo(String name, int fid, int stid) {
+    public StreamInfo(String name, long fid, long stid) {
         m_name = name;
         m_fid = fid;
         m_stid = stid;
@@ -92,12 +92,12 @@ public class StreamInfo {
      * Constructor
      *
      * @param name  String
-     * @param fid   int
-     * @param stid  int
+     * @param fid   long
+     * @param stid  long
      * @param size  long
      * @param alloc long
      */
-    public StreamInfo(String name, int fid, int stid, long size, long alloc) {
+    public StreamInfo(String name, long fid, long stid, long size, long alloc) {
         m_name = name;
         m_fid = fid;
         m_stid = stid;
@@ -126,18 +126,18 @@ public class StreamInfo {
     /**
      * Return the stream file id
      *
-     * @return int
+     * @return long
      */
-    public final int getFileId() {
+    public final long getFileId() {
         return m_fid;
     }
 
     /**
      * Return the stream id
      *
-     * @return int
+     * @return long
      */
-    public final int getStreamId() {
+    public final long getStreamId() {
         return m_stid;
     }
 
@@ -290,18 +290,18 @@ public class StreamInfo {
     /**
      * Set the file id
      *
-     * @param id int
+     * @param id long
      */
-    public final void setFileId(int id) {
+    public final void setFileId(long id) {
         m_fid = id;
     }
 
     /**
      * Set the stream id
      *
-     * @param id int
+     * @param id long
      */
-    public final void setStreamId(int id) {
+    public final void setStreamId(long id) {
         m_stid = id;
     }
 
@@ -357,7 +357,7 @@ public class StreamInfo {
      * @return String
      */
     public String toString() {
-        StringBuffer str = new StringBuffer();
+        StringBuilder str = new StringBuilder();
 
         str.append("[");
         str.append(getName());

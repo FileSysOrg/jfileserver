@@ -26,8 +26,8 @@ import java.util.Set;
 
 import org.filesys.server.filesys.NetworkFile;
 import org.filesys.server.filesys.NotifyChange;
+import org.filesys.server.filesys.event.FSChange;
 import org.filesys.smb.server.SMBSrvSession;
-
 
 /**
  * Notify Change Request List Class
@@ -83,6 +83,48 @@ public class NotifyRequestList {
 
         //	Return the filter mask
         return filter;
+    }
+
+    /**
+     * Return the global filter as filesystem change types
+     *
+     * @return Set&lt;FSChange&gt;
+     */
+    public final synchronized Set<FSChange> getGlobalFSChangeFilter() {
+
+        // Generate NotifyChange filter set
+        Set<NotifyChange> notifySet = getGlobalFilter();
+
+        // Convert to an FSChange filter set
+        Set<FSChange> changeSet = EnumSet.noneOf( FSChange.class);
+
+        for ( NotifyChange curChange : notifySet) {
+
+            switch ( curChange) {
+                case FileName:
+                case DirectoryName:
+                    changeSet.add( FSChange.Modified);
+                    changeSet.add( FSChange.Deleted);
+                    changeSet.add( FSChange.Renamed);
+                case Creation:
+                    changeSet.add( FSChange.Created);
+                    break;
+                case Attributes:
+                    changeSet.add( FSChange.Attributes);
+                    break;
+                case LastWrite:
+                    changeSet.add( FSChange.LastWrite);
+                    break;
+                case Size:
+                    changeSet.add( FSChange.Modified);
+                    break;
+                case Security:
+                    changeSet.add( FSChange.Security);
+                    break;
+            }
+        }
+
+        return changeSet;
     }
 
     /**

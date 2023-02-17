@@ -40,7 +40,9 @@ import org.filesys.server.config.ServerConfiguration;
 import org.filesys.server.core.InvalidDeviceInterfaceException;
 import org.filesys.server.core.ShareType;
 import org.filesys.server.core.SharedDevice;
+import org.filesys.server.filesys.DiskDeviceContext;
 import org.filesys.server.filesys.DiskInterface;
+import org.filesys.server.filesys.DiskSharedDevice;
 import org.filesys.server.filesys.NetworkFileServer;
 import org.filesys.server.thread.ThreadRequestPool;
 import org.filesys.server.thread.TimedThreadRequest;
@@ -49,6 +51,7 @@ import org.filesys.smb.DialectSelector;
 import org.filesys.smb.ServerType;
 import org.filesys.smb.dcerpc.UUID;
 import org.filesys.smb.server.nio.NIOSMBConnectionsHandler;
+import org.filesys.smb.server.notify.NotifyChangeHandler;
 import org.filesys.util.PlatformType;
 
 /**
@@ -548,15 +551,23 @@ public class SMBServer extends NetworkFileServer implements Runnable, Configurat
         // DEBUG
         if (hasDebug()) {
             Debug.println("[SMB] Closed session " + sess.getSessionId() + ", sessions=" + m_sessions.numberOfSessions());
-            if (m_sessions.numberOfSessions() > 0 && m_sessions.numberOfSessions() <= 10) {
-                Enumeration<SrvSession> sessions = m_sessions.enumerateSessions();
-                Debug.print("      Active sessions [");
-                while (sessions.hasMoreElements()) {
-                    SMBSrvSession curSess = (SMBSrvSession) sessions.nextElement();
-                    InetAddress addr = curSess.getRemoteAddress();
-                    Debug.print("" + curSess.getSessionId() + "=" + (addr != null ? addr.getHostAddress() : "unknown") + ",");
+            if (m_sessions.numberOfSessions() > 0) { // && m_sessions.numberOfSessions() <= 10) {
+                Enumeration<SrvSession> enumSess = m_sessions.enumerateSessions();
+                while (enumSess.hasMoreElements()) {
+                    SMBSrvSession smbSess = (SMBSrvSession) enumSess.nextElement();
+
+                    Debug.println("  Id=" + smbSess.getSessionId() + ", addr=" + smbSess.getRemoteAddressString() + ", state=" +
+                            smbSess.getState() + ", VCs=" + smbSess.getVirtualCircuitList().getCircuitCount());
+
+                    // Dump the virtual circuits on this session
+                    if (smbSess.getVirtualCircuitList() != null) {
+                        for ( int idx = 0; idx < smbSess.getVirtualCircuitList().getCircuitCount(); idx++) {
+                            VirtualCircuit vc = smbSess.getVirtualCircuitList().findCircuit( idx);
+                            if ( vc != null)
+                                Debug.println("    VC=" + vc);
+                        }
+                    }
                 }
-                Debug.println("]");
             }
         }
 
@@ -655,8 +666,29 @@ public class SMBServer extends NetworkFileServer implements Runnable, Configurat
         fireServerEvent(ServerListener.ServerShutdown);
     }
 
+    @Override
+    public void preStartServer() {
+
+        // Enable change notifications on the configured filesystems
+        for ( SharedDevice share : getFullShareList( getSMBConfiguration().getServerName(), null)) {
+
+            if ( share instanceof DiskSharedDevice) {
+
+                // Access the disk device and context
+                DiskSharedDevice fsys = (DiskSharedDevice) share;
+                DiskDeviceContext fsysCtx = fsys.getDiskContext();
+
+                if ( fsysCtx != null && fsysCtx.hasFileServerNotifications()) {
+
+                    // Add the SMB change notifications handler to the filesystem
+                    fsysCtx.getFSEventsHandler().addChangeHandler( new NotifyChangeHandler( fsysCtx));
+                }
+            }
+        }
+    }
+
     /**
-     * Start the SMB server in a seperate thread
+     * Start the SMB server in a separate thread
      */
     public void startServer() {
 
@@ -673,13 +705,13 @@ public class SMBServer extends NetworkFileServer implements Runnable, Configurat
      * @param id     int
      * @param config ServerConfiguration
      * @param newVal Object
-     * @return int
+     * @return ConfigurationListener.Sts
      * @throws InvalidConfigurationException Failed to change the configuration
      */
-    public int configurationChanged(int id, ServerConfiguration config, Object newVal)
+    public ConfigurationListener.Sts configurationChanged(int id, ServerConfiguration config, Object newVal)
             throws InvalidConfigurationException {
 
-        int sts = ConfigurationListener.StsIgnored;
+        ConfigurationListener.Sts sts = ConfigurationListener.Sts.Ignored;
 
         try {
 
@@ -704,7 +736,7 @@ public class SMBServer extends NetworkFileServer implements Runnable, Configurat
                     }
 
                     // Indicate that the setting was accepted
-                    sts = ConfigurationListener.StsAccepted;
+                    sts = ConfigurationListener.Sts.Accepted;
                     break;
 
                 // Changes that can be accepted without restart
@@ -720,14 +752,14 @@ public class SMBServer extends NetworkFileServer implements Runnable, Configurat
                 case ConfigId.SecurityAuthenticator:
                 case ConfigId.UsersList:
                 case ConfigId.DebugDevice:
-                    sts = ConfigurationListener.StsAccepted;
+                    sts = ConfigurationListener.Sts.Accepted;
                     break;
 
                 // Changes that affect new sessions only
                 //
                 // Enable/dsiable debug output
                 case ConfigId.SMBSessionDebug:
-                    sts = ConfigurationListener.StsNewSessionsOnly;
+                    sts = ConfigurationListener.Sts.NewSessionsOnly;
                     if (newVal instanceof Integer) {
                         Integer dbgVal = (Integer) newVal;
                         setDebug(dbgVal.intValue() != 0 ? true : false);
@@ -736,7 +768,7 @@ public class SMBServer extends NetworkFileServer implements Runnable, Configurat
 
                 // Maximum virtual circuits per session
                 case ConfigId.SMBMaxVirtualCircuit:
-                    sts = ConfigurationListener.StsNewSessionsOnly;
+                    sts = ConfigurationListener.Sts.NewSessionsOnly;
                     if (newVal instanceof Integer) {
                         Integer maxVC = (Integer) newVal;
                         SMBSrvSession.getFactory().setMaximumVirtualCircuits(maxVC);
@@ -753,7 +785,7 @@ public class SMBServer extends NetworkFileServer implements Runnable, Configurat
                 case ConfigId.SMBAnnceDebug:
                 case ConfigId.SMBTCPEnable:
                 case ConfigId.SMBBindAddress:
-                    sts = ConfigurationListener.StsRestartRequired;
+                    sts = ConfigurationListener.Sts.RestartRequired;
                     break;
             }
         }

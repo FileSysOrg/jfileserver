@@ -29,11 +29,11 @@ package org.filesys.server.filesys.db;
 public class DBDataDetails {
 
     //	File and stream id
-    private int m_fid;
-    private int m_stid;
+    private long m_fid;
+    private long m_stid;
 
     //	Jar id if the file is stored as part of a Jar file
-    private int m_jarId = -1;
+    private long m_jarId = -1;
 
     //	Number of file data records and data segment size in bytes
     private int m_numFragments;
@@ -42,10 +42,10 @@ public class DBDataDetails {
     /**
      * Class constructor
      *
-     * @param fileId   int
-     * @param streamId int
+     * @param fileId   long
+     * @param streamId long
      */
-    public DBDataDetails(int fileId, int streamId) {
+    public DBDataDetails(long fileId, long streamId) {
         m_fid = fileId;
         m_stid = streamId;
     }
@@ -53,13 +53,13 @@ public class DBDataDetails {
     /**
      * Class constructor
      *
-     * @param fileId       int
-     * @param streamId     int
-     * @param jarId        int
+     * @param fileId       long
+     * @param streamId     long
+     * @param jarId        long
      * @param numFragments int
      * @param sizeFragment int
      */
-    public DBDataDetails(int fileId, int streamId, int jarId, int numFragments, int sizeFragment) {
+    public DBDataDetails(long fileId, long streamId, long jarId, int numFragments, int sizeFragment) {
         m_fid = fileId;
         m_stid = streamId;
 
@@ -72,18 +72,18 @@ public class DBDataDetails {
     /**
      * Return the file id
      *
-     * @return int
+     * @return long
      */
-    public final int getFileId() {
+    public final long getFileId() {
         return m_fid;
     }
 
     /**
      * Return the stream id
      *
-     * @return int
+     * @return long
      */
-    public final int getStreamId() {
+    public final long getStreamId() {
         return m_stid;
     }
 
@@ -99,9 +99,9 @@ public class DBDataDetails {
     /**
      * Return the Jar id
      *
-     * @return int
+     * @return long
      */
-    public final int getJarId() {
+    public final long getJarId() {
         return m_jarId;
     }
 

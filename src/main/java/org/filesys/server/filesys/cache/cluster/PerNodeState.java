@@ -51,7 +51,7 @@ public class PerNodeState {
     public static final int MaxDeferredRequests = 3;
 
     //	File identifier
-    private int m_fileId = FileState.UnknownFileId;
+    private long m_fileId = FileState.UnknownFileId;
 
     //	File data status
     private FileState.DataStatus m_dataStatus = FileState.DataStatus.LoadWait;
@@ -83,9 +83,9 @@ public class PerNodeState {
     /**
      * Get the file id
      *
-     * @return int
+     * @return long
      */
-    public int getFileId() {
+    public long getFileId() {
         return m_fileId;
     }
 
@@ -101,9 +101,9 @@ public class PerNodeState {
     /**
      * Set the file identifier
      *
-     * @param id int
+     * @param id long
      */
-    public void setFileId(int id) {
+    public void setFileId(long id) {
         m_fileId = id;
     }
 

@@ -86,15 +86,15 @@ public class SimpleFileLoader implements FileLoader, NamedFileLoader {
      * Open/create a file
      *
      * @param params FileOpenParams
-     * @param fid    int
-     * @param stid   int
-     * @param did    int
+     * @param fid    long
+     * @param stid   long
+     * @param did    long
      * @param create boolean
      * @param dir    boolean
      * @throws IOException Failed to open the file
      * @throws FileNotFoundException File not found
      */
-    public NetworkFile openFile(FileOpenParams params, int fid, int stid, int did, boolean create, boolean dir)
+    public NetworkFile openFile(FileOpenParams params, long fid, long stid, long did, boolean create, boolean dir)
             throws IOException, FileNotFoundException {
 
         //  Get the full path for the new file
@@ -155,11 +155,11 @@ public class SimpleFileLoader implements FileLoader, NamedFileLoader {
      * Delete a file
      *
      * @param fname String
-     * @param fid   int
-     * @param stid  int
+     * @param fid   long
+     * @param stid  long
      * @throws IOException Failed to delete the file
      */
-    public void deleteFile(String fname, int fid, int stid)
+    public void deleteFile(String fname, long fid, long stid)
             throws IOException {
 
         //	DEBUG
@@ -182,11 +182,11 @@ public class SimpleFileLoader implements FileLoader, NamedFileLoader {
      * Create a directory
      *
      * @param dir String
-     * @param fid int
-     * @param parentId int
+     * @param fid long
+     * @param parentId long
      * @throws IOException Failed to create the directory
      */
-    public void createDirectory(String dir, int fid, int parentId)
+    public void createDirectory(String dir, long fid, long parentId)
             throws IOException {
 
         //	DEBUG
@@ -205,10 +205,10 @@ public class SimpleFileLoader implements FileLoader, NamedFileLoader {
      * Delete a directory
      *
      * @param dir String
-     * @param fid int
+     * @param fid long
      * @throws IOException Failed to delete the directory
      */
-    public void deleteDirectory(String dir, int fid)
+    public void deleteDirectory(String dir, long fid)
             throws IOException {
 
         //	DEBUG
@@ -258,11 +258,11 @@ public class SimpleFileLoader implements FileLoader, NamedFileLoader {
      * Set file information
      *
      * @param path  String
-     * @param fid   int
+     * @param fid   long
      * @param finfo FileInfo
      * @throws IOException Failed to set the file information
      */
-    public void setFileInformation(String path, int fid, FileInfo finfo)
+    public void setFileInformation(String path, long fid, FileInfo finfo)
             throws IOException {
     }
 
@@ -270,13 +270,13 @@ public class SimpleFileLoader implements FileLoader, NamedFileLoader {
      * Rename a file or directory
      *
      * @param curName String
-     * @param fid     int
+     * @param fid     long
      * @param newName String
      * @param fstate  FileState
      * @param isdir   boolean
      * @throws IOException Failed to rename the file or directory
      */
-    public void renameFileDirectory(String curName, int fid, String newName, FileState fstate, boolean isdir)
+    public void renameFileDirectory(String curName, long fid, String newName, FileState fstate, boolean isdir)
             throws IOException {
 
         //	DEBUG

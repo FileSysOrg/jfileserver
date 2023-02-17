@@ -63,6 +63,9 @@ import org.filesys.server.filesys.SrvDiskInfo;
 import org.filesys.server.filesys.VolumeInfo;
 import org.filesys.server.filesys.cache.FileStateCache;
 import org.filesys.server.filesys.cache.StandaloneFileStateCache;
+import org.filesys.server.filesys.event.ChangeEventHandler;
+import org.filesys.server.filesys.event.FSEventsConfigSection;
+import org.filesys.server.filesys.event.FSEventsHandler;
 import org.filesys.server.thread.ThreadRequestPool;
 import org.filesys.smb.Dialect;
 import org.filesys.smb.DialectSelector;
@@ -70,6 +73,7 @@ import org.filesys.smb.server.SMBConfigSection;
 import org.filesys.smb.server.SMBSrvSession;
 import org.filesys.smb.server.SMBV1VirtualCircuitList;
 import org.filesys.smb.server.VirtualCircuitList;
+import org.filesys.smb.server.notify.NotifyChangeHandler;
 import org.filesys.smb.util.DriveMapping;
 import org.filesys.smb.util.DriveMappingList;
 import org.filesys.util.*;
@@ -180,7 +184,7 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 		}
 		catch (Exception ex) {
 
-			// Rethrow the exception as a configuration exeception
+			// Rethrow the exception as a configuration exception
 			throw new InvalidConfigurationException("XML error", ex);
 		}
 		finally {
@@ -202,6 +206,9 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 
 		// Reset the current configuration to the default settings
 		removeAllConfigSections();
+
+		// Add the global filesystem event handler configuration section
+		addConfigSection( new FSEventsConfigSection( this));
 
 		// Parse the XML configuration document
 		try {
@@ -1872,11 +1879,14 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 		// Get the parameters for the driver
 		ConfigElement params = buildConfigElement(driverElem);
 
-		// Check if change notification should be disabled for this device
-		boolean changeNotify = findChildNode("disableChangeNotification", disk.getChildNodes()) != null ? false : true;
+		// Check if filesystem events should be disabled for this device
+		boolean fsEvents = findChildNode("disableFSEvents", disk.getChildNodes()) != null ? false : true;
 
 		// Check if change notification debug output should be enabled for this device
-		boolean changeDebug = findChildNode( "notifyDebug", disk.getChildNodes()) != null ? true : false;
+		boolean fsEventsDebug = findChildNode( "fsEventsDebug", disk.getChildNodes()) != null ? true : false;
+
+		// Check if the filesystem is allowed to be used for cloud sync
+		boolean allowSync = findChildNode( "allowSync", disk.getChildNodes()) != null ? true : false;
 
 		// Check if the volume information has been specified
 		Element volElem = findChildNode("volume", disk.getChildNodes());
@@ -2071,11 +2081,24 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 				devCtx.setConfigurationParameters(params);
 
 				// Enable/disable change notification for this device
-				devCtx.enableChangeHandler(changeNotify);
+				if ( fsEvents == true) {
+
+					// Get, or create, the global filesystem events handler
+					FSEventsConfigSection fsEventsConfig = (FSEventsConfigSection) getConfigSection( FSEventsConfigSection.SectionName);
+					if ( fsEventsConfig != null) {
+
+						// Set the disk share to generate change events
+						FSEventsHandler fsHandler = fsEventsConfig.getFSEventsHandler();
+						devCtx.setFSEventsHandler(fsHandler);
+					}
+				}
 
 				// Enable/disable change notification debug output
-				if ( devCtx.hasChangeHandler())
-					devCtx.getChangeHandler().setDebug(changeDebug);
+				if ( devCtx.hasFSEventsHandler())
+					devCtx.getFSEventsHandler().setDebug(fsEventsDebug);
+
+				// Allow/disallow using the filesystem for cloud sync
+				devCtx.setAllowCloudSync( allowSync);
 
 				// Set the volume information, may be null
 				devCtx.setVolumeInformation(volInfo);

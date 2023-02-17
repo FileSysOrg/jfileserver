@@ -42,14 +42,14 @@ public class FileCachedNetworkFile extends CachedNetworkFile {
      * Class constructor
      *
      * @param name    String
-     * @param fid     int
-     * @param stid    int
-     * @param did     int
+     * @param fid     long
+     * @param stid    long
+     * @param did     long
      * @param state   FileStateProxy
      * @param segment FileSegment
      * @param loader  FileLoader
      */
-    public FileCachedNetworkFile(String name, int fid, int stid, int did, FileStateProxy state, FileSegment segment, FileLoader loader) {
+    public FileCachedNetworkFile(String name, long fid, long stid, long did, FileStateProxy state, FileSegment segment, FileLoader loader) {
         super(name, fid, stid, did, state, loader);
 
         // Set the file segment

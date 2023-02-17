@@ -48,11 +48,11 @@ public class LocalDataNetworkFile extends DBNetworkFile {
      * Class constructor
      *
      * @param name String
-     * @param fid  int
-     * @param did  int
+     * @param fid  long
+     * @param did  long
      * @param file File
      */
-    public LocalDataNetworkFile(String name, int fid, int did, File file) {
+    public LocalDataNetworkFile(String name, long fid, long did, File file) {
         super(name, fid, 0, did);
 
         //	Set the file details

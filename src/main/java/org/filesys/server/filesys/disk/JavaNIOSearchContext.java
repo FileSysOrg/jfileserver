@@ -25,10 +25,7 @@ import java.nio.file.*;
 import java.nio.file.attribute.FileTime;
 import java.util.Iterator;
 
-import org.filesys.server.filesys.FileAttribute;
-import org.filesys.server.filesys.FileInfo;
-import org.filesys.server.filesys.FileName;
-import org.filesys.server.filesys.SearchContext;
+import org.filesys.server.filesys.*;
 import org.filesys.util.WildCard;
 
 /**
@@ -276,9 +273,12 @@ public class JavaNIOSearchContext extends SearchContext {
                         // Set the directory attribute
                         fattr = FileAttribute.Directory;
 
-                        // Check if the diretory should be hidden
+                        // Check if the directory should be hidden
                         if ( Files.isHidden( curPath))
                             fattr += FileAttribute.Hidden;
+
+                        // Set the file type
+                        info.setFileType(FileType.Directory);
                     }
                     else {
 
@@ -297,6 +297,9 @@ public class JavaNIOSearchContext extends SearchContext {
                                 fname.equalsIgnoreCase("Thumbs.db") ||
                                 fname.startsWith("."))
                             fattr += FileAttribute.Hidden;
+
+                        // Set the file type
+                        info.setFileType(FileType.RegularFile);
                     }
 
                     //  Create the file information object

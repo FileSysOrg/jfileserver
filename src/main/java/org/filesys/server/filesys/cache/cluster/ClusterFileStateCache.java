@@ -124,7 +124,7 @@ public abstract class ClusterFileStateCache extends FileStateCache {
             m_cluster.setOpLockManager(oplockMgr);
 
             // Cluster view can send out change notifications
-            m_cluster.setNotifyChangeHandler(diskCtx.getChangeHandler());
+            m_cluster.setFSEventsHandler(diskCtx.getFSEventsHandler());
         }
     }
 

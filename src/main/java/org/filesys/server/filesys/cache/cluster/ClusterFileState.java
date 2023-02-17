@@ -163,10 +163,10 @@ public abstract class ClusterFileState extends FileState implements Serializable
     /**
      * Get the file id
      *
-     * @return int
+     * @return long
      */
-    public int getFileId() {
-        int fileId = UnknownFileId;
+    public long getFileId() {
+        long fileId = UnknownFileId;
 
         if (getStateCache() != null) {
             PerNodeState perNode = getStateCache().getPerNodeState(this, false);
@@ -180,9 +180,9 @@ public abstract class ClusterFileState extends FileState implements Serializable
     /**
      * Set the file identifier
      *
-     * @param id int
+     * @param id long
      */
-    public void setFileId(int id) {
+    public void setFileId(long id) {
         if (getStateCache() != null) {
             PerNodeState perNode = getStateCache().getPerNodeState(this, true);
             if (perNode != null)

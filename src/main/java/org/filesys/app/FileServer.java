@@ -25,6 +25,7 @@ import java.io.PrintStream;
 import java.lang.reflect.Constructor;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Enumeration;
 
 import org.filesys.debug.Debug;
 import org.filesys.debug.DebugConfigSection;
@@ -34,10 +35,16 @@ import org.filesys.oncrpc.nfs.NFSConfigSection;
 import org.filesys.server.NetworkServer;
 import org.filesys.server.ServerListener;
 import org.filesys.server.config.ServerConfiguration;
+import org.filesys.server.core.SharedDevice;
+import org.filesys.server.filesys.DiskDeviceContext;
+import org.filesys.server.filesys.DiskSharedDevice;
+import org.filesys.server.filesys.FilesystemsConfigSection;
+import org.filesys.server.filesys.event.FSEventsConfigSection;
 import org.filesys.smb.SMBErrorText;
 import org.filesys.smb.SMBStatus;
 import org.filesys.smb.server.SMBConfigSection;
 import org.filesys.smb.server.SMBServer;
+import org.filesys.smb.server.notify.NotifyChangeHandler;
 import org.filesys.smb.util.DriveMapping;
 import org.filesys.smb.util.DriveMappingList;
 import org.filesys.util.ConsoleIO;
@@ -173,6 +180,112 @@ public class FileServer implements ServerListener {
 	}
 
 	/**
+	 * Return the server configuration
+	 *
+	 * @return ServerConfiguration
+	 */
+	protected ServerConfiguration getServerConfiguration() { return m_srvConfig; }
+
+	/**
+	 * Create the enabled servers
+	 *
+	 * @param out PrintStream
+	 * @throws Exception Error creating an enabled server
+	 */
+	protected void createServers( PrintStream out)
+		throws Exception {
+
+		// Create the SMB server and NetBIOS name server, if enabled
+		if ( m_srvConfig.hasConfigSection(SMBConfigSection.SectionName)) {
+
+			// Checkpoint - create SMB server
+			checkPoint(out, CheckPoint.CreateSMBServer);
+
+			// Get the SMB server configuration
+			SMBConfigSection smbConfig = (SMBConfigSection) m_srvConfig.getConfigSection(SMBConfigSection.SectionName);
+
+			// Create the NetBIOS name server if NetBIOS SMB is enabled
+			if ( smbConfig.hasNetBIOSSMB())
+				m_srvConfig.addServer(createNetBIOSServer(m_srvConfig));
+
+			// Create the SMB server
+			m_srvConfig.addServer(createSMBServer(m_srvConfig));
+		}
+
+		// Create the FTP server, if enabled
+		if ( m_srvConfig.hasConfigSection(FTPConfigSection.SectionName)) {
+
+			// Checkpoint - create FTP server
+			checkPoint(out, CheckPoint.CreateFTPServer);
+
+			// Create the FTP server
+			m_srvConfig.addServer(createFTPServer(m_srvConfig));
+		}
+
+		// Create the NFS server and mount server, if enabled
+		if ( m_srvConfig.hasConfigSection(NFSConfigSection.SectionName)) {
+
+			// Checkpoint - create NFS server
+			checkPoint(out, CheckPoint.CreateNFSServer);
+
+			// Get the NFS server configuration
+			NFSConfigSection nfsConfig = (NFSConfigSection) m_srvConfig.getConfigSection(NFSConfigSection.SectionName);
+
+			// Check if the port mapper is enabled
+			if ( nfsConfig.hasNFSPortMapper())
+				m_srvConfig.addServer(createNFSPortMapper(m_srvConfig));
+
+			// Create the mount server
+			m_srvConfig.addServer(createNFSMountServer(m_srvConfig));
+
+			// Create the NFS server
+			m_srvConfig.addServer(createNFSServer(m_srvConfig));
+		}
+	}
+
+	/**
+	 * Processing to be run after the servers have been created but before they are started
+	 */
+	protected void preStartServers() {
+
+		// Perform pre start processing on all enabled servers
+		for ( NetworkServer srv : m_srvConfig.getServerList()) {
+
+			try {
+				srv.preStartServer();
+			}
+			catch( Exception ex) {
+			}
+		}
+
+		// Register all filesystems with the filesystem events handler
+		FilesystemsConfigSection fsConfig = (FilesystemsConfigSection) getServerConfiguration().getConfigSection(FilesystemsConfigSection.SectionName);
+		FSEventsConfigSection evtConfig = (FSEventsConfigSection) getServerConfiguration().getConfigSection(FSEventsConfigSection.SectionName);
+
+		for ( SharedDevice share : fsConfig.getShares()) {
+
+			if ( share instanceof DiskSharedDevice) {
+
+				// Access the disk device and context
+				DiskSharedDevice fsys = (DiskSharedDevice) share;
+				DiskDeviceContext fsysCtx = fsys.getDiskContext();
+
+				if ( fsysCtx != null) {
+
+					// Register the filesystem for events
+					evtConfig.getFSEventsHandler().registerFilesystem( fsysCtx);
+				}
+			}
+		}
+	}
+
+	/**
+	 * Processing to be run after all servers have been shut down
+	 */
+	protected void postStopServers() {
+	}
+
+	/**
 	 * Start the file server
 	 * 
 	 * @param args String[]
@@ -234,58 +347,17 @@ public class FileServer implements ServerListener {
 			}
 		}
 
-		// NetBIOS name server, SMB, FTP and NFS servers
+		// Create and start the enabled servers
 		try {
 
-			// Create the SMB server and NetBIOS name server, if enabled
-			if ( m_srvConfig.hasConfigSection(SMBConfigSection.SectionName)) {
-
-				// Checkpoint - create SMB server
-				checkPoint(out, CheckPoint.CreateSMBServer);
-
-				// Get the SMB server configuration
-				SMBConfigSection smbConfig = (SMBConfigSection) m_srvConfig.getConfigSection(SMBConfigSection.SectionName);
-
-				// Create the NetBIOS name server if NetBIOS SMB is enabled
-				if ( smbConfig.hasNetBIOSSMB())
-					m_srvConfig.addServer(createNetBIOSServer(m_srvConfig));
-
-				// Create the SMB server
-				m_srvConfig.addServer(createSMBServer(m_srvConfig));
-			}
-
-			// Create the FTP server, if enabled
-			if ( m_srvConfig.hasConfigSection(FTPConfigSection.SectionName)) {
-
-				// Checkpoint - create FTP server
-				checkPoint(out, CheckPoint.CreateFTPServer);
-
-				// Create the FTP server
-				m_srvConfig.addServer(createFTPServer(m_srvConfig));
-			}
-
-			// Create the NFS server and mount server, if enabled
-			if ( m_srvConfig.hasConfigSection(NFSConfigSection.SectionName)) {
-
-				// Checkpoint - create NFS server
-				checkPoint(out, CheckPoint.CreateNFSServer);
-
-				// Get the NFS server configuration
-				NFSConfigSection nfsConfig = (NFSConfigSection) m_srvConfig.getConfigSection(NFSConfigSection.SectionName);
-
-				// Check if the port mapper is enabled
-				if ( nfsConfig.hasNFSPortMapper())
-					m_srvConfig.addServer(createNFSPortMapper(m_srvConfig));
-
-				// Create the mount server
-				m_srvConfig.addServer(createNFSMountServer(m_srvConfig));
-
-				// Create the NFS server
-				m_srvConfig.addServer(createNFSServer(m_srvConfig));
-			}
+			// Create the enabled servers
+			createServers( out);
 
 			// Checkpoint - starting servers
 			checkPoint(out, CheckPoint.ServerStart);
+
+			// Run any pre server start processing
+			preStartServers();
 
 			// Get the debug configuration
 			DebugConfigSection dbgConfig = (DebugConfigSection) m_srvConfig.getConfigSection(DebugConfigSection.SectionName);
@@ -362,6 +434,9 @@ public class FileServer implements ServerListener {
 
 			// Checkpoint - servers stopping
 			checkPoint(out, CheckPoint.ServerStop);
+
+			// Run any post server stop processing
+			postStopServers();
 
 			// Shutdown the servers
 			int idx = m_srvConfig.numberOfServers() - 1;

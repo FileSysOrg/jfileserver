@@ -82,7 +82,7 @@
     <shares>
         <diskshare name="TEST" command="Test share">
             <driver>
-                <class>org.filesys.smb.server.disk.JavaNIODiskDriver</class>
+                <class>org.filesys.server.filesys.disk.JavaNIODiskDriver</class>
 
                 <!-- ThunderBolt3 SSD based file share -->
                 <LocalPath>/Volumes/1TB-SSD/JFileServer/fileShare</LocalPath>

@@ -22,6 +22,7 @@ package org.filesys.server.filesys.cache.cluster;
 
 import java.io.IOException;
 
+import org.filesys.server.filesys.event.FSEventsHandler;
 import org.filesys.server.locking.OpLockManager;
 import org.filesys.server.thread.ThreadRequestPool;
 import org.filesys.smb.server.notify.NotifyChangeHandler;
@@ -54,8 +55,8 @@ public abstract class ClusterBase implements ClusterInterface {
     // Local oplock manager
     private OpLockManager m_oplockManager;
 
-    // Change notification handler, if configured for the filesystem
-    private NotifyChangeHandler m_notifyHandler;
+    // Filesystem events handler, if configured for the filesystem
+    private FSEventsHandler m_fsEventsHandler;
 
     // Thread pool
     private ThreadRequestPool m_threadPool;
@@ -181,12 +182,12 @@ public abstract class ClusterBase implements ClusterInterface {
     }
 
     /**
-     * Return the change notification handler, if configured for the filesystem
+     * Return the filesystem events handler, if configured for the filesystem
      *
-     * @return NotifyChangeHandler
+     * @return FSEventsHandler
      */
-    public final NotifyChangeHandler getNotifyChangeHandler() {
-        return m_notifyHandler;
+    public final FSEventsHandler getFSEventsHandler() {
+        return m_fsEventsHandler;
     }
 
     /**
@@ -208,12 +209,12 @@ public abstract class ClusterBase implements ClusterInterface {
     }
 
     /**
-     * Set the change notification handler
+     * Set the filesystem events handler
      *
-     * @param notifyHandler NotifyChangeHandler
+     * @param eventHandler FSEventsHandler
      */
-    public final void setNotifyChangeHandler(NotifyChangeHandler notifyHandler) {
-        m_notifyHandler = notifyHandler;
+    public final void setFSEventsHandler(FSEventsHandler eventHandler) {
+        m_fsEventsHandler = eventHandler;
     }
 
     /**

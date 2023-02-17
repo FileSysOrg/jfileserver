@@ -165,7 +165,7 @@ public class NIOSMBConnectionsHandler implements SMBConnectionsHandler, RequestH
                         int idleCnt = curHandler.checkForIdleSessions();
 
                         // DEBUG
-                        if (idleCnt > 0 && Debug.EnableInfo && hasDebug())
+                        if (idleCnt > 0) // && Debug.EnableInfo && hasDebug())
                             Debug.println("[SMB] Idle session check, removed " + idleCnt + " sessions for " + curHandler.getName());
                     }
                 }
@@ -282,12 +282,17 @@ public class NIOSMBConnectionsHandler implements SMBConnectionsHandler, RequestH
         // Set the client socket timeout
         m_clientSocketTimeout = config.getSocketTimeout();
 
+        // TEST
+        m_clientSocketTimeout = 20000;  // 20 seconds
+        m_debug = true;
+
         // Set client socket keep-alives enable
         m_socketKeepAlive = config.hasSocketKeepAlive();
 
         // Create the session request handler list and add the first handler
         m_requestHandlers = new ArrayList<SMBRequestHandler>();
-        SMBRequestHandler reqHandler = new SMBRequestHandler(m_server.getThreadPool(), SessionSocketsPerHandler, m_clientSocketTimeout, hasDebug());
+//        SMBRequestHandler reqHandler = new SMBRequestHandler(m_server.getThreadPool(), SessionSocketsPerHandler, m_clientSocketTimeout, hasDebug());
+        SMBRequestHandler reqHandler = new SMBRequestHandler(m_server.getThreadPool(), SessionSocketsPerHandler, m_clientSocketTimeout, true);
         reqHandler.setThreadDebug(m_threadDebug);
         reqHandler.setListener(this);
 
@@ -307,7 +312,7 @@ public class NIOSMBConnectionsHandler implements SMBConnectionsHandler, RequestH
 
         // Start the idle session reaper thread, if session timeouts are enabled
         if (m_clientSocketTimeout > 0)
-            m_idleSessReaper = new IdleSessionReaper(m_clientSocketTimeout / 2);
+        m_idleSessReaper = new IdleSessionReaper(m_clientSocketTimeout / 2);
     }
 
     /**
@@ -331,7 +336,7 @@ public class NIOSMBConnectionsHandler implements SMBConnectionsHandler, RequestH
     }
 
     /**
-     * Run the connections handler in a seperate thread
+     * Run the connection handler in a separate thread
      */
     public void run() {
 

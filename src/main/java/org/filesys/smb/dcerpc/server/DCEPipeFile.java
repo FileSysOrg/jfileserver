@@ -94,7 +94,7 @@ public class DCEPipeFile extends NetworkFile {
      * @return DCEPipeType
      */
     public final DCEPipeType getPipeId() {
-        return DCEPipeType.fromInt(getFileId());
+        return DCEPipeType.fromInt(getFileIdInt());
     }
 
     /**
