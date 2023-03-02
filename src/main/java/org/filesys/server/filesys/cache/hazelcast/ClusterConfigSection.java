@@ -20,14 +20,15 @@
 package org.filesys.server.filesys.cache.hazelcast;
 
 import java.io.FileNotFoundException;
+import java.util.Iterator;
 
+import com.hazelcast.config.*;
 import org.filesys.server.config.ConfigSection;
 import org.filesys.server.config.ServerConfiguration;
 
-import com.hazelcast.config.Config;
-import com.hazelcast.config.FileSystemXmlConfig;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
+import org.filesys.util.StringList;
 
 /**
  * Hazelcast Cluster configuration Section Class
@@ -41,6 +42,12 @@ public class ClusterConfigSection extends ConfigSection {
 
     //  Hazelcast cluster configuration file
     private String m_configFile;
+
+    // Hazelcast cluster name, if using default Hazelcast configuration
+    private String m_clusterName;
+
+    // List of IP addresses to use on the host
+    private StringList m_ipAddressList;
 
     // Hazelcast instance shared by various components/filesystems
     private HazelcastInstance m_hazelcastInstance;
@@ -58,41 +65,135 @@ public class ClusterConfigSection extends ConfigSection {
     }
 
     /**
+     * Check if the Hazelcast configuraiton file has been specified
+     *
+     * @return boolean
+     */
+    public final boolean hasConfigFile() { return m_configFile != null; }
+
+    /**
      * Return the Hazelcast config file path
      *
      * @return String
      */
-    public String getConfigFile() {
+    public final String getConfigFile() {
         return m_configFile;
     }
+
+    /**
+     * Check if a cluster name has been specified
+     *
+     * @return boolean
+     */
+    public final boolean hasClusterName() { return m_clusterName != null; }
+
+    /**
+     * Return the cluster name
+     *
+     * @return String
+     */
+    public final String getClusterName() { return m_clusterName; }
+
+    /**
+     * Check if there is a list of one or more IP addresses the cluster should be configured to
+     *
+     * @return boolean
+     */
+    public final boolean hasIPAddressList() { return m_ipAddressList != null; }
+
+    /**
+     * Return the list of IP addresses the cluster should be configured to use
+     *
+     * @return StringList
+     */
+    public final StringList getIPAddressList() { return m_ipAddressList; }
 
     /**
      * Set the Hazelcast configuration file path
      *
      * @param path String
      */
-    public void setConfigFile(String path) {
+    public final void setConfigFile(String path) {
         m_configFile = path;
+    }
+
+    /**
+     * Set the cluster name, when using the default Hazelcast configuration
+     *
+     * @param name String
+     */
+    public final void setClusterName(String name) { m_clusterName = name; }
+
+    /**
+     * Add an IP address to the list of interfaces the cluster will use
+     *
+     * @param ipAddr String
+     */
+    public final void addIPAddress(String ipAddr) {
+        if ( m_ipAddressList == null)
+            m_ipAddressList = new StringList();
+        m_ipAddressList.addString( ipAddr);
     }
 
     /**
      * Return the Hazelcast instance, or create it
      *
+     * @param mapName String
      * @return HazelcastInstance
      * @throws FileNotFoundException File not found
      */
-    public synchronized HazelcastInstance getHazelcastInstance()
+    public synchronized HazelcastInstance getHazelcastInstance(String mapName)
             throws FileNotFoundException {
 
         // Check if the Hazelcast instance has been initialized
         if (m_hazelcastInstance == null) {
 
-            // Create the Hazelcast instance
-            Config hcConfig = new FileSystemXmlConfig(getConfigFile());
-            m_hazelcastInstance = Hazelcast.newHazelcastInstance(hcConfig);
+            // Check if we are using an external Hazelcast configuration file
+            if ( hasConfigFile()) {
 
-            // Indicate we own the Hazelcast instance
-            m_externalHazelcast = false;
+                // Create the Hazelcast instance
+                Config hcConfig = new FileSystemXmlConfig(getConfigFile());
+                m_hazelcastInstance = Hazelcast.newHazelcastInstance(hcConfig);
+
+                // Indicate we own the Hazelcast instance
+                m_externalHazelcast = false;
+            }
+
+            // Using the default Hazelcast configuration
+            else {
+                // Use a default configuration
+                Config hcConfig = new Config();
+                hcConfig.setClusterName( getClusterName());
+
+                // Check if the distributed map should be created
+                if ( mapName != null) {
+
+                    // Create the distributed map
+                    MapConfig mapConfig = new MapConfig(mapName);
+                    hcConfig.addMapConfig( mapConfig);
+                }
+
+                // Check if there is a list of IP addresses the cluster should use
+                if ( hasIPAddressList()) {
+
+                    // Create the network interface configuration
+                    NetworkConfig netConfig = hcConfig.getNetworkConfig();
+                    InterfacesConfig ifConfig = netConfig.getInterfaces();
+
+                    ifConfig.setEnabled( true);
+
+                    Iterator<String> it = getIPAddressList().iterator();
+                    while ( it.hasNext()) {
+                        ifConfig.addInterface( it.next());
+                    }
+                }
+
+                // Create the Hazelcast instance
+                m_hazelcastInstance = Hazelcast.newHazelcastInstance(hcConfig);
+
+                // Indicate we own the Hazelcast instance
+                m_externalHazelcast = false;
+            }
         }
 
         // Return the Hazelcast instance
@@ -104,7 +205,7 @@ public class ClusterConfigSection extends ConfigSection {
      *
      * @return boolean
      */
-    public final boolean isExternalHazlecast() {
+    public final boolean isExternalHazelcast() {
         return m_externalHazelcast;
     }
 
@@ -130,7 +231,7 @@ public class ClusterConfigSection extends ConfigSection {
 
             // Clear the Hazelcast instance, shut it down if we created it
             m_hazelcastInstance = null;
-            if (isExternalHazlecast() == false)
+            if (isExternalHazelcast() == false)
                 Hazelcast.shutdownAll();
         }
     }

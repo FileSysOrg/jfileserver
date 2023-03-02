@@ -22,7 +22,7 @@ package org.filesys.server.filesys.cache.hazelcast;
 import org.filesys.server.filesys.cache.cluster.ClusterInterface;
 import org.filesys.server.filesys.cache.cluster.ClusterNode;
 
-import com.hazelcast.core.Member;
+import com.hazelcast.cluster.Member;
 
 /**
  * HazelCast Cluster Node Class

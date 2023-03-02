@@ -22,6 +22,7 @@ import com.hazelcast.map.listener.EntryAddedListener;
 import com.hazelcast.map.listener.EntryEvictedListener;
 import com.hazelcast.map.listener.EntryRemovedListener;
 import com.hazelcast.map.listener.EntryUpdatedListener;
+import com.hazelcast.topic.MessageListener;
 import org.filesys.server.filesys.*;
 import org.filesys.server.filesys.cache.cluster.*;
 import org.filesys.smb.OpLockType;
@@ -35,7 +36,7 @@ import java.util.concurrent.Future;
  *
  * @author gkspencer
  */
-public class HazelCastClusterFileStateCacheV3 extends HazelCastClusterFileStateCache implements
+public class HazelCastClusterFileStateCacheV5 extends HazelCastClusterFileStateCache implements
         EntryAddedListener<String, HazelCastClusterFileState>, EntryUpdatedListener<String, HazelCastClusterFileState>,
         EntryRemovedListener<String, HazelCastClusterFileState>, EntryEvictedListener<String, HazelCastClusterFileState>,
         MessageListener<ClusterMessage> {
@@ -43,7 +44,7 @@ public class HazelCastClusterFileStateCacheV3 extends HazelCastClusterFileStateC
     /**
      * Class constructor
      */
-    public HazelCastClusterFileStateCacheV3() {
+    public HazelCastClusterFileStateCacheV5() {
 
     }
 
@@ -86,7 +87,7 @@ public class HazelCastClusterFileStateCacheV3 extends HazelCastClusterFileStateC
 
         // Rename the state via a remote call to the node that owns the file state
         IExecutorService execService = m_hazelCastInstance.getExecutorService( ExecutorName);
-        Callable<Boolean> callable = new RenameStateTask(getClusterName(), oldPath, newPath, isDir, hasTaskDebug(), hasTaskTiming());
+        Callable<Boolean> callable = new RenameStateTask(getMapName(), oldPath, newPath, isDir, hasTaskDebug(), hasTaskTiming());
 
         Future<Boolean> renameStateTask = execService.submitToKeyOwner( callable, oldPath);
 
@@ -107,7 +108,7 @@ public class HazelCastClusterFileStateCacheV3 extends HazelCastClusterFileStateC
 
         // Add the oplock via a remote call to the node that owns the file state
         IExecutorService execService = m_hazelCastInstance.getExecutorService( ExecutorName);
-        Callable<Boolean> callable = new AddOpLockTask(getClusterName(), path, remoteOpLock, hasTaskDebug(), hasTaskTiming());
+        Callable<Boolean> callable = new AddOpLockTask(getMapName(), path, remoteOpLock, hasTaskDebug(), hasTaskTiming());
 
         Future<Boolean> addOpLockTask = execService.submitToKeyOwner( callable, path);
 
@@ -126,7 +127,7 @@ public class HazelCastClusterFileStateCacheV3 extends HazelCastClusterFileStateC
 
         // Remove the oplock using a remote call to the node that owns the file state
         IExecutorService execService = m_hazelCastInstance.getExecutorService( ExecutorName);
-        Callable<Boolean> callable = new RemoveOpLockTask(getClusterName(), path, hasTaskDebug(), hasTaskTiming());
+        Callable<Boolean> callable = new RemoveOpLockTask(getMapName(), path, hasTaskDebug(), hasTaskTiming());
 
         Future<Boolean> removeOpLockTask = execService.submitToKeyOwner( callable, path);
 
@@ -147,8 +148,8 @@ public class HazelCastClusterFileStateCacheV3 extends HazelCastClusterFileStateC
 
         // Add the oplock via a remote call to the node that owns the file state
         IExecutorService execService = m_hazelCastInstance.getExecutorService( ExecutorName);
-        Callable<ClusterFileState> callable = new AddFileByteLockTask(getClusterName(), path, lock,
-                hasDebugLevel(DebugByteLock), hasTaskTiming());
+        Callable<ClusterFileState> callable = new AddFileByteLockTask(getMapName(), path, lock,
+                hasDebugLevel(Dbg.BYTELOCK), hasTaskTiming());
 
         Future<ClusterFileState> addLockTask = execService.submitToKeyOwner( callable, path);
 
@@ -169,8 +170,8 @@ public class HazelCastClusterFileStateCacheV3 extends HazelCastClusterFileStateC
 
         // Remove the oplock via a remote call to the node that owns the file state
         IExecutorService execService = m_hazelCastInstance.getExecutorService( ExecutorName);
-        Callable<ClusterFileState> callable = new RemoveFileByteLockTask(getClusterName(), path, lock,
-                hasDebugLevel(DebugByteLock), hasTaskTiming());
+        Callable<ClusterFileState> callable = new RemoveFileByteLockTask(getMapName(), path, lock,
+                hasDebugLevel(Dbg.BYTELOCK), hasTaskTiming());
 
         Future<ClusterFileState> removeLockTask = execService.submitToKeyOwner( callable, path);
 
@@ -191,7 +192,7 @@ public class HazelCastClusterFileStateCacheV3 extends HazelCastClusterFileStateC
 
         // Run the file access checks via the node that owns the file state
         IExecutorService execService = m_hazelCastInstance.getExecutorService( ExecutorName);
-        Callable<Integer> callable = new ChangeOpLockTypeTask(getClusterName(), path, newTyp, hasTaskDebug(), hasTaskTiming());
+        Callable<Integer> callable = new ChangeOpLockTypeTask(getMapName(), path, newTyp, hasTaskDebug(), hasTaskTiming());
 
         Future<Integer> changeOpLockTask = execService.submitToKeyOwner( callable, path);
 
@@ -212,7 +213,7 @@ public class HazelCastClusterFileStateCacheV3 extends HazelCastClusterFileStateC
 
         // Run the file access checks via the node that owns the file state
         IExecutorService execService = m_hazelCastInstance.getExecutorService( ExecutorName);
-        Callable<FileAccessToken> callable = new GrantFileAccessTask(getClusterName(), path, params, hasTaskDebug(), hasTaskTiming());
+        Callable<FileAccessToken> callable = new GrantFileAccessTask(getMapName(), path, params, hasTaskDebug(), hasTaskTiming());
 
         Future<FileAccessToken> grantAccessTask = execService.submitToKeyOwner( callable, path);
 
@@ -233,8 +234,8 @@ public class HazelCastClusterFileStateCacheV3 extends HazelCastClusterFileStateC
 
         // Run the file access checks via the node that owns the file state
         IExecutorService execService = m_hazelCastInstance.getExecutorService( ExecutorName);
-        Callable<Integer> callable = new ReleaseFileAccessTask(getClusterName(), path, token, m_topicName,
-                hasDebugLevel(DebugFileAccess), hasTaskTiming());
+        Callable<Integer> callable = new ReleaseFileAccessTask(getMapName(), path, token, getTopicName(),
+                hasDebugLevel(Dbg.FILEACCESS), hasTaskTiming());
 
         Future<Integer> releaseAccessTask = execService.submitToKeyOwner( callable, path);
 
@@ -256,8 +257,8 @@ public class HazelCastClusterFileStateCacheV3 extends HazelCastClusterFileStateC
 
         // Check the file access via a remote call to the node that owns the file state
         IExecutorService execService = m_hazelCastInstance.getExecutorService( ExecutorName);
-        Callable<Boolean> callable = new CheckFileByteLockTask(getClusterName(), path, chkLock, writeChk,
-                hasDebugLevel(DebugFileAccess), hasTaskTiming());
+        Callable<Boolean> callable = new CheckFileByteLockTask(getMapName(), path, chkLock, writeChk,
+                hasDebugLevel(Dbg.FILEACCESS), hasTaskTiming());
 
         Future<Boolean> checkLockTask = execService.submitToKeyOwner( callable, path);
 
@@ -276,8 +277,8 @@ public class HazelCastClusterFileStateCacheV3 extends HazelCastClusterFileStateC
 
         // Update the file status via a remote call to the node that owns the file state
         IExecutorService execService = m_hazelCastInstance.getExecutorService( ExecutorName);
-        Callable<Boolean> callable = new UpdateStateTask(getClusterName(), path, fileSts,
-                hasDebugLevel(DebugRemoteTask | DebugFileStatus), hasTaskTiming());
+        Callable<Boolean> callable = new UpdateStateTask(getMapName(), path, fileSts,
+                hasDebugLevelOr(Dbg.REMOTETASK, Dbg.FILESTATUS), hasTaskTiming());
 
         Future<Boolean> updateStateTask = execService.submitToKeyOwner( callable, path);
 
@@ -296,8 +297,8 @@ public class HazelCastClusterFileStateCacheV3 extends HazelCastClusterFileStateC
 
         // Set the file data update status via a remote call to the node that owns the file state
         IExecutorService execService = m_hazelCastInstance.getExecutorService( ExecutorName);
-        Callable<Boolean> callable = new FileDataUpdateTask(getClusterName(), path, getLocalNode(), startUpdate,
-                hasDebugLevel(DebugFileDataUpdate), hasTaskTiming());
+        Callable<Boolean> callable = new FileDataUpdateTask(getMapName(), path, getLocalNode(), startUpdate,
+                hasDebugLevel(Dbg.FILEDATAUPDATE), hasTaskTiming());
 
         Future<Boolean> fileDataUpdateTask = execService.submitToKeyOwner( callable, path);
 

@@ -69,8 +69,14 @@ public class OpLockHelper {
                 // Check if there is a shared level II oplock on the file
                 oplock = oplockMgr.getOpLockDetails(params.getPath());
 
-                if (oplock != null && oplock.getLockType() == OpLockType.LEVEL_II)
+                if (oplock != null && oplock.getLockType() == OpLockType.LEVEL_II) {
+
+                    // DEBUG
+                    if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.Dbg.OPLOCK))
+                        sess.debugPrintln("Grant oplock returning existing level II oplock=" + oplock);
+
                     return oplock;
+                }
 
                 // Get the oplock type
                 OpLockType oplockTyp = params.requestedOplockType();

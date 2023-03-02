@@ -22,7 +22,7 @@ package org.filesys.server.filesys.cache.hazelcast;
 import org.filesys.debug.Debug;
 import org.filesys.server.filesys.cache.cluster.ClusterFileState;
 
-import com.hazelcast.core.IMap;
+import com.hazelcast.map.IMap;
 
 /**
  * Add OpLock Remote Task Class

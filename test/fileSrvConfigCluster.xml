@@ -9,7 +9,21 @@
     </servers>
 
     <cluster>
+        <!-- Simplest configuration is to specify a cluster name -->
+        <clusterName>JFileServer</clusterName>
+
+        <!-- Optional comma delimited list of network addresses to use -->
+        <!--
+        <network>192.168.1.109</network>
+        -->
+
+        <!-- OR use a Hazelcast configuration file -->
+        <!-- Location of the Hazelcast configuration file -->
+        <!-- Should define a Hazelcast map that is to be used by the clustered file state cache -->
+        <!--
         <configFile>./hazelcast/hazelcastConfig.xml</configFile>
+        -->
+
     </cluster>
 
     <SMB>
@@ -138,13 +152,19 @@
                 </FileLoader>
             </driver>
 
+            <!-- The clusterName is the distributed map that holds the file state information -->
+            <!-- (should match the map name defined in the Hazelcast configuration if using an external Hazelcast configuration file) -->
+            <!-- The clusterTopic is used to send state update messages to the cluster members -->
             <stateCache type="cluster">
                 <initialSize>1000</initialSize>
-                <clusterName>AlfrescoFilesysCache</clusterName>
-                <clusterTopic>AlfrescoTopic</clusterTopic>
+                <clusterMap>FilesysCache</clusterMap>
+                <clusterTopic>FilesysTopic</clusterTopic>
                 <nearCache timeout="10"/>
 
-                <cacheDebug flags="Rename"/>
+                <!-- Debug levels - "StateCache", "Expire", "NearCache", "Oplock", "ByteLock", "FileAccess", "Membership" -->
+                <!--                "Cleanup", "PerNode", "ClusterEntry", "ClusterMessage", "RemoteTask", "RemoteTiming" -->
+                <!--                "Rename", "FileDataUpdate", "FileStatus" -->
+                <cacheDebug flags="Membership,FileAccess,RemoteTask"/>
             </stateCache>
         </diskshare>
     </shares>

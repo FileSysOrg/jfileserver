@@ -81,8 +81,8 @@ public class ClusterFileLock extends FileLock implements Serializable {
 
         str.append("[Owner=");
         str.append(getOwnerNode());
-        str.append(",PID=");
-        str.append(getProcessId());
+        str.append(",pid=0x");
+        str.append(Long.toHexString(getProcessId()));
         str.append("/");
         str.append(getProcessId() & 0x0000FFFF);
         str.append(",Offset=");

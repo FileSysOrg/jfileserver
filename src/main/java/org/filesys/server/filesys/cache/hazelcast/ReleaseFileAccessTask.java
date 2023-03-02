@@ -25,8 +25,8 @@ import org.filesys.server.filesys.cache.cluster.ClusterFileState;
 import org.filesys.smb.OpLockType;
 import org.filesys.smb.SharingMode;
 
-import com.hazelcast.core.IMap;
-import com.hazelcast.core.ITopic;
+import com.hazelcast.map.IMap;
+import com.hazelcast.topic.ITopic;
 
 /**
  * Release File Access Task Class
@@ -66,6 +66,7 @@ public class ReleaseFileAccessTask extends RemoteStateTask<Integer> {
         super(mapName, key, true, false, debug, timingDebug);
 
         m_token = token;
+        m_clusterTopic = clusterTopic;
     }
 
     /**
