@@ -41,7 +41,6 @@ import org.filesys.audit.AuditGroup;
 import org.filesys.debug.Debug;
 import org.filesys.debug.DebugConfigSection;
 import org.filesys.netbios.server.LANAMapper;
-import org.filesys.oncrpc.nfs.NFSSrvSession;
 import org.filesys.server.auth.ISMBAuthenticator;
 import org.filesys.server.auth.UserAccount;
 import org.filesys.server.auth.UserAccountList;
@@ -72,7 +71,6 @@ import org.filesys.smb.DialectSelector;
 import org.filesys.smb.server.SMBConfigSection;
 import org.filesys.smb.server.SMBSrvSession;
 import org.filesys.smb.server.SMBV1VirtualCircuitList;
-import org.filesys.smb.server.VirtualCircuitList;
 import org.filesys.smb.util.DriveMapping;
 import org.filesys.smb.util.DriveMappingList;
 import org.filesys.util.*;
@@ -2131,7 +2129,7 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 				
 				// Create a clustered file state cache, need to load the class to avoid a reference to it
 				try {
-					stateCache = (FileStateCache) Class.forName("org.filesys.server.filesys.cache.hazelcast.HazelCastClusterFileStateCache").newInstance();
+					stateCache = (FileStateCache) Class.forName("org.filesys.server.filesys.cache.hazelcast.HazelCastClusterFileStateCacheV5").newInstance();
 				}
 				catch ( ClassNotFoundException ex) {
 					throw new InvalidConfigurationException( "Clustered file state cache not available, check build/Jar");

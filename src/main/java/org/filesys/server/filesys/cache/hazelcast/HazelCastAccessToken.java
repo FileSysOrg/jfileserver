@@ -211,8 +211,8 @@ public class HazelCastAccessToken implements Serializable, FileAccessToken {
 
         str.append("[Token owner=");
         str.append(getOwnerName());
-        str.append(",pid=");
-        str.append(getProcessId());
+        str.append(",pid=0x");
+        str.append(Long.toHexString(getProcessId()));
         if (getOpLockType() != OpLockType.LEVEL_NONE) {
             str.append(",oplock=");
             str.append(getOpLockType().name());

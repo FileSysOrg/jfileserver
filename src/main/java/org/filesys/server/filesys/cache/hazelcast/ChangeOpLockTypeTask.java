@@ -24,7 +24,7 @@ import org.filesys.server.filesys.cache.cluster.ClusterFileState;
 import org.filesys.server.locking.OpLockDetails;
 import org.filesys.smb.OpLockType;
 
-import com.hazelcast.core.IMap;
+import com.hazelcast.map.IMap;
 
 /**
  * Change OpLock Type Remote Task Class

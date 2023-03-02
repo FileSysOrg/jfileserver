@@ -23,7 +23,7 @@ import org.filesys.debug.Debug;
 import org.filesys.server.filesys.cache.cluster.ClusterFileLock;
 import org.filesys.server.filesys.cache.cluster.ClusterFileState;
 
-import com.hazelcast.core.IMap;
+import com.hazelcast.map.IMap;
 
 /**
  * Check File Byte Range Lock Remote Task Class

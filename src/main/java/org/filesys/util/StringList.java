@@ -21,6 +21,7 @@ package org.filesys.util;
 
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Vector;
 
@@ -139,6 +140,13 @@ public class StringList {
     public final void remoteAllStrings() {
         m_list.clear();
     }
+
+    /**
+     * Return an iterator for the string list
+     *
+     * @return Iterator&lt;String&gt;
+     */
+    public final Iterator<String> iterator() { return m_list.iterator(); }
 
     /**
      * Return the string list as a string

@@ -24,7 +24,7 @@ import org.filesys.server.filesys.FileStatus;
 import org.filesys.server.filesys.cache.FileState;
 import org.filesys.server.filesys.cache.cluster.ClusterFileState;
 
-import com.hazelcast.core.IMap;
+import com.hazelcast.map.IMap;
 
 /**
  * Rename File State Task Class

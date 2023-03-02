@@ -33,6 +33,7 @@ import org.filesys.oncrpc.nfs.NFSConfigSection;
 import org.filesys.oncrpc.nfs.NFSSrvSession;
 import org.filesys.server.config.InvalidConfigurationException;
 import org.filesys.server.filesys.cache.hazelcast.ClusterConfigSection;
+import org.filesys.util.IPAddress;
 import org.springframework.extensions.config.ConfigElement;
 import org.springframework.extensions.config.element.ConfigElementAdapter;
 import org.w3c.dom.Document;
@@ -822,8 +823,8 @@ public class XMLServerConfiguration extends SMBOnlyXMLServerConfiguration {
 				
 				// Check for various Hazelcast classes
 				Class.forName( "com.hazelcast.core.HazelcastInstance");
-				Class.forName( "com.hazelcast.core.IMap");
-				Class.forName( "com.hazelcast.core.ITopic");
+				Class.forName( "com.hazelcast.map.IMap");
+				Class.forName( "com.hazelcast.topic.ITopic");
 				
 				// Check for the cluster configuration section
 				Class.forName("org.filesys.server.filesys.cache.hazelcast.ClusterConfigSection");
@@ -858,8 +859,47 @@ public class XMLServerConfiguration extends SMBOnlyXMLServerConfiguration {
 					throw new InvalidConfigurationException( "HazelCast configuration file not valid", ex);
 				}
 			}
-			else
-				throw new InvalidConfigurationException( "HazelCast configuration file not specified");
+
+			// Get the cluster name
+			elem = findChildNode( "clusterName", cluster.getChildNodes());
+
+			if ( elem != null) {
+
+				// Set the cluster name
+				String clusterName = getText( elem);
+				clusterConfig.setClusterName( clusterName);
+			}
+
+			// Make sure we have either an external Hazelcast configuration file or cluster name configured
+			if ( clusterConfig.hasConfigFile() == false && clusterConfig.hasClusterName() == false)
+				throw new InvalidConfigurationException( "HazelCast configuration must specify either <configFile> or <clusterName>");
+
+			// Check if Hazelcast should only use certain network addresses/interfaces
+			elem = findChildNode( "network", cluster.getChildNodes());
+
+			if ( elem != null) {
+
+				// Get the list of network addresses
+				String netAddrs = getText( elem);
+
+				if ( netAddrs == null || netAddrs.length() == 0)
+					throw new InvalidConfigurationException( "Hazelcast network address list is empty");
+
+				// Split the list into separate addresses
+				StringTokenizer addrTok = new StringTokenizer( netAddrs, ",");
+
+				while ( addrTok.hasMoreTokens()) {
+
+					// Get the current token and check that it is a valid IPv4 format address
+					String curAddr = addrTok.nextToken();
+
+					if (IPAddress.isNumericAddress( curAddr) == false)
+						throw new InvalidConfigurationException( "Invalid Hazelcast network address '" + curAddr + "'");
+
+					// Add to the list of network addresses to be used by Hazelcast
+					clusterConfig.addIPAddress( curAddr);
+				}
+			}
 		}
 	}
 }

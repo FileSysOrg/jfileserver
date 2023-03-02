@@ -27,7 +27,7 @@ import org.filesys.smb.ImpersonationLevel;
 import org.filesys.smb.OpLockType;
 import org.filesys.smb.SharingMode;
 
-import com.hazelcast.core.IMap;
+import com.hazelcast.map.IMap;
 
 /**
  * Grant File Access Task Class
@@ -111,7 +111,9 @@ public class GrantFileAccessTask extends RemoteStateTask<FileAccessToken> {
                 throw new FileExistsException();
 
             // Check for impersonation security level from the original process that opened the file
-            if (m_params.getSecurityLevel() == ImpersonationLevel.IMPERSONATION && m_params.getProcessId() == fState.getProcessId() &&
+            if ((m_params.getSecurityLevel() == ImpersonationLevel.IMPERSONATION ||
+                    m_params.getSecurityLevel() == ImpersonationLevel.ANONYMOUS) &&
+                    m_params.getProcessId() == fState.getProcessId() &&
                     curPrimaryOwner.equalsIgnoreCase(m_params.getOwnerName()))
                 nosharing = false;
 
@@ -151,9 +153,15 @@ public class GrantFileAccessTask extends RemoteStateTask<FileAccessToken> {
                 noshrReason = "Requestor wants exclusive mode";
             }
 
+            // Check for anonymous impersonation
+            else if ( m_params.getSecurityLevel() == ImpersonationLevel.ANONYMOUS) {
+                nosharing = true;
+                noshrReason = "Anonymous impersonation";
+            }
+
             // Indicate that an oplock is not available, file already open by another client
             oplockNotAvailable = true;
-            ;
+
         } else if (m_params.hasOpLockRequest() && m_params.isDirectory() == false) {
 
             // Grant the requested oplock, file is not open by any other users

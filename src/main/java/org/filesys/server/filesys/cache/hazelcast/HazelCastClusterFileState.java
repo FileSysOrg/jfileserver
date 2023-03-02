@@ -417,8 +417,8 @@ public class HazelCastClusterFileState extends ClusterFileState {
         if (getOpenCount() > 0) {
             str.append("(shr=");
             str.append(getSharedAccess().name());
-            str.append(",pid=");
-            str.append(getProcessId());
+            str.append(",pid=0x");
+            str.append(Long.toHexString(getProcessId()));
             str.append(",primary=");
             str.append(getPrimaryOwner());
             str.append(")");
