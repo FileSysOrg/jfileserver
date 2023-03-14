@@ -413,7 +413,245 @@ public class FileServer implements ServerListener {
         m_mainThread = null;
 	}
 
-    /**
+	/**
+	 * Start the file server
+	 *
+	 * @param config ServerConfiguration
+	 */
+	protected void start(ServerConfiguration config) {
+
+		// Command line parameter should specify the configuration file
+		PrintStream out = createOutputStream();
+
+		// Clear the shutdown/restart flags
+		m_shutdown = true;
+		m_restart = false;
+
+		// Checkpoint - server starting
+		checkPoint(out, CheckPoint.Starting);
+
+		// Load the configuration
+		m_srvConfig = null;
+
+		try {
+
+			// Set the pre-loaded configuration
+			m_srvConfig = config;
+
+			// Checkpoint - configuration loaded
+			checkPoint(out, CheckPoint.ConfigLoaded);
+		}
+		catch (Exception ex) {
+
+			// Failed to load server configuration
+			checkPointError(out, CheckPoint.ConfigLoading, ex);
+			return;
+		}
+
+		// Check if the local IP address returns a valid value, '127.0.0.1' indicates a mis-configuration in the hosts
+		// file
+		if ( CheckLocalIPAddress) {
+
+			try {
+
+				// Checkpoint - check IP address
+				checkPoint(out, CheckPoint.CheckIPAddress);
+
+				// Get the local address
+				String localAddr = InetAddress.getLocalHost().getHostAddress();
+				if ( localAddr.equals("127.0.0.1")) {
+					out.println("%% Local IP address resolves to 127.0.0.1, this may be caused by a mis-configured hosts file");
+					return;
+				}
+			}
+			catch (UnknownHostException ex) {
+
+				// Failed to get local host IP address details
+				checkPointError(out, CheckPoint.CheckIPAddress, ex);
+				return;
+			}
+		}
+
+		// NetBIOS name server, SMB, FTP and NFS servers
+		try {
+
+			// Create the SMB server and NetBIOS name server, if enabled
+			if ( m_srvConfig.hasConfigSection(SMBConfigSection.SectionName)) {
+
+				// Checkpoint - create SMB server
+				checkPoint(out, CheckPoint.CreateSMBServer);
+
+				// Get the SMB server configuration
+				SMBConfigSection smbConfig = (SMBConfigSection) m_srvConfig.getConfigSection(SMBConfigSection.SectionName);
+
+				// Create the NetBIOS name server if NetBIOS SMB is enabled
+				if ( smbConfig.hasNetBIOSSMB())
+					m_srvConfig.addServer(createNetBIOSServer(m_srvConfig));
+
+				// Create the SMB server
+				m_srvConfig.addServer(createSMBServer(m_srvConfig));
+			}
+
+			// Create the FTP server, if enabled
+			if ( m_srvConfig.hasConfigSection(FTPConfigSection.SectionName)) {
+
+				// Checkpoint - create FTP server
+				checkPoint(out, CheckPoint.CreateFTPServer);
+
+				// Create the FTP server
+				m_srvConfig.addServer(createFTPServer(m_srvConfig));
+			}
+
+			// Create the NFS server and mount server, if enabled
+			if ( m_srvConfig.hasConfigSection(NFSConfigSection.SectionName)) {
+
+				// Checkpoint - create NFS server
+				checkPoint(out, CheckPoint.CreateNFSServer);
+
+				// Get the NFS server configuration
+				NFSConfigSection nfsConfig = (NFSConfigSection) m_srvConfig.getConfigSection(NFSConfigSection.SectionName);
+
+				// Check if the port mapper is enabled
+				if ( nfsConfig.hasNFSPortMapper())
+					m_srvConfig.addServer(createNFSPortMapper(m_srvConfig));
+
+				// Create the mount server
+				m_srvConfig.addServer(createNFSMountServer(m_srvConfig));
+
+				// Create the NFS server
+				m_srvConfig.addServer(createNFSServer(m_srvConfig));
+			}
+
+			// Checkpoint - starting servers
+			checkPoint(out, CheckPoint.ServerStart);
+
+			// Get the debug configuration
+			DebugConfigSection dbgConfig = (DebugConfigSection) m_srvConfig.getConfigSection(DebugConfigSection.SectionName);
+
+			// Start the configured servers
+			for (int i = 0; i < m_srvConfig.numberOfServers(); i++) {
+
+				// Get the current server
+				NetworkServer server = m_srvConfig.getServer(i);
+
+				// DEBUG
+				if ( Debug.EnableInfo && dbgConfig != null && dbgConfig.hasDebug())
+					Debug.println("Starting server " + server.getProtocolName() + " ...");
+
+				// Start the server
+				m_srvConfig.getServer(i).startServer();
+			}
+
+			// Checkpoint - servers started
+			checkPoint(out, CheckPoint.ServerStarted);
+
+			// Check if the server is running as a service
+			boolean service = false;
+
+			if ( ConsoleIO.isValid() == false)
+				service = true;
+
+			// Checkpoint - servers running
+			checkPoint(out, CheckPoint.Running);
+
+			// Install the shutdown hook
+			m_mainThread= Thread.currentThread();
+			Runtime.getRuntime().addShutdownHook( new FileServerShutdownHook( this));
+
+			// Wait while the server runs, user may stop or restart the server by typing a key
+			m_shutdown = false;
+
+			while (m_shutdown == false && m_restart == false) {
+
+				// Check if the user has requested a shutdown, if running interactively
+				if ( service == false && m_allowShutViaConsole) {
+
+					// Wait for the user to enter the shutdown key
+					int inChar = ConsoleIO.readCharacter();
+
+					if ( inChar == 'x' || inChar == 'X')
+						m_shutdown = true;
+					else if ( inChar == 'r' || inChar == 'R')
+						m_restart = true;
+					else if ( inChar == 's' || inChar == 'S')
+						dumpSessions( false);
+					else if ( inChar == 'v' || inChar == 'V')
+						dumpSessions( true);
+					else if ( inChar == 'g' || inChar == 'G') {
+						Debug.println( "Running garbage collection ...");
+						System.gc();
+					}
+					else if ( inChar == -1) {
+
+						// Sleep for a short while
+						try {
+							Thread.sleep(500);
+						}
+						catch (InterruptedException ex) {
+						}
+					}
+				}
+				else {
+
+					// Sleep for a short while
+					try {
+						Thread.sleep(500);
+					}
+					catch (InterruptedException ex) {
+					}
+				}
+			}
+
+			// Checkpoint - servers stopping
+			checkPoint(out, CheckPoint.ServerStop);
+
+			// Shutdown the servers
+			int idx = m_srvConfig.numberOfServers() - 1;
+
+			while (idx >= 0) {
+
+				// Get the current server
+				NetworkServer server = m_srvConfig.getServer(idx--);
+
+				// DEBUG
+				if ( Debug.EnableInfo && dbgConfig != null && dbgConfig.hasDebug())
+					Debug.println("Shutting server " + server.getProtocolName() + " ...");
+
+				// Stop the server
+				server.shutdownServer(false);
+			}
+
+			// Close the configuration
+			m_srvConfig.closeConfiguration();
+
+			// Checkpoint - servers stopped
+			checkPoint(out, CheckPoint.ServerStopped);
+		}
+		catch (Exception ex) {
+
+			// Server error
+			checkPointError(out, CheckPoint.ServerStarted, ex);
+		}
+		finally {
+
+			// Close all active servers
+			int idx = m_srvConfig.numberOfServers() - 1;
+
+			while (idx >= 0) {
+				NetworkServer srv = m_srvConfig.getServer(idx--);
+				if ( srv.isActive())
+					srv.shutdownServer(true);
+			}
+		}
+
+		// Checkpoint - finished
+		checkPoint(out, CheckPoint.Finished);
+
+		// Indicate file server is no longer running
+		m_mainThread = null;
+	}
+
+	/**
      * Check if the file server is running
      *
      * @return boolean
