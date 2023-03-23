@@ -1454,8 +1454,8 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
             Debug.println("Removing state data for member " + member);
 
         // Get the member name
-        String memberName = member.toString();
-
+        //String memberName = member.toString();
+        String memberName = member.getSocketAddress().toString();
         // Enumerate the file state cache and remove expired file state objects
         int stateCnt = 0;
         Iterator<String> keysIter = localKeys.iterator();
@@ -1471,12 +1471,21 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
             if (primaryOwner != null && primaryOwner.equals(memberName)) {
 
                 // Reduce the file open count
-                if (state.getOpenCount() > 0)
-                    state.decrementOpenCount();
+                if (state.getOpenCount() > 0) {
+                 //   state.decrementOpenCount();
+                    state.setOpenCount(0); // since open count should be 0 for setting primary owner
+                }
 
                 // Reset the shared access mode, and clear the primary owner
                 state.setSharedAccess(SharingMode.ALL);
                 state.setPrimaryOwner(null);
+
+                m_stateCache.lock(state.getPath());
+                // Update the state in the cache, and unlock
+                m_stateCache.put(state.getPath(), state);
+                m_stateCache.unlock(state.getPath());
+                updateNearCacheState(state);
+
 
                 // DEBUG
                 if (hasDebugLevel(Dbg.CLEANUP))
@@ -1539,7 +1548,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
                 // Update the state in the cache, and unlock
                 m_stateCache.put(state.getPath(), state);
                 m_stateCache.unlock(state.getPath());
-
+                updateNearCacheState(state);
                 // Increment the updated state count
                 stateCnt++;
             }
@@ -1565,7 +1574,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
                     // Update the state in the cache, and unlock
                     m_stateCache.put(state.getPath(), state);
                     m_stateCache.unlock(state.getPath());
-
+                    updateNearCacheState(state);
                     // Increment the updated state count
                     stateCnt++;
                 }
