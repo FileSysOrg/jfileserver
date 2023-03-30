@@ -1823,7 +1823,7 @@ public class NTLMOnlySMBAuthenticator extends SMBAuthenticator {
             }
         }
         catch ( Exception ex) {
-            ex.printStackTrace();
+            debugOutput( ex);
         }
 
         // Return the MIC status

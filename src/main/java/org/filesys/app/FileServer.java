@@ -222,7 +222,7 @@ public class FileServer implements ServerListener {
 				// Get the local address
 				String localAddr = InetAddress.getLocalHost().getHostAddress();
 				if ( localAddr.equals("127.0.0.1")) {
-					out.println("%% Local IP address resolves to 127.0.0.1, this may be caused by a mis-configured hosts file");
+					Debug.println("%% Local IP address resolves to 127.0.0.1, this may be caused by a mis-configured hosts file");
 					return;
 				}
 			}
@@ -460,7 +460,7 @@ public class FileServer implements ServerListener {
 				// Get the local address
 				String localAddr = InetAddress.getLocalHost().getHostAddress();
 				if ( localAddr.equals("127.0.0.1")) {
-					out.println("%% Local IP address resolves to 127.0.0.1, this may be caused by a mis-configured hosts file");
+					Debug.println("%% Local IP address resolves to 127.0.0.1, this may be caused by a mis-configured hosts file");
 					return;
 				}
 			}
@@ -900,9 +900,9 @@ public class FileServer implements ServerListener {
 		}
 
 		// Output the error message and a stack trace
-		out.println(msg);
+		Debug.println(msg);
 		if ( m_dumpStackOnError)
-			ex.printStackTrace(out);
+			Debug.println(ex);
 	}
 
 	/**

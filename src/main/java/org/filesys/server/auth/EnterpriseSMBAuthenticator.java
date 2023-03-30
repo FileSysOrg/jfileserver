@@ -2254,7 +2254,7 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
             }
         }
         catch ( Exception ex) {
-            ex.printStackTrace();
+            debugOutput( ex);
         }
 
         // Return the MIC status
