@@ -49,6 +49,9 @@ public class ClusterConfigSection extends ConfigSection {
     // List of IP addresses to use on the host
     private StringList m_ipAddressList;
 
+    // Disable use of multicast to find other cluster members
+    private boolean m_disableMulticast = false;
+
     // Hazelcast instance shared by various components/filesystems
     private HazelcastInstance m_hazelcastInstance;
 
@@ -109,6 +112,13 @@ public class ClusterConfigSection extends ConfigSection {
     public final StringList getIPAddressList() { return m_ipAddressList; }
 
     /**
+     * Check if multicast discovery is disabled for the cluster
+     *
+     * @return
+     */
+    public final boolean hasDisableMulticast() { return m_disableMulticast; }
+
+    /**
      * Set the Hazelcast configuration file path
      *
      * @param path String
@@ -134,6 +144,13 @@ public class ClusterConfigSection extends ConfigSection {
             m_ipAddressList = new StringList();
         m_ipAddressList.addString( ipAddr);
     }
+
+    /**
+     * Enable/disable the use of multicast to discover cluster members
+     *
+     * @param disableMulticast boolean
+     */
+    public final void setDisableMulticast(boolean disableMulticast) { m_disableMulticast = disableMulticast; }
 
     /**
      * Return the Hazelcast instance, or create it
@@ -186,6 +203,12 @@ public class ClusterConfigSection extends ConfigSection {
                     while ( it.hasNext()) {
                         ifConfig.addInterface( it.next());
                     }
+                }
+
+                // Check if multicast cluster discovery is disabled
+                if ( hasDisableMulticast()) {
+                    JoinConfig joinConfig = hcConfig.getNetworkConfig().getJoin();
+                    joinConfig.getMulticastConfig().setEnabled( false);
                 }
 
                 // Create the Hazelcast instance
