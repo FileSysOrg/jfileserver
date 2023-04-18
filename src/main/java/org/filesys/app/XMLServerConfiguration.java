@@ -900,6 +900,10 @@ public class XMLServerConfiguration extends SMBOnlyXMLServerConfiguration {
 					clusterConfig.addIPAddress( curAddr);
 				}
 			}
+
+			// Check if multicast cluster discovery is disabled
+			if ( findChildNode( "disableMulticast", cluster.getChildNodes()) != null)
+				clusterConfig.setDisableMulticast( true);
 		}
 	}
 }
