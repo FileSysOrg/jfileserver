@@ -120,8 +120,8 @@ public final class FileName {
         //  Debug
         //  Debug.println ( "BuildPath: " + fullPath.toString ());
 
-        //  Convert the file seperator characters in the path if we are not using the normal
-        //  DOS file seperator character.
+        //  Convert the file separator characters in the path if we are not using the normal
+        //  DOS file separator character.
         if (sep != DOS_SEPERATOR)
             return convertSeperators(fullPath.toString(), sep);
         return fullPath.toString();
@@ -140,7 +140,7 @@ public final class FileName {
         if (path.indexOf(DOS_SEPERATOR) == -1)
             return path;
 
-        //  Convert DOS path seperators to the specified separator
+        //  Convert DOS path separators to the specified separator
         StringBuffer newPath = new StringBuffer();
         int idx = 0;
 
@@ -523,7 +523,7 @@ public final class FileName {
      */
     public final static String removeFileName(String path) {
 
-        //  Find the last path seperator
+        //  Find the last path separator
         int pos = path.lastIndexOf(DOS_SEPERATOR);
         if (pos != -1)
             return path.substring(0, pos);
@@ -540,7 +540,7 @@ public final class FileName {
      */
     public final static String getFileNamePart(String path) {
 
-        // Check if the path has a trailing path seperator
+        // Check if the path has a trailing path separator
         String fnamePart = "";
 
         if ( path.length() > 1 && path.endsWith( DOS_SEPERATOR_STR))
@@ -551,6 +551,28 @@ public final class FileName {
             fnamePart = path.substring( pos + 1);
 
         return fnamePart;
+    }
+
+    /**
+     * Return the parent path from the path string, after removing the file name or last folder
+     * name from the path
+     *
+     * @param path String
+     * @return String
+     */
+    public final static String getParentPart(String path) {
+
+        // Check if the path has a trailing separator
+        String parentPart = "";
+
+        if ( path.length() > 1 && path.endsWith( DOS_SEPERATOR_STR))
+            path = path.substring( 0, path.length() - 1);
+
+        int pos = path.lastIndexOf(DOS_SEPERATOR);
+        if ( pos != -1 && pos < path.length())
+            parentPart = path.substring( 0, pos);
+
+        return parentPart;
     }
 
     /**
@@ -592,7 +614,7 @@ public final class FileName {
         //  Check if the path is valid
         if (path != null && path.length() > 0) {
 
-            //  Check if the path has a trailing seperator, if so then there is no
+            //  Check if the path has a trailing separator, if so then there is no
             //  file name.
             int pos = path.lastIndexOf(sep);
 
@@ -708,7 +730,7 @@ public final class FileName {
 
         if (path.length() > 3) {
 
-            //	Split the path to seperate the folders/file name
+            //	Split the path to separate the folders/file name
             int pos = path.lastIndexOf(DOS_SEPERATOR);
             if (pos != -1) {
 
@@ -737,7 +759,7 @@ public final class FileName {
         //	Check if the base path is the root path
         if (basePath.length() == 0 || basePath.equals(DOS_SEPERATOR_STR)) {
 
-            //	Return the full path, strip any leading seperator
+            //	Return the full path, strip any leading separator
             if (fullPath.length() > 0 && fullPath.charAt(0) == DOS_SEPERATOR)
                 return fullPath.substring(1);
             return fullPath;
