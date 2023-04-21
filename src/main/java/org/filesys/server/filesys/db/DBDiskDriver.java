@@ -33,6 +33,7 @@ import org.filesys.server.filesys.*;
 import org.filesys.server.filesys.cache.FileState;
 import org.filesys.server.filesys.cache.FileStateCache;
 import org.filesys.server.filesys.loader.NamedFileLoader;
+import org.filesys.server.filesys.postprocess.PostCloseProcessor;
 import org.filesys.server.filesys.quota.QuotaManager;
 import org.filesys.server.locking.FileLockingInterface;
 import org.filesys.server.locking.LockManager;
@@ -42,6 +43,7 @@ import org.filesys.smb.SharingMode;
 import org.filesys.smb.WinNT;
 import org.filesys.smb.nt.SecurityDescriptor;
 import org.filesys.smb.server.SMBSrvException;
+import org.filesys.smb.server.SMBSrvSession;
 import org.filesys.smb.server.ntfs.NTFSStreamsInterface;
 import org.filesys.smb.server.ntfs.StreamInfo;
 import org.filesys.smb.server.ntfs.StreamInfoList;
@@ -55,7 +57,8 @@ import org.springframework.extensions.config.ConfigElement;
  * @author gkspencer
  */
 public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolumeInterface, NTFSStreamsInterface,
-        FileLockingInterface, FileIdInterface, SymbolicLinkInterface, OpLockInterface, SecurityDescriptorInterface {
+        FileLockingInterface, FileIdInterface, SymbolicLinkInterface, OpLockInterface, SecurityDescriptorInterface,
+        PostCloseProcessor {
 
     // Root directory file id
     public static final int RootDirId   = 0;
@@ -85,6 +88,34 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
      * @throws IOException Error closing the file
      */
     public void closeFile(SrvSession sess, TreeConnection tree, NetworkFile file)
+            throws IOException {
+
+        //  Access the database context
+        DBDeviceContext dbCtx = (DBDeviceContext) tree.getContext();
+
+        // Check if the file has been written to, and the post close processor is enabled
+        //
+        // Note: Only use post close for SMB sessions
+        if (dbCtx != null && dbCtx.isPostCloseEnabled() && !file.isReadOnly() && file.getWriteCount() > 0 && sess instanceof SMBSrvSession) {
+
+            // Run the file close via a post close processor after the protocol layer has sent the response to the client
+            file.setStatusFlag(NetworkFile.Flags.POST_CLOSE_FILE, true);
+            return;
+        }
+
+        // Close the file
+        doCloseFile( sess, tree, file);
+    }
+
+    /**
+     * Do the actual file close, it may be run from the post close processor
+     *
+     * @param sess Session details
+     * @param tree Tree connection
+     * @param file Network file details
+     * @throws IOException Error closing the file
+     */
+    public void doCloseFile(SrvSession sess, TreeConnection tree, NetworkFile file)
             throws IOException {
 
         //  Access the database context
@@ -1081,6 +1112,10 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
             //  Set the file owner
             if (sess != null)
                 jdbcFile.setOwnerSessionId(sess.getUniqueId());
+
+            // Check if the delete-on-close create option is set
+            if ( (params.getCreateOptions() & WinNT.CreateDeleteOnClose) != 0)
+                jdbcFile.setDeleteOnClose( true);
 
             // Save the access token
             jdbcFile.setAccessToken(accessToken);
@@ -3282,5 +3317,20 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
     public void saveSecurityDescriptor(SrvSession sess, TreeConnection tree, NetworkFile netFile, SecurityDescriptor secDesc)
             throws SMBSrvException {
 
+    }
+
+    /**
+     * Post close the file, called after the protocol layer has sent the close response to the client.
+     *
+     * @param sess    Server session
+     * @param tree    Tree connection.
+     * @param netFile Network file context.
+     * @throws IOException If an error occurs.
+     */
+    public void postCloseFile(SrvSession sess, TreeConnection tree, NetworkFile netFile)
+            throws IOException
+    {
+        // Close the file
+        doCloseFile(sess, tree, netFile);
     }
 }

@@ -102,6 +102,9 @@ public class DBDeviceContext extends DiskDeviceContext implements FileStateCache
     // Oplocks enable/disable
     private boolean m_oplocksEnabled = true;
 
+    // File close post processor enable/disable
+    private boolean m_postClose = true;
+
     /**
      * Class constructor
      *
@@ -216,6 +219,10 @@ public class DBDeviceContext extends DiskDeviceContext implements FileStateCache
         // Check if oplocks should be disabled
         if (args.getChild("disableOplocks") != null)
             m_oplocksEnabled = false;
+
+        // Check if the post close processor should be disabled
+        if(args.getChild( "disablePostClose") != null)
+            m_postClose = false;
 
         // Check if offline files are enabled above a specified size
         ConfigElement nameVal = args.getChild("offlineFileSize");
@@ -515,6 +522,13 @@ public class DBDeviceContext extends DiskDeviceContext implements FileStateCache
     public final boolean isOpLocksEnabled() {
         return m_oplocksEnabled;
     }
+
+    /**
+     * Check if the post close processor is enabled
+     *
+     * @return boolean
+     */
+    public final boolean isPostCloseEnabled() { return m_postClose; }
 
     /**
      * Determine if the retention period is enabled
