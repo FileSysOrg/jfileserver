@@ -22,6 +22,7 @@ package org.filesys.smb.server.nio;
 import java.nio.channels.SelectionKey;
 
 import org.filesys.debug.Debug;
+import org.filesys.server.filesys.postprocess.PostRequestProcessor;
 import org.filesys.server.thread.ThreadRequest;
 import org.filesys.smb.server.PacketHandler;
 import org.filesys.smb.server.SMBSrvPacket;
@@ -71,6 +72,7 @@ public class NIOSMBThreadRequest implements ThreadRequest {
             boolean asyncPkt = false;
 
             SMBSrvPacket smbPkt = null;
+            PostRequestProcessor postProc = null;
 
             while (pktCount < MaxPacketsPerRun && morePkts == true && pktError == false) {
 
@@ -135,6 +137,16 @@ public class NIOSMBThreadRequest implements ThreadRequest {
 
                         // Process the SMB request
                         m_sess.processPacket(smbPkt);
+
+                        // Save any post processor that has been queued on the packet
+                        postProc = smbPkt.getPostProcessor();
+                        if ( postProc != null) {
+
+                            // Stop processing any more packets, re-enable socket events for the channel
+                            morePkts = false;
+                        }
+
+                        // Clear the packet
                         smbPkt = null;
                     }
                 }
@@ -188,6 +200,23 @@ public class NIOSMBThreadRequest implements ThreadRequest {
                 // Re-enable read events for this socket channel
                 m_selectionKey.interestOps(m_selectionKey.interestOps() | SelectionKey.OP_READ);
                 m_selectionKey.selector().wakeup();
+            }
+
+            // Check if there is a post processor to run
+            if ( postProc != null) {
+
+                // DEBUG
+                if ( Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.THREADPOOL))
+                    Debug.println("Running post processor " + postProc);
+
+                // Call the post processor
+                try {
+                    postProc.runPostProcessor();
+                }
+                catch ( Throwable ex) {
+                    if ( Debug.hasDumpStackTraces())
+                        Debug.println( ex);
+                }
             }
 
             // DEBUG

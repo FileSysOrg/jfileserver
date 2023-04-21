@@ -23,6 +23,7 @@ package org.filesys.smb.server;
 import java.io.DataOutputStream;
 
 import org.filesys.netbios.RFCNetBIOSProtocol;
+import org.filesys.server.filesys.postprocess.PostRequestProcessor;
 import org.filesys.util.DataPacker;
 
 /**
@@ -83,6 +84,9 @@ public class SMBSrvPacket {
 	
 	// Packet lease time, when allocated from the memory pool
 	private long m_leaseTime;
+
+	// Request post processor, called after the protocol response has been sent
+	protected PostRequestProcessor m_postProcess;
 
 	/**
 	 * Default constructor
@@ -632,6 +636,33 @@ public class SMBSrvPacket {
 	 */
 	public final void setLeaseTime( long tmo) {
 		m_leaseTime = tmo;
+	}
+
+	/**
+	 * Check if the parser has a post processor
+	 *
+	 * @return boolean
+	 */
+	public final boolean hasPostProcessor() {
+		return m_postProcess != null ? true : false;
+	}
+
+	/**
+	 * Return the associated request post processor
+	 *
+	 * @return PostRequetProcesser
+	 */
+	public final PostRequestProcessor getPostProcessor() {
+		return m_postProcess;
+	}
+
+	/**
+	 * Set the request post processor
+	 *
+	 * @param postProcessor PostRequestProcessor
+	 */
+	public final void setPostProcessor(PostRequestProcessor postProcessor) {
+		m_postProcess = postProcessor;
 	}
 
 	/**
