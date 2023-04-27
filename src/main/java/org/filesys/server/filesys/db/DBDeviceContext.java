@@ -173,7 +173,7 @@ public class DBDeviceContext extends DiskDeviceContext implements FileStateCache
                     throw new DeviceContextException("Database interface class is not an instance of DBInterface");
             }
             catch (Exception ex) {
-                throw new DeviceContextException("Database interface error, " + ex.toString());
+                throw new DeviceContextException("Database interface error, " + ex.toString(), ex);
             }
         } else
             throw new DeviceContextException("Invalid Database Interface configuration");
@@ -238,7 +238,7 @@ public class DBDeviceContext extends DiskDeviceContext implements FileStateCache
                 m_offlineFiles = true;
             }
             catch (NumberFormatException ex) {
-                throw new DeviceContextException("Invalid offline files size, " + nameVal.getValue());
+                throw new DeviceContextException("Invalid offline files size, " + nameVal.getValue(), ex);
             }
         }
 
@@ -256,7 +256,7 @@ public class DBDeviceContext extends DiskDeviceContext implements FileStateCache
                             / MemorySize.KILOBYTE + "K)");
             }
             catch (NumberFormatException ex) {
-                throw new DeviceContextException("Invalid maximum file size value, " + nameVal.getValue());
+                throw new DeviceContextException("Invalid maximum file size value, " + nameVal.getValue(), ex);
             }
         }
 
@@ -287,7 +287,7 @@ public class DBDeviceContext extends DiskDeviceContext implements FileStateCache
                 m_retentionPeriod = retainDays * MillisecondsPerDay;
             }
             catch (NumberFormatException ex) {
-                throw new DeviceContextException("RetentionPeriod is invalid, " + nameVal.getValue());
+                throw new DeviceContextException("RetentionPeriod is invalid, " + nameVal.getValue(), ex);
             }
         }
 
@@ -360,7 +360,7 @@ public class DBDeviceContext extends DiskDeviceContext implements FileStateCache
             getDBInterface().requestFeatures(dbFeatures);
         }
         catch (DBException ex) {
-            throw new DeviceContextException("Failed to enable database features, " + ex.getMessage());
+            throw new DeviceContextException("Failed to enable database features, " + ex.getMessage(), ex);
         }
 
         // Initialize the database interface
@@ -370,7 +370,7 @@ public class DBDeviceContext extends DiskDeviceContext implements FileStateCache
             getDBInterface().initializeDatabase(this, m_dbifConfig);
         }
         catch (InvalidConfigurationException ex) {
-            throw new DeviceContextException("Database interface initialization failure, " + ex.toString());
+            throw new DeviceContextException("Database interface initialization failure, " + ex.toString(), ex);
         }
 
         // Initialize the file loader, if it is a seperate class from the database interface
@@ -388,7 +388,7 @@ public class DBDeviceContext extends DiskDeviceContext implements FileStateCache
                     Debug.println(ex);
 
                 // Rethrow the exception
-                throw new DeviceContextException(ex.getMessage());
+                throw new DeviceContextException(ex.getMessage(), ex);
             }
         }
 

@@ -979,7 +979,8 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
                                     + dataDetails.getJarId());
                     }
                     catch (Exception ex) {
-                        Debug.println(ex);
+                        if ( Debug.hasDumpStackTraces())
+                            Debug.println( ex);
                     }
                     finally {
 
@@ -1283,10 +1284,12 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
             getDBDataInterface().saveFileData(saveReq.getFileId(), saveReq.getStreamId(), fileSeg);
         }
         catch (DBException ex) {
-            Debug.println(ex);
+            if ( Debug.hasDumpStackTraces())
+                Debug.println( ex);
         }
         catch (IOException ex) {
-            Debug.println(ex);
+            if ( Debug.hasDumpStackTraces())
+                Debug.println( ex);
         }
 
         // DEBUG
@@ -1390,7 +1393,8 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
             }
         }
         catch (IOException ex) {
-            Debug.println(ex);
+            if ( Debug.hasDumpStackTraces())
+                Debug.println( ex);
         }
         finally {
 
@@ -1449,10 +1453,12 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
             }
         }
         catch (DBException ex) {
-            Debug.println(ex);
+            if ( Debug.hasDumpStackTraces())
+                Debug.println( ex);
         }
         catch (IOException ex) {
-            Debug.println(ex);
+            if ( Debug.hasDumpStackTraces())
+                Debug.println( ex);
         }
 
         // Return the data save status
@@ -1672,13 +1678,13 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
                         throw new FileLoaderException("Class " + procElem.getValue() + " is not a FileProcessor implementation");
                 }
                 catch (ClassNotFoundException ex) {
-                    throw new FileLoaderException("File processor class not found, " + procElem.getValue());
+                    throw new FileLoaderException("File processor class not found, " + procElem.getValue(), ex);
                 }
                 catch (InstantiationException ex) {
-                    throw new FileLoaderException("File processor exception, " + ex.toString());
+                    throw new FileLoaderException("File processor exception, " + ex.toString(), ex);
                 }
                 catch (IllegalAccessException ex) {
-                    throw new FileLoaderException("File processor exception, " + ex.toString());
+                    throw new FileLoaderException("File processor exception, " + ex.toString(), ex);
                 }
             }
         }
@@ -1716,7 +1722,7 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
                     throw new FileLoaderException("Invalid Jar compression level, valid range is 0 - 9");
             }
             catch (NumberFormatException ex) {
-                throw new FileLoaderException("Invalid Jar compression level, " + nv.getValue());
+                throw new FileLoaderException("Invalid Jar compression level, " + nv.getValue(), ex);
             }
         }
 
@@ -2161,6 +2167,8 @@ public class DBFileLoader implements FileLoader, BackgroundFileLoader, FileState
                     Debug.println("$$ Deleted temporary file " + segInfo.getTemporaryFile() + " [CLOSED] $$");
             }
             catch (IOException ex) {
+                if ( Debug.hasDumpStackTraces())
+                    Debug.println( ex);
             }
         }
     }

@@ -569,6 +569,9 @@ public abstract class ObjectIdFileLoader implements FileLoader, BackgroundFileLo
         }
         catch (Exception ex) {
 
+            if ( Debug.hasDumpStackTraces())
+                Debug.println( ex);
+
             // DEBUG
             if (Debug.EnableInfo && hasDebug())
                 Debug.println("## ObjIdLoader deleteFile() error, " + ex.toString());
@@ -970,13 +973,13 @@ public abstract class ObjectIdFileLoader implements FileLoader, BackgroundFileLo
                         throw new FileLoaderException("Class " + className.getValue() + " is not a FileProcessor implementation");
                 }
                 catch (ClassNotFoundException ex) {
-                    throw new FileLoaderException("File processor class not found, " + className.getValue());
+                    throw new FileLoaderException("File processor class not found, " + className.getValue(), ex);
                 }
                 catch (InstantiationException ex) {
-                    throw new FileLoaderException("File processor exception, " + ex.toString());
+                    throw new FileLoaderException("File processor exception, " + ex.toString(), ex);
                 }
                 catch (IllegalAccessException ex) {
-                    throw new FileLoaderException("File processor exception, " + ex.toString());
+                    throw new FileLoaderException("File processor exception, " + ex.toString(), ex);
                 }
             }
         }

@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.util.Enumeration;
 import java.util.Hashtable;
 
+import org.filesys.debug.Debug;
 import org.filesys.locking.FileLock;
 import org.filesys.locking.LockConflictException;
 import org.filesys.locking.NotLockedException;
@@ -226,6 +227,8 @@ public class FileStateLockManager implements LockManager, OpLockManager, Runnabl
                         unlockFile(sess, tree, file, curLock);
                     }
                     catch (Exception ex) {
+                        if ( Debug.hasDumpStackTraces())
+                            Debug.println( ex);
                     }
                 }
             }

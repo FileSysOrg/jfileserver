@@ -516,7 +516,7 @@ public abstract class FileStateCache {
                 setFileStateExpireInterval(stateExpire);
             }
             catch (NumberFormatException ex) {
-                throw new InvalidConfigurationException("Invalid file state expiry interval, " + elem.getValue());
+                throw new InvalidConfigurationException("Invalid file state expiry interval, " + elem.getValue(), ex);
             }
         }
 
@@ -540,7 +540,7 @@ public abstract class FileStateCache {
                 setCheckInterval(checkInterval);
             }
             catch (NumberFormatException ex) {
-                throw new InvalidConfigurationException("Invalid cache check interval, " + elem.getValue());
+                throw new InvalidConfigurationException("Invalid cache check interval, " + elem.getValue(), ex);
             }
         }
 

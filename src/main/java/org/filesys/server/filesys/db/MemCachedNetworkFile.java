@@ -269,6 +269,8 @@ public abstract class MemCachedNetworkFile extends CachedNetworkFile {
                                 + m_memFile.getReadableLength());
                 }
                 catch (Exception ex) {
+                    if ( Debug.hasDumpStackTraces())
+                        Debug.println( ex);
                 }
 
                 // Check if there was a data load error

@@ -43,4 +43,14 @@ public class FileLoaderException extends Exception {
     public FileLoaderException(String msg) {
         super(msg);
     }
+
+    /**
+     * Class constructor
+     *
+     * @param msg String
+     * @param cause Exception
+     */
+    public FileLoaderException(String msg, Exception cause) {
+        super(msg, cause);
+    }
 }
