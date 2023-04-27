@@ -23,6 +23,7 @@ import java.io.IOException;
 
 import org.filesys.server.filesys.FileInfo;
 import org.filesys.server.filesys.FileOpenParams;
+import org.filesys.server.filesys.FileStatus;
 import org.filesys.server.filesys.NetworkFile;
 import org.filesys.server.filesys.cache.FileState;
 
@@ -36,6 +37,14 @@ import org.filesys.server.filesys.cache.FileState;
  * @author gkspencer
  */
 public interface NamedFileLoader {
+
+    /**
+     * Check if the file data or folder entry exists for a file/folder
+     *
+     * @param path String
+     * @return FileStatus
+     */
+    public FileStatus fileExists(String path);
 
     /**
      * Create a directory
