@@ -33,10 +33,7 @@ import org.filesys.debug.Debug;
 import org.filesys.server.SrvSession;
 import org.filesys.server.auth.ClientInfo;
 import org.filesys.server.core.DeviceContext;
-import org.filesys.server.filesys.FileInfo;
-import org.filesys.server.filesys.FileName;
-import org.filesys.server.filesys.FileOpenParams;
-import org.filesys.server.filesys.NetworkFile;
+import org.filesys.server.filesys.*;
 import org.filesys.server.filesys.cache.FileState;
 import org.filesys.server.filesys.db.DBDeviceContext;
 import org.filesys.server.filesys.db.DBInterface;
@@ -101,6 +98,31 @@ public class SimpleFileLoader implements FileLoader, NamedFileLoader {
     protected final boolean isCaseLess() { return m_fsCaseless; }
 
     /**
+     * Check if the file data or folder entry exists for a file/folder
+     *
+     * @param path String
+     * @return FileStatus
+     */
+    public FileStatus fileExists(String path) {
+
+        // Get the local path to the file/folder
+        String fullName = FileName.buildPath(getRootPath(), path, null, java.io.File.separatorChar);
+        Path fullPath = Paths.get( fullName);
+
+        if ( Files.exists( fullPath)) {
+
+            // Check if the path is to a file or folder
+            if ( Files.isDirectory( fullPath))
+                return FileStatus.DirectoryExists;
+            else
+                return FileStatus.FileExists;
+        }
+
+        // Path does not exist
+        return FileStatus.NotExist;
+    }
+
+    /**
      * Open/create a file
      *
      * @param params FileOpenParams
@@ -133,8 +155,8 @@ public class SimpleFileLoader implements FileLoader, NamedFileLoader {
 
             //  Create the file object for the mapped file and check if the file exists
             file = new File(mappedPath);
-            if (file.exists() == false && create == false)
-                throw new FileNotFoundException("File does not exist, " + params.getPath());
+//            if (file.exists() == false && create == false)
+//                throw new FileNotFoundException("File does not exist, " + params.getPath());
 
             //	Set the new full path
             fullName = mappedPath;
@@ -416,7 +438,8 @@ public class SimpleFileLoader implements FileLoader, NamedFileLoader {
                 Debug.println("SimpleFileLoader: File store path " + m_rootPath + " caseLess=" + isCaseLess());
         }
         catch ( Exception ex) {
-
+            if ( Debug.hasDumpStackTraces())
+                Debug.println( ex);
         }
 
         // Check if the file/folder owner should be set when creating new files/folders
