@@ -777,6 +777,12 @@ public final class SMBErrorText {
             case SMBStatus.NTNetworkSessionExpired:
                 errtext = "Network session expired";
                 break;
+            case SMBStatus.NTIODeviceError:
+                errtext = "I/O device error";
+                break;
+            case SMBStatus.NTFileNotAvailable:
+                errtext = "File not available";
+                break;
             default:
                 errtext = "Unknown NT status 0x" + Integer.toHexString(errcode);
                 break;
