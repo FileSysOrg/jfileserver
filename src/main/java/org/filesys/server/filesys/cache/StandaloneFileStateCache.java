@@ -85,7 +85,7 @@ public class StandaloneFileStateCache extends FileStateCache {
                     throw new InvalidConfigurationException("Initial cache size value too low, " + initSize);
             }
             catch (NumberFormatException ex) {
-                throw new InvalidConfigurationException("Invalid initial cache size value, " + elem.getValue());
+                throw new InvalidConfigurationException("Invalid initial cache size value, " + elem.getValue(), ex);
             }
         }
 

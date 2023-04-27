@@ -397,7 +397,7 @@ public abstract class JdbcDBInterface implements DBInterface, DBConnectionPoolLi
                     throw new InvalidConfigurationException("Database interface invalid maximum connections value");
             }
             catch (NumberFormatException ex) {
-                throw new InvalidConfigurationException("Database interface invalid ConnectionPool value, " + ex.toString());
+                throw new InvalidConfigurationException("Database interface invalid ConnectionPool value, " + ex.toString(), ex);
             }
         }
 
@@ -412,7 +412,7 @@ public abstract class JdbcDBInterface implements DBInterface, DBConnectionPoolLi
                     throw new InvalidConfigurationException("Database online check interval out of valid range (1-30)");
             }
             catch (NumberFormatException ex) {
-                throw new InvalidConfigurationException("Database online check interval value invalid, " + nameVal.getValue());
+                throw new InvalidConfigurationException("Database online check interval value invalid, " + nameVal.getValue(), ex);
             }
         }
 
@@ -427,7 +427,7 @@ public abstract class JdbcDBInterface implements DBInterface, DBConnectionPoolLi
                     throw new InvalidConfigurationException("Database wait for connection interval out of valid range (10-600");
             }
             catch (NumberFormatException ex) {
-                throw new InvalidConfigurationException("Database wait for connection interval value invalid, " + nameVal.getValue());
+                throw new InvalidConfigurationException("Database wait for connection interval value invalid, " + nameVal.getValue(), ex);
             }
         }
 

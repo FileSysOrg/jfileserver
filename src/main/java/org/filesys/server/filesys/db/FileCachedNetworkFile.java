@@ -259,6 +259,8 @@ public class FileCachedNetworkFile extends CachedNetworkFile {
                                 + m_cacheFile.getReadableLength());
                 }
                 catch (Exception ex) {
+                    if ( Debug.hasDumpStackTraces())
+                        Debug.println( ex);
                 }
 
                 // Check for a file load error

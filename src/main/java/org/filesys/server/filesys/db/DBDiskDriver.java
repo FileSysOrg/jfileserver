@@ -1060,7 +1060,11 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
         DBFileInfo finfo = getFileDetails(params.getPath(), dbCtx, fstate);
 
         if (finfo == null)
-            throw new FileNotFoundException();
+            throw new FileNotFoundException( params.getPath());
+
+        // If the file data is not available then return an error
+        if ( finfo.hasAttribute( FileAttribute.NTOffline))
+            throw new FileOfflineException( params.getPath());
 
         //  If retention is enabled get the expiry date/time
         if (dbCtx.hasRetentionPeriod()) {
@@ -1925,6 +1929,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
                 if (dbCtx.getOfflineFileSize() == 0 || finfo.getSize() >= dbCtx.getOfflineFileSize())
                     finfo.setFileAttributes(finfo.getFileAttributes() + FileAttribute.NTOffline);
             }
+
         } else if (finfo == null && fstate != null) {
 
             // Set the file status
@@ -1997,7 +2002,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
         }
 
         //  Update the cache entry, if available
-        if (state != null)
+        if (state != null && fileId != -1)
             state.setFileId(fileId);
 
         //  Return the file id, or -1 if the file was not found

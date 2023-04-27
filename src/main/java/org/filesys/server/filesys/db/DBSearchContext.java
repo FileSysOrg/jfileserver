@@ -116,6 +116,8 @@ public abstract class DBSearchContext extends SearchContext {
             moreFiles = m_rs.isAfterLast() ? false : true;
         }
         catch (SQLException ex) {
+            if ( Debug.hasDumpStackTraces())
+                Debug.println( ex);
         }
         return moreFiles;
     }
@@ -152,6 +154,8 @@ public abstract class DBSearchContext extends SearchContext {
             m_rs.absolute(resumeId);
         }
         catch (SQLException ex) {
+            if ( Debug.hasDumpStackTraces())
+                Debug.println( ex);
             result = false;
         }
 
@@ -172,6 +176,8 @@ public abstract class DBSearchContext extends SearchContext {
             m_rs.previous();
         }
         catch (SQLException ex) {
+            if ( Debug.hasDumpStackTraces())
+                Debug.println( ex);
         }
         return true;
     }
@@ -193,6 +199,8 @@ public abstract class DBSearchContext extends SearchContext {
 
         }
         catch (SQLException ex) {
+            if ( Debug.hasDumpStackTraces())
+                Debug.println( ex);
         }
 
         //	Return the entry count for this search
@@ -212,7 +220,8 @@ public abstract class DBSearchContext extends SearchContext {
                     m_stmt.close();
             }
             catch (Exception ex) {
-                Debug.println(ex);
+                if ( Debug.hasDumpStackTraces())
+                    Debug.println( ex);
             }
             m_rs = null;
             m_stmt = null;

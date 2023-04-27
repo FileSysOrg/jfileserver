@@ -152,6 +152,8 @@ public class DBConnectionPool {
                     notifyConnectionPoolState();
                 }
                 catch (SQLException ex) {
+                    if ( Debug.hasDumpStackTraces())
+                        Debug.println( ex);
                 }
             }
 
@@ -215,6 +217,9 @@ public class DBConnectionPool {
                                 }
                             }
                             catch (SQLException ex) {
+                                if ( Debug.hasDumpStackTraces())
+                                    Debug.println( ex);
+
                                 removeConn = true;
                             }
 
@@ -233,6 +238,8 @@ public class DBConnectionPool {
                                 Debug.println("DBConnectionReaper closed expired connection, conn=" + conn);
                             }
                             catch (SQLException ex) {
+                                if ( Debug.hasDumpStackTraces())
+                                    Debug.println( ex);
                             }
                         }
                     }
@@ -256,6 +263,8 @@ public class DBConnectionPool {
                                 conn.close();
                             }
                             catch (SQLException ex) {
+                                if ( Debug.hasDumpStackTraces())
+                                    Debug.println( ex);
                             }
                         }
                     }
@@ -304,12 +313,17 @@ public class DBConnectionPool {
                             }
                             catch (SQLException ex) {
 
+                                if ( Debug.hasDumpStackTraces())
+                                    Debug.println( ex);
+
                                 // Remove the current connection from the free pool
                                 try {
                                     m_freePool.remove(idx);
                                     conn.close();
                                 }
                                 catch (Exception ex2) {
+                                    if ( Debug.hasDumpStackTraces())
+                                        Debug.println( ex);
                                 }
 
                                 // DEBUG
@@ -599,6 +613,8 @@ public class DBConnectionPool {
                     conn = createConnection();
                 }
                 catch (SQLException ex) {
+                    if ( Debug.hasDumpStackTraces())
+                        Debug.println( ex);
                 }
             }
         }
@@ -671,6 +687,8 @@ public class DBConnectionPool {
                     Debug.println("***** Connection closed *****");
             }
             catch (Exception ex) {
+                if ( Debug.hasDumpStackTraces())
+                    Debug.println( ex);
             }
         }
     }
@@ -870,8 +888,12 @@ public class DBConnectionPool {
                 dbConn = createConnection();
             }
             catch ( SQLException ex) {
+                if ( Debug.hasDumpStackTraces())
+                    Debug.println( ex);
             }
             catch ( Exception ex) {
+                if ( Debug.hasDumpStackTraces())
+                    Debug.println( ex);
             }
 
             // Check if we got a valid database connection
