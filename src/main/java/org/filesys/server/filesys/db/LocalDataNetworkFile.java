@@ -23,7 +23,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 
-import org.filesys.debug.Debug;
 import org.filesys.server.filesys.cache.FileState;
 import org.filesys.smb.SeekType;
 
@@ -42,9 +41,6 @@ public class LocalDataNetworkFile extends DBNetworkFile {
     //	Random access file used to read/write the actual file
     protected RandomAccessFile m_io;
 
-    //	End of file flag
-    protected boolean m_eof;
-
     /**
      * Class constructor
      *
@@ -61,7 +57,6 @@ public class LocalDataNetworkFile extends DBNetworkFile {
 
         //  Set the file size
         setFileSize(m_file.length());
-        m_eof = false;
 
         //	Set the modification date/time, if available
         setModifyDate(m_file.lastModified());
@@ -79,6 +74,9 @@ public class LocalDataNetworkFile extends DBNetworkFile {
         // Only open the file if we are creating a new file
         if ( createFlag)
             m_io = new RandomAccessFile(m_file, "rw");
+
+        // Set/clear the create required flag
+        setCreateRequired( createFlag);
     }
 
     /**
@@ -259,8 +257,14 @@ public class LocalDataNetworkFile extends DBNetworkFile {
      * @exception IOException Error opening the file
      */
     private void openUnderlyingFile()
-        throws IOException{
+        throws IOException {
+
+        // Check if the file should exist or can be created
+        if (!hasCreateRequired() && !m_file.exists())
+            throw new IOException();
+
+        // Open or create the file
         m_io = new RandomAccessFile(m_file, "rw");
-        setStatusFlag( Flags.CLOSED, false);
+        setStatusFlag(Flags.CLOSED, false);
     }
 }

@@ -74,8 +74,10 @@ public abstract class NetworkFile {
         CLOSED,
         FORCE_CLOSE,
         PREVIOUS_VERSION,
-        POST_CLOSE_FILE     // close the file using the same worker thread that processes the client close request but after the
+        POST_CLOSE_FILE,     // close the file using the same worker thread that processes the client close request but after the
                             // protocol layer has responded to the client
+        END_OF_FILE,        // read/write is at end of file
+        CREATE_FILE         // File should be created if it does not exist
     };
 
     // File identifier and parent directory identifier
@@ -474,6 +476,20 @@ public abstract class NetworkFile {
     }
 
     /**
+     * Check if the end of file flag is set
+     *
+     * @return boolean
+     */
+    public final boolean isAtEndOfFile() { return m_flags.contains( Flags.END_OF_FILE); }
+
+    /**
+     * Check if the file create required flag is set
+     *
+     * @return boolean
+     */
+    public final boolean hasCreateRequired() { return m_flags.contains( Flags.CREATE_FILE); }
+
+    /**
      * Check if the file was created during the open
      *
      * @return boolean
@@ -741,6 +757,20 @@ public abstract class NetworkFile {
      * @param prevVer boolean
      */
     public final void setPreviousVersion(boolean prevVer) { setStatusFlag(Flags.PREVIOUS_VERSION, prevVer); }
+
+    /**
+     * Set the end of file flag
+     *
+     * @param eof boolean
+     */
+    public final void setEndOfFile(boolean eof) { setStatusFlag(Flags.END_OF_FILE, eof); }
+
+    /**
+     * Set the file create required flag
+     *
+     * @param create boolean
+     */
+    public final void setCreateRequired(boolean create) { setStatusFlag(Flags.CREATE_FILE, create); }
 
     /**
      * Set/clear a file status flag
