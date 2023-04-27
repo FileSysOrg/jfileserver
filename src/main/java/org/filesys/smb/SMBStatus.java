@@ -219,6 +219,7 @@ public final class SMBStatus {
 	public static final int NTFileClosed		    = 0xC0000128;
 	public static final int NTInvalidLevel 			= 0xC0000148;
 	public static final int NTPipeBroken          	= 0xC000014B;
+	public static final int NTIODeviceError			= 0xC0000185;
 	public static final int NTUserSessionDeleted	= 0xC0000203;
 	public static final int NTPasswordChangeReq 	= 0xC0000224;
 	public static final int NTNotFound			    = 0xC0000225;
@@ -226,6 +227,7 @@ public final class SMBStatus {
 	public static final int NTFileOffline 			= 0xC0000267;
 	public static final int NTVolumeNotUpgraded		= 0xC000029C;
 	public static final int NTNetworkSessionExpired	= 0xC000035C;
+	public static final int NTFileNotAvailable		= 0xC0000467;
 
 	public static final int SMBInvalidSMB				= 0x00010002;
 	
