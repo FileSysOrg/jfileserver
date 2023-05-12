@@ -284,6 +284,13 @@ public class RemoteOpLockDetails extends OpLockDetailsAdapter implements Seriali
     }
 
     /**
+     * Update the oplock path when the file is renamed
+     *
+     * @param path String
+     */
+    public void updatePath(String path) { m_path = path; }
+
+    /**
      * Get the state cache that this state belongs to
      *
      * @return ClusterFileStateCache
