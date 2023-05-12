@@ -114,7 +114,7 @@ public class ClusterConfigSection extends ConfigSection {
     /**
      * Check if multicast discovery is disabled for the cluster
      *
-     * @return
+     * @return boolean
      */
     public final boolean hasDisableMulticast() { return m_disableMulticast; }
 
