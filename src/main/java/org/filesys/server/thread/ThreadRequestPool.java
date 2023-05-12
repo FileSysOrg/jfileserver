@@ -21,6 +21,7 @@ package org.filesys.server.thread;
 
 import java.util.List;
 import java.util.concurrent.PriorityBlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.filesys.debug.Debug;
 
@@ -57,6 +58,9 @@ public class ThreadRequestPool {
     // Worker threads
     private ThreadWorker[] m_workers;
 
+    // Count of active worker threads
+    private AtomicInteger m_activeWorkers;
+
     // Debug enable flag
     protected boolean m_debug;
     protected boolean m_timedDebug;
@@ -87,7 +91,7 @@ public class ThreadRequestPool {
         }
 
         /**
-         * Request the worker thread to shutdown
+         * Request the worker thread to shut down
          */
         public final void shutdownRequest() {
             mi_shutdown = true;
@@ -110,7 +114,7 @@ public class ThreadRequestPool {
 
                 try {
 
-                    // Wait for an request to be queued
+                    // Wait for a request to be queued
                     threadReq = m_queue.removeRequest();
                 }
                 catch (InterruptedException ex) {
@@ -132,6 +136,9 @@ public class ThreadRequestPool {
 
                     try {
 
+                        // Update the active worker thread counter
+                        m_activeWorkers.incrementAndGet();
+
                         // Process the request
                         threadReq.runRequest();
                     }
@@ -142,6 +149,11 @@ public class ThreadRequestPool {
                             Debug.println("Worker " + Thread.currentThread().getName() + ":");
                             Debug.println(ex);
                         }
+                    }
+                    finally {
+
+                        // Update the active worker thread counter
+                        m_activeWorkers.decrementAndGet();
                     }
                 }
             }
@@ -174,7 +186,7 @@ public class ThreadRequestPool {
         }
 
         /**
-         * Request the worker thread to shutdown
+         * Request the worker thread to shut down
          */
         public final void shutdownRequest() {
             mi_shutdown = true;
@@ -300,6 +312,7 @@ public class ThreadRequestPool {
             poolSize = MinimumWorkerThreads;
 
         // Create the worker threads
+        m_activeWorkers = new AtomicInteger();
         m_workers = new ThreadWorker[poolSize];
 
         for (int i = 0; i < m_workers.length; i++)
@@ -332,9 +345,23 @@ public class ThreadRequestPool {
      *
      * @return int
      */
-    public final int getNumberOfRequests() {
+    public final int numberOfRequests() {
         return m_queue.numberOfRequests();
     }
+
+    /**
+     * Return the number of worker threads in the pool
+     *
+     * @return int
+     */
+    public final int numberOfWorkerThreads() { return m_workers.length; }
+
+    /**
+     * Return the number of currently active worker threads
+     *
+     * @return int
+     */
+    public final int numberOfActiveThreads() { return m_activeWorkers.get(); }
 
     /**
      * Queue a request to the thread pool for processing
