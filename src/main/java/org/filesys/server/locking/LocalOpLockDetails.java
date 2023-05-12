@@ -197,6 +197,13 @@ public class LocalOpLockDetails extends OpLockDetailsAdapter {
     }
 
     /**
+     * Update the oplock path when the file is renamed
+     *
+     * @param path String
+     */
+    public void updatePath(String path) { m_path = path; }
+
+    /**
      * Set the failed oplock break flag, to indicate the client did not respond to the oplock break
      * request within a reasonable time.
      */

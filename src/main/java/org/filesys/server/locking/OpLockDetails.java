@@ -136,6 +136,13 @@ public interface OpLockDetails {
     public void setOwnerFileId(int fileId);
 
     /**
+     * Update the oplock path when the file is renamed
+     *
+     * @param path String
+     */
+    public void updatePath(String path);
+
+    /**
      * Request an oplock break
      *
      * @throws IOException I/O error
