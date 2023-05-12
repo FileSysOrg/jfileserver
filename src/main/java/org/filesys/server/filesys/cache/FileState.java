@@ -686,9 +686,7 @@ public abstract class FileState implements Serializable {
      *
      * @return OpLockDetails
      */
-    public OpLockDetails getOpLock() {
-        return m_oplock;
-    }
+    public OpLockDetails getOpLock() { return m_oplock; }
 
     /**
      * Set the oplock for this file
