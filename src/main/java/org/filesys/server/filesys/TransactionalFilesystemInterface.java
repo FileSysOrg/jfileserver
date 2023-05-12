@@ -29,7 +29,7 @@ import org.filesys.server.SrvSession;
  *
  * @author gkspencer
  */
-public interface TransactionalFilesystemInterface {
+public interface TransactionalFilesystemInterface extends TransactionalMarkerInterface {
 
     /**
      * Begin a read-only transaction
