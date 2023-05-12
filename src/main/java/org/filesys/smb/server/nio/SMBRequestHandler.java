@@ -684,7 +684,7 @@ public class SMBRequestHandler extends RequestHandler implements Runnable {
         Debug.println("  Session Queue: " + m_sessQueue.numberOfSessions());
         Debug.println("  Selector: " + m_selector);
 
-        Debug.println("  ThreadRequestPool: queue=" + m_threadPool.getNumberOfRequests());
+        Debug.println("  ThreadRequestPool: queue=" + m_threadPool.numberOfRequests());
         Debug.println("  NoPooledMemoryException: count=" + NoPooledMemoryException.getExceptionCounter());
     }
 }
