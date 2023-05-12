@@ -146,31 +146,34 @@ public class OpLockDetailsAdapter implements OpLockDetails {
     /**
      * Update the deferred packet lease time(s) as we wait for an oplock break or timeout
      */
-    public void updateDeferredPacketLease() {
-    }
+    public void updateDeferredPacketLease() {}
 
     /**
      * Set the failed oplock break flag, to indicate the client did not respond to the oplock break
      * request within a reasonable time.
      */
-    public void setOplockBreakFailed() {
-    }
+    public void setOplockBreakFailed() {}
 
     /**
      * Set the oplock owner details
      *
      * @param owner OplockOwner
      */
-    public void setOplockOwner(OplockOwner owner) {
-    }
+    public void setOplockOwner(OplockOwner owner) {}
 
     /**
      * Set the owner file id
      *
      * @param fileId int
      */
-    public void setOwnerFileId(int fileId) {
-    }
+    public void setOwnerFileId(int fileId) {}
+
+    /**
+     * Update the oplock path when the file is renamed
+     *
+     * @param path String
+     */
+    public void updatePath(String path) {}
 
     /**
      * Request an oplock break
