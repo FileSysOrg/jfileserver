@@ -38,7 +38,7 @@ import org.filesys.smb.server.SMBSrvSession;
 public class NIOSMBThreadRequest implements ThreadRequest {
 
     // Maximum packets to run per thread run
-    private static final int MaxPacketsPerRun = 4;
+    private static final int MaxPacketsPerRun = 8;
 
     // SMB session
     private SMBSrvSession m_sess;
@@ -206,7 +206,7 @@ public class NIOSMBThreadRequest implements ThreadRequest {
             if ( postProc != null) {
 
                 // DEBUG
-                if ( Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.THREADPOOL))
+                if ( Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.POSTPROC))
                     Debug.println("Running post processor " + postProc);
 
                 // Call the post processor
@@ -214,8 +214,22 @@ public class NIOSMBThreadRequest implements ThreadRequest {
                     postProc.runPostProcessor();
                 }
                 catch ( Throwable ex) {
-                    if ( Debug.hasDumpStackTraces())
+                    if ( Debug.hasDumpStackTraces() || m_sess.hasDebug(SMBSrvSession.Dbg.POSTPROC))
                         Debug.println( ex);
+                }
+                finally {
+
+                    // Check if there is an active transaction
+                    if (m_sess.hasTransaction()) {
+
+                        // DEBUG
+                        if (Debug.EnableError)
+                            Debug.println("** Active transaction after packet processing (post process), cleaning up **");
+
+                        // Close the active transaction
+                        m_sess.endTransaction();
+                    }
+
                 }
             }
 
