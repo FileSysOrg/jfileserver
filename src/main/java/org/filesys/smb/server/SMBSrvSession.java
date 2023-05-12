@@ -104,7 +104,8 @@ public class SMBSrvSession extends SrvSession<SMBSrvSession.Dbg> implements Runn
 		CANCEL,		// request cancel handling
 		SIGNING,	// request/response signing
 		ENCRYPTION,	// Encryption/decryption
-		AUDIT		// Auditing
+		AUDIT,		// Auditing
+		POSTPROC	// Post processing
 	}
 	
 	// Server session object factory
@@ -1479,8 +1480,9 @@ public class SMBSrvSession extends SrvSession<SMBSrvSession.Dbg> implements Runn
 			}
 		}
 
-		// Check if there is an active transaction
-		if (hasTransaction()) {
+		// Check if there is an active transaction. If there is a post-processor enabled for the
+		// packet then delay ending the transaction until the post-processor has been run
+		if (hasTransaction() && !smbPkt.hasPostProcessor()) {
 
 			// DEBUG
 			if (Debug.EnableError)
