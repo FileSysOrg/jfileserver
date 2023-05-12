@@ -118,6 +118,9 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
     // Flag to control whether NTLMv1 is accepted
     protected boolean m_acceptNTLMv1;
 
+    // Dump NTLMSSP security blobs
+    protected boolean m_dumpNTLM;
+
     // Kerberos settings
     //
     // Account name and password for server ticket
@@ -402,6 +405,10 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
         ConfigElement disallowNTLMv1 = params.getChild("disallowNTLMv1");
 
         m_acceptNTLMv1 = disallowNTLMv1 != null ? false : true;
+
+        // Check if NTLMSSP security blobs should be dumped out
+        if ( params.getChild( "dumpNTLM") != null)
+            m_dumpNTLM = true;
 
         // Make sure either NTLMSSP or SPNEGO authentication is enabled
         if ( allowNTLMLogon() == false && m_loginContext == null) {
@@ -1207,6 +1214,16 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
 
             if (oidStr != null && oidStr.equals(OID.ID_NTLMSSP)) {
 
+                // NTLMSSP logon, get the NTLMSSP security blob that is inside the SPNEGO blob
+                byte[] ntlmsspBlob = negToken.getMechtoken();
+
+                // Create a seperate security blob for the NTLMSSP blob
+                SecurityBlob ntlmBlob = new SecurityBlob(SecurityBlob.SecurityBlobType.NTLMSSP, ntlmsspBlob, secBlob.isUnicode());
+
+                // Dump out the NTLMSSP security blob
+                if ( hasDumpNTLM())
+                    ntlmBlob.dumpSecurityBlob();
+
                 // Check if NTLM logons are enabled
                 if ( allowNTLMLogon() == false) {
 
@@ -1217,12 +1234,6 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
                     // Return a logon failure status
                     throw new SMBSrvException(SMBStatus.NTLogonFailure, SMBStatus.ErrDos, SMBStatus.DOSAccessDenied);
                 }
-
-                // NTLMSSP logon, get the NTLMSSP security blob that is inside the SPNEGO blob
-                byte[] ntlmsspBlob = negToken.getMechtoken();
-
-                // Create a seperate security blob for the NTLMSSP blob
-                SecurityBlob ntlmBlob = new SecurityBlob(SecurityBlob.SecurityBlobType.NTLMSSP, ntlmsspBlob, secBlob.isUnicode());
 
                 // Perform an NTLMSSP session setup
                 authSts = doNtlmsspSessionSetup(sess, client, ntlmBlob, true);
@@ -2434,6 +2445,13 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
     public boolean hasDebugOutput() {
         return Debug.EnableDbg && hasDebug();
     }
+
+    /**
+     * Check if NTLMSSP security blobs should be dumped out to the debug device
+     *
+     * @return boolean
+     */
+    public final boolean hasDumpNTLM() { return m_dumpNTLM; }
 
     /**
      * Output debug logging
