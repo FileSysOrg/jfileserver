@@ -17,7 +17,9 @@
 
 package org.filesys.server.auth;
 
+import org.filesys.debug.Debug;
 import org.filesys.server.auth.ntlm.NTLM;
+import org.filesys.util.HexDump;
 
 /**
  * Security Blob class
@@ -195,6 +197,17 @@ public class SecurityBlob {
         }
 
         return true;
+    }
+
+    /**
+     * Dump the security blob details to the debug device
+     */
+    public final void dumpSecurityBlob() {
+        Debug.println("Security blob " + isType() + ":");
+        if ( m_secBlob != null)
+            HexDump.Dump( m_secBlob, m_secLen, m_secOffset, Debug.getDebugInterface());
+        else
+            Debug.println("  Null");
     }
 
     /**
