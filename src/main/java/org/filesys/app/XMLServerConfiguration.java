@@ -113,9 +113,6 @@ public class XMLServerConfiguration extends SMBOnlyXMLServerConfiguration {
 			// Process the shares element
 			procSharesElement(findChildNode("shares", childNodes));
 
-			// Process any extension sections that may have been added to the configuration
-			procExtensions( childNodes);
-
 			// Process the SMB server specific settings
 			if ( isSMBServerEnabled())
 				procSMBServerElement(findChildNode("SMB", childNodes));
@@ -127,6 +124,9 @@ public class XMLServerConfiguration extends SMBOnlyXMLServerConfiguration {
 			// Process the NFS server configuration
 			if ( isNFSServerEnabled())
 				procNFSServerElement(findChildNode("NFS", childNodes));
+
+			// Process any extension sections that may have been added to the configuration
+			procExtensions( childNodes);
 		}
 		catch (Exception ex) {
 

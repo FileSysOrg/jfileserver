@@ -24,6 +24,7 @@ import java.nio.channels.SelectionKey;
 import org.filesys.debug.Debug;
 import org.filesys.server.filesys.postprocess.PostRequestProcessor;
 import org.filesys.server.thread.ThreadRequest;
+import org.filesys.server.thread.ThreadRequestPool;
 import org.filesys.smb.server.PacketHandler;
 import org.filesys.smb.server.SMBSrvPacket;
 import org.filesys.smb.server.SMBSrvSession;
@@ -46,15 +47,21 @@ public class NIOSMBThreadRequest implements ThreadRequest {
     // Selection key for this socket channel
     private SelectionKey m_selectionKey;
 
+    // Maximum number of SMB packets to process in this thread run
+    private int m_maxPktsPerRun;
+
     /**
      * Class constructor
      *
      * @param sess   SMBSrvSession
      * @param selKey SelectionKey
+     * @param maxPktsPerRun int
      */
-    public NIOSMBThreadRequest(SMBSrvSession sess, SelectionKey selKey) {
+    public NIOSMBThreadRequest(SMBSrvSession sess, SelectionKey selKey, int maxPktsPerRun) {
         m_sess = sess;
         m_selectionKey = selKey;
+
+        m_maxPktsPerRun = maxPktsPerRun;
     }
 
     /**
@@ -74,7 +81,7 @@ public class NIOSMBThreadRequest implements ThreadRequest {
             SMBSrvPacket smbPkt = null;
             PostRequestProcessor postProc = null;
 
-            while (pktCount < MaxPacketsPerRun && morePkts == true && pktError == false) {
+            while (pktCount < m_maxPktsPerRun && morePkts == true && pktError == false) {
 
                 try {
 
@@ -130,7 +137,7 @@ public class NIOSMBThreadRequest implements ThreadRequest {
 
                         // If this is the last packet before we hit the maximum packets per thread then
                         // re-enable read events for this socket channel
-                        else if (pktCount == MaxPacketsPerRun && asyncPkt == false) {
+                        else if (pktCount == m_maxPktsPerRun && asyncPkt == false) {
                             m_selectionKey.interestOps(m_selectionKey.interestOps() | SelectionKey.OP_READ);
                             m_selectionKey.selector().wakeup();
                         }
@@ -195,7 +202,7 @@ public class NIOSMBThreadRequest implements ThreadRequest {
             }
 
             // Re-enable read events for this socket channel, if there were no errors, and the session has not been reconnected
-            if (pktError == false && (pktCount < MaxPacketsPerRun || asyncPkt == true)) {
+            if (pktError == false && (pktCount < m_maxPktsPerRun || asyncPkt == true)) {
 
                 // Re-enable read events for this socket channel
                 m_selectionKey.interestOps(m_selectionKey.interestOps() | SelectionKey.OP_READ);
@@ -235,7 +242,7 @@ public class NIOSMBThreadRequest implements ThreadRequest {
 
             // DEBUG
             if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.THREADPOOL) && pktCount > 1)
-                Debug.println("Processed " + pktCount + " packets for addr=" + m_sess.getRemoteAddress().getHostAddress() + " in one thread run (max=" + MaxPacketsPerRun + ")");
+                Debug.println("Processed " + pktCount + " packets for addr=" + m_sess.getRemoteAddress().getHostAddress() + " in one thread run (max=" + m_maxPktsPerRun + ")");
         }
     }
 

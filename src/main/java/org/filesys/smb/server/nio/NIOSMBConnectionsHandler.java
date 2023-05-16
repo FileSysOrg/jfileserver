@@ -84,6 +84,11 @@ public class NIOSMBConnectionsHandler implements SMBConnectionsHandler, RequestH
     // Enable client socket keep-alives
     private boolean m_socketKeepAlive;
 
+    // SMB request threading configuration
+    //
+    // Maximum packets to process per thread request run
+    private int m_maxPacketsPerRun;
+
     // Idle session reaper thread
     private IdleSessionReaper m_idleSessReaper;
 
@@ -285,9 +290,13 @@ public class NIOSMBConnectionsHandler implements SMBConnectionsHandler, RequestH
         // Set client socket keep-alives enable
         m_socketKeepAlive = config.hasSocketKeepAlive();
 
+        // Get the thread configuration parameters
+        m_maxPacketsPerRun = config.getMaximumPacketsPerThreadRun();
+
         // Create the session request handler list and add the first handler
         m_requestHandlers = new ArrayList<SMBRequestHandler>();
-        SMBRequestHandler reqHandler = new SMBRequestHandler(m_server.getThreadPool(), SessionSocketsPerHandler, m_clientSocketTimeout, hasDebug());
+        SMBRequestHandler reqHandler = new SMBRequestHandler(m_server.getThreadPool(), SessionSocketsPerHandler, m_clientSocketTimeout,
+                                                             m_maxPacketsPerRun, hasDebug());
         reqHandler.setThreadDebug(m_threadDebug);
         reqHandler.setListener(this);
 
@@ -507,7 +516,8 @@ public class NIOSMBConnectionsHandler implements SMBConnectionsHandler, RequestH
             if (reqHandler == null || reqHandler.hasFreeSessionSlot() == false) {
 
                 // Create a new session request handler and add to the head of the list
-                reqHandler = new SMBRequestHandler(m_server.getThreadPool(), SessionSocketsPerHandler, m_clientSocketTimeout, hasDebug());
+                reqHandler = new SMBRequestHandler(m_server.getThreadPool(), SessionSocketsPerHandler, m_clientSocketTimeout,
+                                                    m_maxPacketsPerRun, hasDebug());
                 reqHandler.setThreadDebug(m_threadDebug);
                 reqHandler.setListener(this);
 
