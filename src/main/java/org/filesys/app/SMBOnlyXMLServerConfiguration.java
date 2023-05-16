@@ -647,6 +647,33 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 			ConfigElement params = buildConfigElement(authElem);
 			smbConfig.setAuthenticator(authClass, params, accessMode, allowGuest != null ? true : false);
 		}
+
+		// Check if the maximum packets per thread run has been specified
+		elem = findChildNode("maxPacketsPerThreadRun", smb.getChildNodes());
+
+		if (elem != null) {
+
+			// Validate the maximum packets per thread run value
+			String maxPkts = getTextWithEnvVars(elem);
+			if (maxPkts != null && !maxPkts.isEmpty()) {
+				try {
+
+					// Convert the maximum packets to an integer value
+					int maxPktsInt = Integer.parseInt(maxPkts);
+
+					if (maxPktsInt < SMBConfigSection.MinPacketsPerRun || maxPktsInt > SMBConfigSection.MaxPacketsPerRun)
+						throw new InvalidConfigurationException("Maximum packets per run out of range (" + SMBConfigSection.MinPacketsPerRun +
+								" - " + SMBConfigSection.MaxPacketsPerRun + ")");
+
+					// Set the SMB configuration value
+					smbConfig.setMaximumPacketsPerThreadRun( maxPktsInt);
+
+				} catch (NumberFormatException ex) {
+					throw new InvalidConfigurationException("Invalid maximum packets per run value, " + maxPkts);
+				}
+			} else
+				throw new InvalidConfigurationException("Maximum packets per run value not specified");
+		}
 	}
 
 	/**

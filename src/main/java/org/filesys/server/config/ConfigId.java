@@ -84,6 +84,7 @@ public class ConfigId {
     public static final int SMBDisableEncryption = GroupSMB + 32;
     public static final int SMBRequireSigning	= GroupSMB + 33;
     public static final int SMBSocketKeepAlive	= GroupSMB + 34;
+	public static final int SMBPacketsPerThreadRun = GroupSMB + 35;
 
 	// FTP server variables
 	public static final int FTPBindAddress 		= GroupFTP + 1;

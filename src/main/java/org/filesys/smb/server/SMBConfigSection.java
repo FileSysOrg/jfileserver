@@ -51,6 +51,10 @@ public class SMBConfigSection extends ConfigSection {
     // Default client socket timeout
     public static final int DefSessionTimeout = 15 * 60 * 1000;    // 15 minutes, milliseconds
 
+    // Minimum/maximum packets per run
+    public static final int MinPacketsPerRun        = 1;
+    public static final int MaxPacketsPerRun        = 32;
+
     //  Server name
     private String m_name;
 
@@ -159,6 +163,13 @@ public class SMBConfigSection extends ConfigSection {
     // List of terminal server/load balancer addresses, need special session setup handling
     private List<String> m_terminalServerList;
     private List<String> m_loadBalancerList;
+
+    //--------------------------------------------------------------------------------
+    // Thread pool configuration
+    //
+    // Maximum number of packets to process per thread pool request for a socket before the socket
+    // events are re-enabled and the thread request exits processing
+    private int m_maxPacketsPerRun = 4;     // original default, based on SMB1
 
     /**
      * Class constructor
@@ -609,6 +620,13 @@ public class SMBConfigSection extends ConfigSection {
     public final int getMaximumVirtualCircuits() {
         return m_virtualCircuitLimit;
     }
+
+    /**
+     * Return the maximum packets that will be processed per thread pool request run
+     *
+     * @return int
+     */
+    public final int getMaximumPacketsPerThreadRun() { return m_maxPacketsPerRun; }
 
     /**
      * Check if native code calls are disabled
@@ -1421,6 +1439,24 @@ public class SMBConfigSection extends ConfigSection {
         //  Inform listeners, validate the configuration change
         int sts = fireConfigurationChange(ConfigId.SMBMaxVirtualCircuit, new Integer(maxVC));
         m_virtualCircuitLimit = maxVC;
+
+        //  Return the change status
+        return sts;
+    }
+
+    /**
+     * Set the maximum packets that will be processed per thread pool request run
+     *
+     * @param maxPkts int
+     * @return int
+     * @throws InvalidConfigurationException Failed to set the maximum packets per thread run
+     */
+    public final int setMaximumPacketsPerThreadRun(int maxPkts)
+        throws InvalidConfigurationException {
+
+        //  Inform listeners, validate the configuration change
+        int sts = fireConfigurationChange(ConfigId.SMBPacketsPerThreadRun, new Integer(maxPkts));
+        m_maxPacketsPerRun = maxPkts;
 
         //  Return the change status
         return sts;

@@ -68,6 +68,11 @@ public class SMBRequestHandler extends RequestHandler implements Runnable {
     // Thread pool for processing requests
     private ThreadRequestPool m_threadPool;
 
+    // SMB request threading configuration
+    //
+    // Maximum packets to process per thread request run
+    private int m_maxPacketsPerRun;
+
     // Queue of sessions that are pending setup with the selector
     private SrvSessionQueue m_sessQueue;
 
@@ -86,13 +91,15 @@ public class SMBRequestHandler extends RequestHandler implements Runnable {
      * @param threadPool ThreadRequestPool
      * @param maxSess    int
      * @param sockTmo    int
+     * @param maxPktsPerRun    int
      * @param debug      boolean
      */
-    public SMBRequestHandler(ThreadRequestPool threadPool, int maxSess, int sockTmo, boolean debug) {
+    public SMBRequestHandler(ThreadRequestPool threadPool, int maxSess, int sockTmo, int maxPktsPerRun, boolean debug) {
         super(maxSess);
 
         // Set the thread pool to use for request processing
         m_threadPool = threadPool;
+        m_maxPacketsPerRun = maxPktsPerRun;
 
         // Set the client socket timeout
         m_clientSocketTimeout = sockTmo;
@@ -392,7 +399,7 @@ public class SMBRequestHandler extends RequestHandler implements Runnable {
 
                 // Get the associated session and queue a request to the thread pool to read and process the SMB request
                 SMBSrvSession sess = (SMBSrvSession) selKey.attachment();
-                m_reqList.add(new NIOSMBThreadRequest(sess, selKey));
+                m_reqList.add(new NIOSMBThreadRequest(sess, selKey, m_maxPacketsPerRun));
 
                 // Update the last I/O time for the session
                 sess.setLastIOTime(timeNow);
