@@ -582,4 +582,62 @@ public abstract class NTLMMessage {
         // Get the NTLM message type
         return Type.fromInt(DataPacker.getIntelInt(buf, offset + OffsetType));
     }
+
+    /**
+     * Return the NTLM flags as a string
+     *
+     * @return String
+     */
+    public final String getFlagsAsString() {
+        StringBuilder str = new StringBuilder();
+        str.append("[Flags=");
+
+        int flags = getFlags();
+
+        if ( hasFlag( NTLM.FlagNegotiateUnicode))
+            str.append("Unicode,");
+        if ( hasFlag( NTLM.FlagNegotiateOEM))
+            str.append("OEM,");
+        if ( hasFlag( NTLM.FlagRequestTarget))
+            str.append("ReqTarg,");
+        if ( hasFlag( NTLM.FlagNegotiateSign))
+            str.append("NegSign,");
+        if ( hasFlag( NTLM.FlagNegotiateSeal))
+            str.append("NegSeal,");
+        if ( hasFlag( NTLM.FlagDatagramStyle))
+            str.append("DGram,");
+        if ( hasFlag( NTLM.FlagNegotiateNetware))
+            str.append("Netware,");
+        if ( hasFlag( NTLM.FlagNegotiateNTLM))
+            str.append("NegNTLM,");
+        if ( hasFlag( NTLM.FlagDomainSupplied))
+            str.append("DomSup,");
+        if ( hasFlag( NTLM.FlagWorkstationSupplied))
+            str.append("WorkSup,");
+        if ( hasFlag( NTLM.FlagLocalCall))
+            str.append("Local,");
+        if ( hasFlag( NTLM.FlagAlwaysSign))
+            str.append("AlwaysSign,");
+        if ( hasFlag( NTLM.FlagChallengeInit))
+            str.append("ChInit,");
+        if ( hasFlag( NTLM.FlagChallengeAccept))
+            str.append("ChAccept,");
+        if ( hasFlag( NTLM.FlagChallengeNonNT))
+            str.append("ChNonNT,");
+        if ( hasFlag( NTLM.FlagNegotiateExtSecurity))
+            str.append("NegExtSec,");
+        if ( hasFlag( NTLM.FlagTargetInfo))
+            str.append("TargInfo,");
+        if ( hasFlag( NTLM.FlagRequestVersion))
+            str.append("ReqVer,");
+        if ( hasFlag( NTLM.Flag128Bit))
+            str.append("128Bit,");
+        if ( hasFlag( NTLM.FlagKeyExchange))
+            str.append("KeyExch,");
+        if ( hasFlag( NTLM.Flag56Bit))
+            str.append("56Bit,");
+        str.append("]");
+
+        return str.toString();
+    }
 }
