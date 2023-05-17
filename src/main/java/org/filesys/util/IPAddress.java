@@ -21,6 +21,9 @@ package org.filesys.util;
 
 import java.net.InetAddress;
 import java.util.StringTokenizer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 /**
  * TCP/IP Address Utility Class
@@ -29,13 +32,29 @@ import java.util.StringTokenizer;
  */
 public class IPAddress {
 
+    // Regular expressions to match IPv4 and IPv6 addresses
+    private static Pattern VALID_IPV4_PATTERN = null;
+    private static Pattern VALID_IPV6_PATTERN = null;
+    private static final String ipv4Pattern = "(([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\.){3}([01]?\\d\\d?|2[0-4]\\d|25[0-5])";
+    private static final String ipv6Pattern = "([0-9a-f]{1,4}:){7}([0-9a-f]){1,4}";
+
+    // Static initializer
+    static {
+        try {
+            VALID_IPV4_PATTERN = Pattern.compile(ipv4Pattern, Pattern.CASE_INSENSITIVE);
+            VALID_IPV6_PATTERN = Pattern.compile(ipv6Pattern, Pattern.CASE_INSENSITIVE);
+        } catch (PatternSyntaxException ex) {
+            //Debug.println("Unable to compile pattern, ex=", ex);
+        }
+    }
+
     /**
      * Check if the specified address is a valid numeric TCP/IP address
      *
      * @param ipaddr String
      * @return boolean
      */
-    public final static boolean isNumericAddress(String ipaddr) {
+    public static boolean isNumericAddress(String ipaddr) {
 
         //	Check if the string is valid
         if (ipaddr == null || ipaddr.length() < 7 || ipaddr.length() > 15)
@@ -71,7 +90,7 @@ public class IPAddress {
      * @param ipaddr String
      * @return int
      */
-    public final static int parseNumericAddress(String ipaddr) {
+    public static int parseNumericAddress(String ipaddr) {
 
         //	Check if the string is valid
         if (ipaddr == null || ipaddr.length() < 7 || ipaddr.length() > 15)
@@ -114,7 +133,7 @@ public class IPAddress {
      * @param ipaddr InetAddress
      * @return int
      */
-    public final static int asInteger(InetAddress ipaddr) {
+    public static int asInteger(InetAddress ipaddr) {
 
         //	Get the address as an array of bytes
         byte[] addrBytes = ipaddr.getAddress();
@@ -131,7 +150,7 @@ public class IPAddress {
      * @param mask   String
      * @return boolean
      */
-    public final static boolean isInSubnet(String ipaddr, String subnet, String mask) {
+    public static boolean isInSubnet(String ipaddr, String subnet, String mask) {
 
         //	Convert the addresses to integer values
         int ipaddrInt = parseNumericAddress(ipaddr);
@@ -158,7 +177,7 @@ public class IPAddress {
      * @param ipaddr byte[]
      * @return String
      */
-    public final static String asString(byte[] ipaddr) {
+    public static String asString(byte[] ipaddr) {
 
         //	Check if the address is valid
         if (ipaddr == null || ipaddr.length != 4)
@@ -185,7 +204,7 @@ public class IPAddress {
      * @param ipaddr int
      * @return String
      */
-    public final static String asString(int ipaddr) {
+    public static String asString(int ipaddr) {
 
         byte[] ipbyts = new byte[4];
         ipbyts[0] = (byte) ((ipaddr >> 24) & 0xFF);
@@ -202,7 +221,7 @@ public class IPAddress {
      * @param addr String
      * @return byte[]
      */
-    public final static byte[] asBytes(String addr) {
+    public static byte[] asBytes(String addr) {
 
         // Convert the TCP/IP address string to an integer value
         int ipInt = parseNumericAddress(addr);
@@ -219,5 +238,32 @@ public class IPAddress {
 
         // Return the TCP/IP bytes
         return ipByts;
+    }
+
+    /**
+     * Check if an address string is a valid IPv4 address
+     *
+     * @param addr String
+     */
+    public static boolean isIPv4Address(String addr) {
+        Matcher ipv4 = VALID_IPV4_PATTERN.matcher(addr);
+        return ipv4.matches();
+    }
+
+    /**
+     * Check if an address string is a valid IPv6 address
+     *
+     * @param addr String
+     */
+    public static boolean isIPv6Address(String addr) {
+
+        // Check if the address contains a scope index
+        int idx = addr.indexOf( '%');
+
+        if ( idx != -1)
+            addr = addr.substring(0, idx);
+
+        Matcher ipv6 = VALID_IPV6_PATTERN.matcher(addr);
+        return ipv6.matches();
     }
 }
