@@ -84,8 +84,20 @@ public class IpAddressAccessControl extends AccessControl {
         if (m_netMask == null) {
 
             //	Check if the TCP/IP address matches the check address
-            if (IPAddress.parseNumericAddress(ipAddr) == IPAddress.parseNumericAddress(getName()))
-                sts = getAccess();
+            if( IPAddress.isIPv4Address( ipAddr) && IPAddress.isIPv4Address( m_subnet)) {
+                if (IPAddress.parseNumericAddress(ipAddr) == IPAddress.parseNumericAddress(getName()))
+                    sts = getAccess();
+            }
+            else if ( IPAddress.isIPv6Address( ipAddr) && IPAddress.isIPv6Address( m_subnet)) {
+
+                // Strip the scope index
+                int idx = ipAddr.indexOf( '%');
+                if ( idx != -1)
+                    ipAddr = ipAddr.substring( 0, idx);
+
+                if ( ipAddr.equalsIgnoreCase( m_subnet))
+                    sts = getAccess();
+            }
         } else {
 
             //	Check if the address is within the subnet range

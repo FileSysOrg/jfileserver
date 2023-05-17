@@ -62,11 +62,16 @@ public class IpAddressAccessControlParser extends AccessControlParser {
         if (val != null) {
 
             //	Validate the parameters
-            if (val.length() == 0 || IPAddress.isNumericAddress(val) == false)
+            if (val.isEmpty() || (!IPAddress.isIPv4Address(val) && !IPAddress.isIPv6Address(val)))
                 throw new ACLParseException("Invalid IP address, " + val);
 
             if (params.getAttributeCount() != 2)
                 throw new ACLParseException("Invalid parameter(s) specified for address");
+
+            // Strip the scope index from an IPv6 address
+            int idx = val.indexOf( '%');
+            if ( idx != -1)
+                val = val.substring( 0, idx);
 
             //	Create a single TCP/IP address access control rule
             return new IpAddressAccessControl(val, null, getType(), access);
