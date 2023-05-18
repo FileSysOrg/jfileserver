@@ -118,8 +118,9 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
     // Flag to control whether NTLMv1 is accepted
     protected boolean m_acceptNTLMv1;
 
-    // Dump NTLMSSP security blobs
-    protected boolean m_dumpNTLM;
+    // Allow loopback NTLM logons to a specific account, usually the machine account
+    protected boolean m_allowLoopbackNTLM;
+    protected String m_allowLoopbackAccount;
 
     // Kerberos settings
     //
@@ -406,9 +407,24 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
 
         m_acceptNTLMv1 = disallowNTLMv1 != null ? false : true;
 
-        // Check if NTLMSSP security blobs should be dumped out
-        if ( params.getChild( "dumpNTLM") != null)
-            m_dumpNTLM = true;
+        // Check if NTLM logons should be allowed on a loopback connection
+        ConfigElement loopbackNTLM = params.getChild( "allowLoopbackNTLM");
+
+        if ( loopbackNTLM != null) {
+
+            // Get the account name that is allowed to use the loopback NTLM logon
+            m_allowLoopbackAccount = loopbackNTLM.getAttribute( "account");
+
+            if ( m_allowLoopbackAccount == null || m_allowLoopbackAccount.isEmpty())
+                throw new InvalidConfigurationException("Loopback NTLM account not specified");
+
+            // Enable the loopback NTLM logon feature
+            m_allowLoopbackNTLM = true;
+
+            // Debug
+            if (hasDebugOutput())
+                debugOutput("[SMB] Allow NTLM loopback logons for " + m_allowLoopbackAccount);
+        }
 
         // Make sure either NTLMSSP or SPNEGO authentication is enabled
         if ( allowNTLMLogon() == false && m_loginContext == null) {
@@ -920,14 +936,34 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
             throws SMBSrvException {
 
         // Make sure NTLM logons are enabled
-        if (!allowNTLMLogon() && !hasDumpNTLM()) {
+        if (!allowNTLMLogon()) {
 
-            // Client has sent an NTLM logon
-            if (hasDebugOutput())
-                debugOutput("[SMB] NTLM disabled, received NTLM logon from client (NTLMSSP)");
+            // Check if loopback NTLM logons are allowed
+            boolean loopbackLogon = false;
 
-            // Return a logon failure status
-            throw new SMBSrvException(SMBStatus.NTLogonFailure, SMBStatus.ErrDos, SMBStatus.DOSAccessDenied);
+            if ( hasLoopbackNTLM()) {
+
+                // Check if the client is using a loopback address
+                if (client.hasClientAddress()) {
+
+                    // Get the client address
+                    String clientAddr = client.getClientAddress();
+
+                    if ( clientAddr.startsWith( "127.") || clientAddr.startsWith( "FE80:"))
+                        loopbackLogon = true;
+                }
+            }
+
+            // If loopback logons are not enabled or the logon is not from a loopback address then fail the logon
+            if ( !loopbackLogon) {
+
+                // Client has sent an NTLM logon
+                if (hasDebugOutput())
+                    debugOutput("[SMB] NTLM disabled, received NTLM logon from client (NTLMSSP)");
+
+                // Return a logon failure status
+                throw new SMBSrvException(SMBStatus.NTLogonFailure, SMBStatus.ErrDos, SMBStatus.DOSAccessDenied);
+            }
         }
 
         // Determine the NTLMSSP message type
@@ -1041,6 +1077,28 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
                     debugOutput("[SMB] Signing required/SPNEGO, saved Type3");
             }
 
+            // Check for a loopback logon
+            if ( isLoopbackLogon( client)) {
+
+                // Check if the user matches the allowed loopback logon account
+                if ( type3Msg.getUserName().equalsIgnoreCase( m_allowLoopbackAccount)) {
+
+                    // DEBUG
+                    if ( hasDebugOutput())
+                        debugOutput("[SMB] Allow loopback NTLM logon from " + type3Msg.getUserName());
+
+                    // Store the full user name in the client information, indicate that this is not a guest logon
+                    client.setUserName( type3Msg.getUserName());
+                    client.setGuest(false);
+
+                    // Indicate that the session is logged on
+                    sess.setLoggedOn(true);
+
+                    // Return an authenticated status
+                    return AuthStatus.AUTHENTICATED;
+                }
+            }
+
             // Determine if the client sent us NTLMv1 or NTLMv2
             if (type3Msg.hasFlag(NTLM.Flag128Bit) || type3Msg.hasFlag(NTLM.FlagNegotiateExtSecurity)) { // && type3Msg.hasFlag(NTLM.FlagNTLM2Key)) {
 
@@ -1134,17 +1192,6 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
             // Create a separate security blob for the NTLMSSP blob
             SecurityBlob ntlmBlob = new SecurityBlob(SecurityBlob.SecurityBlobType.NTLMSSP, ntlmsspBlob, secBlob.isUnicode());
 
-            // Dump out the NTLMSSP security blob
-            if ( hasDumpNTLM()) {
-                Debug.println("NTLM logon received from " + client.getClientAddress());
-                if ( ntlmBlob.isNTLMSSP()) {
-
-                    // Should be a Type3 NTLM message
-                    Type3NTLMMessage type3Msg = new Type3NTLMMessage( ntlmsspBlob);
-                    Debug.println( type3Msg.toString());
-                }
-            }
-
             // Perform an NTLMSSP session setup
             authSts = doNtlmsspSessionSetup(sess, client, ntlmBlob, true);
 
@@ -1231,19 +1278,8 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
                 // Create a separate security blob for the NTLMSSP blob
                 SecurityBlob ntlmBlob = new SecurityBlob(SecurityBlob.SecurityBlobType.NTLMSSP, ntlmsspBlob, secBlob.isUnicode());
 
-                // Dump out the NTLMSSP security blob
-                if ( hasDumpNTLM()) {
-                    Debug.println("NTLM logon received from " + client.getClientAddress());
-                    if ( ntlmBlob.isNTLMSSP()) {
-
-                        // Should be a Type1 NTLM message
-                        Type1NTLMMessage type1Msg = new Type1NTLMMessage( ntlmsspBlob);
-                        Debug.println( type1Msg.toString());
-                    }
-                }
-
                 // Check if NTLM logons are enabled
-                if ( !allowNTLMLogon() && !hasDumpNTLM()) {
+                if ( !allowNTLMLogon() && !isLoopbackLogon( client)) {
 
                     // Client has sent an NTLM logon
                     if (hasDebugOutput())
@@ -2465,11 +2501,38 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
     }
 
     /**
-     * Check if NTLMSSP security blobs should be dumped out to the debug device
+     * Check if NTLM loopback logons are allowed
      *
      * @return boolean
      */
-    public final boolean hasDumpNTLM() { return m_dumpNTLM; }
+    public final boolean hasLoopbackNTLM() { return m_allowLoopbackNTLM; }
+
+    /**
+     * Check if NTLM loopback logons are enabled and the logon is from a loopback address
+     *
+     * @param client ClientInfo
+     * @return boolean
+     */
+    protected final boolean isLoopbackLogon(ClientInfo client) {
+
+        // Check if loopback NTLM logons are allowed
+        boolean loopbackLogon = false;
+
+        if ( hasLoopbackNTLM()) {
+
+            // Check if the client is using a loopback address
+            if (client.hasClientAddress()) {
+
+                // Get the client address
+                String clientAddr = client.getClientAddress().toUpperCase();
+
+                if ( clientAddr.startsWith( "127.") || clientAddr.startsWith( "FE80:"))
+                    loopbackLogon = true;
+            }
+        }
+
+        return loopbackLogon;
+    }
 
     /**
      * Output debug logging
