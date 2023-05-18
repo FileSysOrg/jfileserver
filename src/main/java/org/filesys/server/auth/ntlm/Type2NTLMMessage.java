@@ -339,7 +339,7 @@ public class Type2NTLMMessage extends NTLMMessage implements Serializable {
         StringBuffer str = new StringBuffer();
 
         str.append("[Type2:0x");
-        str.append(Integer.toHexString(getFlags()));
+        str.append(getFlagsAsString());
         str.append(",Target:");
         str.append(getTarget());
         str.append(",Ch:");

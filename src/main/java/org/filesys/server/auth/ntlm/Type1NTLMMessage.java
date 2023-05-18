@@ -187,7 +187,7 @@ public class Type1NTLMMessage extends NTLMMessage {
         StringBuffer str = new StringBuffer();
 
         str.append("[Type1:0x");
-        str.append(Integer.toHexString(getFlags()));
+        str.append(getFlagsAsString());
         str.append(",Domain:");
         if (hasDomain())
             str.append(getDomain());

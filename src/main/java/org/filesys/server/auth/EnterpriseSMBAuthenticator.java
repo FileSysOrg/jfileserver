@@ -1131,8 +1131,19 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
             // Get the second stage NTLMSSP blob
             byte[] ntlmsspBlob = negToken.getResponseToken();
 
-            // Create a seperate security blob for the NTLMSSP blob
+            // Create a separate security blob for the NTLMSSP blob
             SecurityBlob ntlmBlob = new SecurityBlob(SecurityBlob.SecurityBlobType.NTLMSSP, ntlmsspBlob, secBlob.isUnicode());
+
+            // Dump out the NTLMSSP security blob
+            if ( hasDumpNTLM()) {
+                Debug.println("NTLM logon received from " + client.getClientAddress());
+                if ( ntlmBlob.isNTLMSSP()) {
+
+                    // Should be a Type3 NTLM message
+                    Type3NTLMMessage type3Msg = new Type3NTLMMessage( ntlmsspBlob);
+                    Debug.println( type3Msg.toString());
+                }
+            }
 
             // Perform an NTLMSSP session setup
             authSts = doNtlmsspSessionSetup(sess, client, ntlmBlob, true);
@@ -1217,15 +1228,22 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
                 // NTLMSSP logon, get the NTLMSSP security blob that is inside the SPNEGO blob
                 byte[] ntlmsspBlob = negToken.getMechtoken();
 
-                // Create a seperate security blob for the NTLMSSP blob
+                // Create a separate security blob for the NTLMSSP blob
                 SecurityBlob ntlmBlob = new SecurityBlob(SecurityBlob.SecurityBlobType.NTLMSSP, ntlmsspBlob, secBlob.isUnicode());
 
                 // Dump out the NTLMSSP security blob
-                if ( hasDumpNTLM())
-                    ntlmBlob.dumpSecurityBlob();
+                if ( hasDumpNTLM()) {
+                    Debug.println("NTLM logon received from " + client.getClientAddress());
+                    if ( ntlmBlob.isNTLMSSP()) {
+
+                        // Should be a Type1 NTLM message
+                        Type1NTLMMessage type1Msg = new Type1NTLMMessage( ntlmsspBlob);
+                        Debug.println( type1Msg.toString());
+                    }
+                }
 
                 // Check if NTLM logons are enabled
-                if ( allowNTLMLogon() == false) {
+                if ( !allowNTLMLogon() && !hasDumpNTLM()) {
 
                     // Client has sent an NTLM logon
                     if (hasDebugOutput())
