@@ -1280,7 +1280,7 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
 
                     // Client has sent an NTLM logon
                     if (hasDebugOutput())
-                        debugOutput("[SMB] NTLM disabled, received NTLM logon from client (SPNEGO)");
+                        debugOutput("[SMB] NTLM disabled, received NTLM logon from client (SPNEGO), client address=" + client.getClientAddress());
 
                     // Return a logon failure status
                     throw new SMBSrvException(SMBStatus.NTLogonFailure, SMBStatus.ErrDos, SMBStatus.DOSAccessDenied);
