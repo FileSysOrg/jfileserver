@@ -941,17 +941,14 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
             // Check if loopback NTLM logons are allowed
             boolean loopbackLogon = false;
 
-            if ( hasLoopbackNTLM()) {
+            if ( isLoopbackLogon( client)) {
 
-                // Check if the client is using a loopback address
-                if (client.hasClientAddress()) {
+                // Allow the logon
+                loopbackLogon = true;
 
-                    // Get the client address
-                    String clientAddr = client.getClientAddress();
-
-                    if ( clientAddr.startsWith( "127.") || clientAddr.startsWith( "FE80:"))
-                        loopbackLogon = true;
-                }
+                // DEBUG
+                if ( hasDebugOutput())
+                    debugOutput("[SMB] NTLM loopback logon from client address=" + client.getClientAddress());
             }
 
             // If loopback logons are not enabled or the logon is not from a loopback address then fail the logon
