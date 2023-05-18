@@ -920,7 +920,7 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
             throws SMBSrvException {
 
         // Make sure NTLM logons are enabled
-        if ( allowNTLMLogon() == false) {
+        if (!allowNTLMLogon() && !hasDumpNTLM()) {
 
             // Client has sent an NTLM logon
             if (hasDebugOutput())
