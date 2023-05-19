@@ -244,6 +244,7 @@ public class IPAddress {
      * Check if an address string is a valid IPv4 address
      *
      * @param addr String
+     * @return boolean
      */
     public static boolean isIPv4Address(String addr) {
         Matcher ipv4 = VALID_IPV4_PATTERN.matcher(addr);
@@ -254,6 +255,7 @@ public class IPAddress {
      * Check if an address string is a valid IPv6 address
      *
      * @param addr String
+     * @return boolean
      */
     public static boolean isIPv6Address(String addr) {
 
