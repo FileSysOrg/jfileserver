@@ -119,7 +119,7 @@ public class QueryInfoPacker {
             // File name information
             case FileInfoLevel.PathFileNameInfo:
             case FileInfoLevel.NTFileNameInfo:
-            case FileInfoLevel.NTFileNormalizedName:
+//            case FileInfoLevel.NTFileNormalizedName:
                 packNameFileInfo(info, buf, uni);
                 break;
 
@@ -564,18 +564,26 @@ public class QueryInfoPacker {
             buf.putLong(sinfo.getSize());
 
             // Allocation size
-            if (sinfo.getAllocationSize() <= sinfo.getSize())
-                buf.putLong(MemorySize.roundupLongSize( sinfo.getSize()));
+            //
+            // First entry in the list should be the $$DATA entry for the main file stream, use a sector
+            // rounded value for the allocation size. For other streams use the stream size for the allocation
+            // size
+            if ( i == 0) {
+                if (sinfo.getAllocationSize() <= sinfo.getSize())
+                    buf.putLong(MemorySize.roundupLongSize(sinfo.getSize()));
+                else
+                    buf.putLong(MemorySize.roundupLongSize(sinfo.getAllocationSize()));
+            }
             else
-                buf.putLong(MemorySize.roundupLongSize( sinfo.getAllocationSize()));
+                buf.putLong(sinfo.getSize());
 
             buf.putString(sName, uni, false);
 
-            // Word align the buffer
-            buf.longwordAlign();
-
             // Fill in the offset to the next stream information, if this is not the last stream
             if (i < (streams.numberOfStreams() - 1)) {
+
+                // Word align the buffer, do not align the last buffer
+                buf.longwordAlign();
 
                 // Fill in the offset from the current stream information structure to the next
                 pos = buf.getPosition();
