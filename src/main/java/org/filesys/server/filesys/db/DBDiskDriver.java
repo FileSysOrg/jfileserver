@@ -2576,6 +2576,10 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
         //  Create the stream list
         streamList = new StreamInfoList();
 
+        // Add an entry for the main file data stream
+        StreamInfo sinfo = new StreamInfo("::$DATA", finfo.getFileId(), 0, finfo.getSize(), finfo.getAllocationSize());
+        streamList.addStream(sinfo);
+
         //  Get the list of streams
         StreamInfoList sList = loadStreamList(fstate, finfo, dbCtx, true);
         if (sList != null) {
@@ -2587,10 +2591,6 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
                 streamList.addStream(sList.getStreamAt(i));
             }
         }
-
-        // Add an entry for the main file data stream
-        StreamInfo sinfo = new StreamInfo("::$DATA", finfo.getFileId(), 0, finfo.getSize(), finfo.getAllocationSize());
-        streamList.addStream(sinfo);
 
         //  Cache the stream list
         fstate.addAttribute(DBStreamList, streamList);
