@@ -63,9 +63,6 @@ public class SimpleFileLoader implements FileLoader, NamedFileLoader {
     // Enable setting of the file owner, if there is a logged on user name (only available when using Kerberos authentication)
     private boolean m_setOwner = false;
 
-    // Enable/disable support for NTFS streams
-    private boolean m_ntfsStreams = true;
-
     /**
      * Default constructor
      */
@@ -450,10 +447,6 @@ public class SimpleFileLoader implements FileLoader, NamedFileLoader {
         // Check if the file/folder owner should be set when creating new files/folders
         if(params.getChild( "SetOwner") != null)
             m_setOwner = true;
-
-        // Check if NTFS streams should be enabled
-        if(params.getChild("disableNTFSStreams") != null)
-            m_ntfsStreams = false;
     }
 
     /**
@@ -492,7 +485,7 @@ public class SimpleFileLoader implements FileLoader, NamedFileLoader {
      * @return boolean
      */
     public boolean supportsStreams() {
-        return m_ntfsStreams;
+        return false;
     }
 
     /**
