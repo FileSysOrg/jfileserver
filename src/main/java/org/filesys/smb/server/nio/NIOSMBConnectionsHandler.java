@@ -25,9 +25,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 import org.filesys.debug.Debug;
 import org.filesys.server.ChannelSessionHandler;
@@ -160,18 +158,50 @@ public class NIOSMBConnectionsHandler implements SMBConnectionsHandler, RequestH
                 // Check for idle sessions in the active SMB request handlers
                 Iterator<SMBRequestHandler> enumHandlers = m_requestHandlers.iterator();
 
-                while (enumHandlers.hasNext()) {
+                // TEST
+                int numHandlers = m_requestHandlers.size();
+                SMBRequestHandler lastHandler = null;
+                long startTime = System.currentTimeMillis();
 
-                    // Get the current request handler and check for idle session
-                    SMBRequestHandler curHandler = enumHandlers.next();
-                    if (curHandler != null) {
+                try {
+                    while (enumHandlers.hasNext()) {
 
-                        // Check for idle sessions
-                        int idleCnt = curHandler.checkForIdleSessions();
+                        // Get the current request handler and check for idle session
+                        SMBRequestHandler curHandler = enumHandlers.next();
+                        if (curHandler != null) {
 
-                        // DEBUG
-                        if (idleCnt > 0 && Debug.EnableInfo && hasDebug())
-                            Debug.println("[SMB] Idle session check, removed " + idleCnt + " sessions for " + curHandler.getName());
+                            // Check for idle sessions
+                            int idleCnt = curHandler.checkForIdleSessions();
+
+                            // DEBUG
+                            if (idleCnt > 0 && Debug.EnableInfo && hasDebug())
+                                Debug.println("[SMB] Idle session check, removed " + idleCnt + " sessions for " + curHandler.getName());
+                        }
+
+                        // TEST
+                        lastHandler = curHandler;
+                    }
+                }
+                catch ( ConcurrentModificationException ex) {
+
+                    // TEST
+                    long exTime = System.currentTimeMillis();
+
+                    Debug.println("Concurrent modification exception in idle session reaper:");
+                    Debug.println("  Started at  : " + startTime);
+                    Debug.println("  Exception at: " + exTime + ", duration=" + (exTime - startTime) + "ms");
+                    Debug.println("  Last handler: " + lastHandler);
+                    if (lastHandler != null)
+                        Debug.print("  Session count=" + lastHandler.getCurrentSessionCount() + "/" + lastHandler.getMaximumSessionCount());
+                    Debug.println("  numHandlers=" + numHandlers + ", current handlers=" + m_requestHandlers.size());
+
+                    Debug.print("  Active threads:");
+                    Map<Thread, StackTraceElement[]> threadMap = Thread.getAllStackTraces();
+
+                    for (Thread th : threadMap.keySet()) {
+                        StackTraceElement[] strace = threadMap.get(th);
+                        Debug.println("    Thread " + th.getName() + ", sts=" + (th.isAlive() ? "Alive" : "NotAlive"));
+                        Debug.println("      Stacktrace: " + (strace.length > 0 ? strace[0].toString() : "None"));
                     }
                 }
             }
