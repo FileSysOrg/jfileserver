@@ -56,6 +56,7 @@ public class QueryInfoPacker {
     private static final int NTAttributeTagLen      = 16;
     private static final int NTNetworkOpenLen       = 56;
     private static final int NTBothDirectoryLen     = 90;
+    private static final int NTIdBothDirectoryLen   = 98;
 
     /**
      * Pack a file information object into the specified buffer, using the specified information
@@ -171,6 +172,11 @@ public class QueryInfoPacker {
             // Both directory information
             case FileInfoLevel.NTFileBothDirectoryInfo:
                 packBothDirectoryInfo(info, buf, uni);
+                break;
+
+            // Id both directory information
+            case FileInfoLevel.NTIdBothDirectoryInfo:
+                packIdBothDirectoryInfo(info, buf, uni);
                 break;
 
             // Unsupported information level
@@ -817,6 +823,90 @@ public class QueryInfoPacker {
     }
 
     /**
+     * Pack the id both directory information (level 1003)
+     *
+     * @param info File information
+     * @param buf  Buffer to pack data into
+     * @param uni  Pack unicode strings
+     */
+    private static void packIdBothDirectoryInfo(FileInfo info, DataBuffer buf, boolean uni) {
+
+        // Information format :-
+        // UINT FileIndex
+        // LARGE_INTEGER Creation date/time
+        // LARGE_INTEGER Access date/time
+        // LARGE_INTEGER Write date/time
+        // LARGE_INTEGER Change date/time
+        // LARGE_INTEGER Size
+        // LARGE_INTEGER Allocation
+        // UINT FileAttributes
+        // UINT FileNameLength
+        // UINT EASize
+        // BYTE ShortNameLength
+        // BYTE Reserved
+        // BYTE[24] ShortName
+        // LARGE_INTEGER FileId
+        // WCHAR FileName[]
+
+        // Pack the file index
+        buf.putInt(0);
+
+        // Pack the creation date/time
+        if (info.hasCreationDateTime()) {
+            buf.putLong(NTTime.toNTTime(info.getCreationDateTime()));
+        }
+        else
+            buf.putZeros(8);
+
+        // Pack the last access date/time
+        if (info.hasAccessDateTime()) {
+            buf.putLong(NTTime.toNTTime(info.getAccessDateTime()));
+        }
+        else
+            buf.putZeros(8);
+
+        // Pack the last write and change date/time
+        if (info.hasModifyDateTime()) {
+            long ntTime = NTTime.toNTTime(info.getModifyDateTime());
+            buf.putLong(ntTime);
+            buf.putLong(ntTime);
+        }
+        else
+            buf.putZeros(16);
+
+        // Pack the used and allocation file sizes
+        buf.putLong(info.getSize());
+
+        if (info.getAllocationSize() < info.getSize())
+            buf.putLong(info.getSize());
+        else
+            buf.putLong(info.getAllocationSize());
+
+        // Pack the file attributes
+        buf.putInt(info.getFileAttributes());
+
+        // File name length in bytes and file name, Unicode
+        int nameLen = info.getFileNameLength();
+        if (uni)
+            nameLen *= 2;
+
+        buf.putInt(nameLen);
+
+        // Pack the extended attributes size
+        buf.putInt( 0);
+
+        // Pack the short name length and bytes (not used)
+        buf.putZeros( 26);
+
+        // Internal id
+        buf.putLong( info.getFileIdLong());
+
+        // Pack the file name
+        if ( nameLen > 0)
+            buf.putString(info.getFileName(), uni, false);
+    }
+
+    /**
      * Calculate the buffer space required for the specified file information and information level. Return zero length if
      * the information level is unsupported.
      *
@@ -929,9 +1019,17 @@ public class QueryInfoPacker {
                 infoLen = NTNetworkOpenLen;
                 break;
 
-                // Both directory information
+            // Both directory information
             case FileInfoLevel.NTFileBothDirectoryInfo:
                 infoLen = NTBothDirectoryLen;
+
+                // Add the file name length
+                infoLen += (info.getFileNameLength() + 1) * (uni ? 2 : 1);
+                break;
+
+            // Id both directory information
+            case FileInfoLevel.NTIdBothDirectoryInfo:
+                infoLen = NTIdBothDirectoryLen;
 
                 // Add the file name length
                 infoLen += (info.getFileNameLength() + 1) * (uni ? 2 : 1);
