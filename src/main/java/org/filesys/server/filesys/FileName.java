@@ -82,7 +82,7 @@ public final class FileName {
             //  Add the device name
             fullPath.append(dev);
 
-            //  Check if the device name has a file seperator
+            //  Check if the device name has a file separator
             if (dev.length() > 0 && dev.charAt(dev.length() - 1) != sep)
                 fullPath.append(sep);
         }
@@ -98,7 +98,7 @@ public final class FileName {
             else
                 fullPath.append(path);
 
-            //  Add a trailing seperator, if required
+            //  Add a trailing separator, if required
             if (path.length() > 0
                     && path.charAt(path.length() - 1) != sep
                     && filename != null)
