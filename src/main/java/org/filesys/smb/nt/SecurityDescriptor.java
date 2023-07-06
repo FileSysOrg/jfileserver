@@ -335,7 +335,7 @@ public class SecurityDescriptor {
 		buf.skipBytes(1);
 		m_control = buf.getShort();
 
-		//	Make sure the security descriptor is self-raltive, if not then abort the load
+		//	Make sure the security descriptor is self-relative, if not then abort the load
 		if (isSelfRelative() == false)
 			throw new LoadException("Security descriptor not self-relative, cannot load");
 

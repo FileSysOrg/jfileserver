@@ -6123,7 +6123,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
             else {
 
                 // Get the security descriptor for the file
-                SecurityDescriptor secDesc = secDescInterface.loadSecurityDescriptor(m_sess, conn, netFile);
+                DataBuffer secDesc = secDescInterface.loadSecurityDescriptor(m_sess, conn, netFile);
 
                 byte[] secBuf = null;
                 int secLen = 0;
@@ -6131,17 +6131,9 @@ public class NTProtocolHandler extends CoreProtocolHandler {
 
                 if (secDesc != null) {
 
-                    // Pack the security descriptor
-                    DataBuffer buf = new DataBuffer(4096);
-
-                    try {
-                        secLen = secDesc.saveDescriptor(buf);
-                        secBuf = buf.getBuffer();
-                    }
-                    catch (SaveException ex) {
-                        m_sess.sendErrorResponseSMB(smbPkt, SMBStatus.NTInvalidParameter, SMBStatus.DOSInvalidDrive, SMBStatus.ErrDos);
-                        return;
-                    }
+                    // Get the security descriptor buffer details
+                    secLen = secDesc.getLength();
+                    secBuf = secDesc.getBuffer();
 
                     // Calculate the available space for the security descriptor in the current packet
                     parser.initTransactReply(paramblk, paramblk.length, null, 0);
@@ -6245,19 +6237,8 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         paramBuf.skipBytes(2);
         int flags = paramBuf.getInt();
 
-        // Unpack the security descriptor
-        DataBuffer dataBuf = tbuf.getDataBuffer();
-        SecurityDescriptor secDesc = new SecurityDescriptor();
-
-        try {
-            secDesc.loadDescriptor(dataBuf.getBuffer(), dataBuf.getOffset());
-        }
-        catch (LoadException ex) {
-
-            // Invalid security descriptor
-            m_sess.sendErrorResponseSMB(smbPkt, SMBStatus.NTInvalidParameter, SMBStatus.SRVNonSpecificError, SMBStatus.ErrSrv);
-            return;
-        }
+        // Get the security descriptor bytes
+        DataBuffer secDesc = tbuf.getDataBuffer();
 
         // Debug
         if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.TRAN)) {
@@ -6294,7 +6275,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
             }
 
             // Save the security descriptor
-            secDescInterface.saveSecurityDescriptor(m_sess, conn, netFile, secDesc);
+            secDescInterface.saveSecurityDescriptor(m_sess, conn, netFile, flags, secDesc);
 
             // Return a success status
             parser.initTransactReply(null, 0, null, 0);
