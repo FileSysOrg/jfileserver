@@ -39,6 +39,7 @@ import org.filesys.server.locking.FileLockingInterface;
 import org.filesys.server.locking.LockManager;
 import org.filesys.server.locking.OpLockInterface;
 import org.filesys.server.locking.OpLockManager;
+import org.filesys.smb.SMBStatus;
 import org.filesys.smb.SharingMode;
 import org.filesys.smb.WinNT;
 import org.filesys.smb.nt.SecurityDescriptor;
@@ -47,6 +48,7 @@ import org.filesys.smb.server.SMBSrvSession;
 import org.filesys.smb.server.ntfs.NTFSStreamsInterface;
 import org.filesys.smb.server.ntfs.StreamInfo;
 import org.filesys.smb.server.ntfs.StreamInfoList;
+import org.filesys.util.DataBuffer;
 import org.filesys.util.MemorySize;
 import org.filesys.util.WildCard;
 import org.springframework.extensions.config.ConfigElement;
@@ -3292,6 +3294,19 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
     public int getSecurityDescriptorLength(SrvSession sess, TreeConnection tree, NetworkFile netFile)
             throws SMBSrvException {
 
+        // Access the JDBC context
+        DBDeviceContext dbCtx = (DBDeviceContext) tree.getContext();
+
+        // Check if the file loader supports the security descriptor interface, if so then pass the request to the
+        // file loader
+        if ( dbCtx.getFileLoader() instanceof SecurityDescriptorInterface) {
+
+            // Pass the request to the file loader
+            SecurityDescriptorInterface secDescIface = (SecurityDescriptorInterface) dbCtx.getFileLoader();
+            return secDescIface.getSecurityDescriptorLength( sess, tree, netFile);
+        }
+
+        // File loader does not support security descriptors
         return 0;
     }
 
@@ -3301,12 +3316,25 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
      * @param sess    Server session
      * @param tree    Tree connection
      * @param netFile Network file
-     * @return SecurityDescriptor
+     * @return Databuffer
      * @throws SMBSrvException SMB error
      */
-    public SecurityDescriptor loadSecurityDescriptor(SrvSession sess, TreeConnection tree, NetworkFile netFile)
+    public DataBuffer loadSecurityDescriptor(SrvSession sess, TreeConnection tree, NetworkFile netFile)
             throws SMBSrvException {
 
+        // Access the JDBC context
+        DBDeviceContext dbCtx = (DBDeviceContext) tree.getContext();
+
+        // Check if the file loader supports the security descriptor interface, if so then pass the request to the
+        // file loader
+        if ( dbCtx.getFileLoader() instanceof SecurityDescriptorInterface) {
+
+            // Pass the request to the file loader
+            SecurityDescriptorInterface secDescIface = (SecurityDescriptorInterface) dbCtx.getFileLoader();
+            return secDescIface.loadSecurityDescriptor( sess, tree, netFile);
+        }
+
+        // File loader does not support security descriptors
         return null;
     }
 
@@ -3316,12 +3344,29 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
      * @param sess    Server session
      * @param tree    Tree connection
      * @param netFile Network file
-     * @param secDesc Security descriptor
+     * @param secInfoFlags int
+     * @param secDesc Security descriptor bytes
      * @throws SMBSrvException SMB error
      */
-    public void saveSecurityDescriptor(SrvSession sess, TreeConnection tree, NetworkFile netFile, SecurityDescriptor secDesc)
+    public void saveSecurityDescriptor(SrvSession sess, TreeConnection tree, NetworkFile netFile, int secInfoFlags, DataBuffer secDesc)
             throws SMBSrvException {
 
+        // Access the JDBC context
+        DBDeviceContext dbCtx = (DBDeviceContext) tree.getContext();
+
+        // Check if the file loader supports the security descriptor interface, if so then pass the request to the
+        // file loader
+        if ( dbCtx.getFileLoader() instanceof SecurityDescriptorInterface) {
+
+            // Pass the request to the file loader
+            SecurityDescriptorInterface secDescIface = (SecurityDescriptorInterface) dbCtx.getFileLoader();
+            secDescIface.saveSecurityDescriptor( sess, tree, netFile, secInfoFlags, secDesc);
+        }
+        else {
+
+            // File loader does not support security descriptors
+            throw new SMBSrvException(SMBStatus.NTNotImplemented);
+        }
     }
 
     /**
