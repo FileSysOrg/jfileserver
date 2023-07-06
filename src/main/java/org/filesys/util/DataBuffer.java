@@ -836,6 +836,14 @@ public class DataBuffer {
     }
 
     /**
+     * Copy all data from the specified data buffer to this buffer
+     *
+     * @param buf DataBuffer
+     * @return int
+     */
+    public final int copyData(DataBuffer buf) { return copyData( buf.getBuffer(), buf.getOffset(), buf.getLength()); }
+
+    /**
      * Copy data from the data buffer to the user buffer, and update the current read position.
      *
      * @param buf byte[]

@@ -22,6 +22,7 @@ package org.filesys.server.filesys;
 import org.filesys.server.SrvSession;
 import org.filesys.smb.nt.SecurityDescriptor;
 import org.filesys.smb.server.SMBSrvException;
+import org.filesys.util.DataBuffer;
 
 /**
  * Security Descriptor Interface
@@ -50,10 +51,10 @@ public interface SecurityDescriptorInterface {
      * @param sess    Server session
      * @param tree    Tree connection
      * @param netFile Network file
-     * @return SecurityDescriptor
+     * @return DataBuffer
      * @throws SMBSrvException SMB error
      */
-    public SecurityDescriptor loadSecurityDescriptor(SrvSession sess, TreeConnection tree, NetworkFile netFile)
+    public DataBuffer loadSecurityDescriptor(SrvSession sess, TreeConnection tree, NetworkFile netFile)
             throws SMBSrvException;
 
     /**
@@ -62,9 +63,9 @@ public interface SecurityDescriptorInterface {
      * @param sess    Server session
      * @param tree    Tree connection
      * @param netFile Network file
-     * @param secDesc Security descriptor
+     * @param secDesc Security descriptor bytes
      * @throws SMBSrvException SMB error
      */
-    public void saveSecurityDescriptor(SrvSession sess, TreeConnection tree, NetworkFile netFile, SecurityDescriptor secDesc)
+    public void saveSecurityDescriptor(SrvSession sess, TreeConnection tree, NetworkFile netFile, int secInfoFlags, DataBuffer secDesc)
             throws SMBSrvException;
 }
