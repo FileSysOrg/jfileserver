@@ -328,7 +328,7 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 					throw new InvalidConfigurationException("Thread pool maximum size above maximum allowed size");
 				
 				if ( maxSize < initSize)
-					throw new InvalidConfigurationException("Initial size is larger than maxmimum size");
+					throw new InvalidConfigurationException("Initial size is larger than maximum size");
 			}
 			else if ( maxSizeStr != null)
 				throw new InvalidConfigurationException("Thread pool maximum size not specified");
