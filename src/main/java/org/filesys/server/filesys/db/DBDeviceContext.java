@@ -27,10 +27,7 @@ import org.filesys.server.config.CoreServerConfigSection;
 import org.filesys.server.config.InvalidConfigurationException;
 import org.filesys.server.config.ServerConfiguration;
 import org.filesys.server.core.DeviceContextException;
-import org.filesys.server.filesys.DiskDeviceContext;
-import org.filesys.server.filesys.DiskSharedDevice;
-import org.filesys.server.filesys.FileAttribute;
-import org.filesys.server.filesys.FileSystem;
+import org.filesys.server.filesys.*;
 import org.filesys.server.filesys.cache.FileState;
 import org.filesys.server.filesys.cache.FileStateCacheListener;
 import org.filesys.server.filesys.cache.FileStateLockManager;
@@ -397,6 +394,13 @@ public class DBDeviceContext extends DiskDeviceContext implements FileStateCache
 
             // Add the NTFS streams filesystem attribute
             setFilesystemAttributes(getFilesystemAttributes() + FileSystem.NTFSStreams);
+        }
+
+        // Check if the file loader supports security descriptors
+        if ( getFileLoader() instanceof SecurityDescriptorInterface) {
+
+            // Add the persistent ACLs filesystem attribute
+            setFilesystemAttributes(getFilesystemAttributes() + FileSystem.PersistentACLs);
         }
 
         // Indicate that the filesystem requires a file state cache

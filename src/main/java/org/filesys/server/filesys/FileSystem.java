@@ -44,6 +44,14 @@ public final class FileSystem {
     public static final int Encryption              = 0x00020000;
     public static final int NTFSStreams             = 0x00040000;
     public static final int ReadOnlyVolume          = 0x00080000;
+    public static final int SequentialWriteOnce     = 0x00100000;
+    public static final int SupportsTransactions    = 0x00200000;
+    public static final int SupportsHardLinks       = 0x00400000;
+    public static final int SupportsExtAttributes   = 0x00800000;
+    public static final int SupportsOpenByFileId    = 0x01000000;
+    public static final int SupportsIntegrityStreams= 0x04000000;
+    public static final int SupportsBlockRefcounting= 0x08000000;
+    public static final int SupportsSparseVDL       = 0x10000000;
 
     // Filesystem type strings
     public static final String TypeFAT  = "FAT";
