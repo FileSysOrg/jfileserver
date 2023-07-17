@@ -1590,7 +1590,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                 if (LockingAndX.hasLevelIIOplock(lockType) == false) {
 
                     // Release the oplock
-                    oplockMgr.releaseOpLock(oplock.getPath());
+                    oplockMgr.releaseOpLock(oplock.getPath(), netFile.getOplockOwner());
 
                     // DEBUG
                     if (Debug.EnableDbg && m_sess.hasDebug(SMBSrvSession.Dbg.OPLOCK))
@@ -4796,7 +4796,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         SMBV1OplockOwner oplockOwner = null;
 
         if ( params.requestedOplockType() != OpLockType.LEVEL_NONE) {
-            oplockOwner = new SMBV1OplockOwner( treeId, parser.getProcessId(), parser.getUserId());
+            oplockOwner = new SMBV1OplockOwner( m_sess, treeId, parser.getProcessId(), parser.getUserId());
             params.setOplockOwner( oplockOwner);
         }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 GK Spencer
+ * Copyright (C) 2023 GK Spencer
  *
  * JFileServer is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -17,29 +17,28 @@
 
 package org.filesys.server.locking;
 
-import org.filesys.smb.OpLockType;
-import org.filesys.smb.server.SMBSrvSession;
-
 /**
- * Oplock Owner Interface
+ * Invalid Oplock State Exception Class
+ *
+ * <p>Indicates the oplock state is not as expected when setting oplock details or changing the oplock type</p>
  *
  * @author gkspencer
  */
-public interface OplockOwner {
+public class InvalidOplockStateException extends Exception {
 
     /**
-     * Check if the oplock owner matches this oplock owner for the type of oplock
-     *
-     * @param opType    OplockType
-     * @param opOwner   OplockOwner
-     * @return boolean
+     * Class constructor.
      */
-    public boolean isOwner(OpLockType opType, OplockOwner opOwner);
+    public InvalidOplockStateException() {
+        super();
+    }
 
     /**
-     * Return the session that owns the oplock
+     * Class constructor.
      *
-     * @return SMBSrvSession
+     * @param msg String
      */
-    public SMBSrvSession getSession();
+    public InvalidOplockStateException(String msg) {
+        super(msg);
+    }
 }

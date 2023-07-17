@@ -94,7 +94,7 @@ public final class AccessMode {
 	 * @param val File flags value.
 	 * @return File access mode.
 	 */
-	public static final int getAccessMode(int val) {
+	public static int getAccessMode(int val) {
 		return val & 0x03;
 	}
 
@@ -104,7 +104,7 @@ public final class AccessMode {
 	 * @param val File flags value.
 	 * @return File sharing mode.
 	 */
-	public static final int getSharingMode(int val) {
+	public static int getSharingMode(int val) {
 		return val & 0x70;
 	}
 
@@ -115,7 +115,37 @@ public final class AccessMode {
 	 * @param ntFlg int
 	 * @return boolean
 	 */
-	public static final boolean hasNTAccessMode(int accessMask, int ntFlg) {
+	public static boolean hasNTAccessMode(int accessMask, int ntFlg) {
 		return (accessMask & ntFlg) == ntFlg ? true : false;
+	}
+
+	/**
+	 * Check if the access mode has read access
+	 *
+	 * @param accMode int
+	 * @return boolean
+	 */
+	public static boolean hasReadAccess(int accMode) {
+		return (accMode & NTRead) != 0 || (accMode & NTGenericRead) != 0;
+	}
+
+	/**
+	 * Check if the access mode has write access
+	 *
+	 * @param accMode int
+	 * @return boolean
+	 */
+	public static boolean hasWriteAccess(int accMode) {
+		return (accMode & NTWrite) != 0 || (accMode & NTGenericWrite) != 0;
+	}
+
+	/**
+	 * Check if the access mode has delete access
+	 *
+	 * @param accMode int
+	 * @return boolean
+	 */
+	public static boolean hasDeleteAccess(int accMode) {
+		return (accMode & NTDelete) != 0;
 	}
 }

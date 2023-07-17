@@ -100,8 +100,8 @@ public class LocalFileAccessToken implements FileAccessToken {
     public String toString() {
         StringBuilder str = new StringBuilder();
 
-        str.append("[Token pid=");
-        str.append(getProcessId());
+        str.append("[Token pid=0x");
+        str.append(Long.toHexString( getProcessId()));
 
         if (isAttributesOnly())
             str.append(",AttribOnly");

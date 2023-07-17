@@ -406,6 +406,24 @@ public class FileOpenParams {
     }
 
     /**
+     * Determine if the file is to be opened with delete access
+     *
+     * @return boolean
+     */
+    public final boolean isDeleteAccess() {
+        return (m_accessMode & AccessMode.NTDelete) != 0;
+    }
+
+    /**
+     * Determine if the file is to be opened with execute access
+     *
+     * @return boolean
+     */
+    public final boolean isExecuteAccess() {
+        return (m_accessMode & AccessMode.NTExecute) != 0;
+    }
+
+    /**
      * Determine if the file open is to access the file attributes/metadata only
      *
      * @return boolean

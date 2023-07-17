@@ -21,7 +21,9 @@ import org.filesys.netbios.RFCNetBIOSProtocol;
 import org.filesys.server.auth.AuthenticatorException;
 import org.filesys.server.auth.ChallengeAuthContext;
 import org.filesys.server.auth.ISMBAuthenticator;
+import org.filesys.server.locking.OpLockDetails;
 import org.filesys.server.locking.OpLockDetailsAdapter;
+import org.filesys.server.locking.OplockOwner;
 import org.filesys.smb.*;
 import org.filesys.smb.dcerpc.UUID;
 import org.filesys.util.DataPacker;
@@ -1900,13 +1902,15 @@ public class SMBV1Parser extends SMBParser {
     }
 
     /**
-     * Set the owner details for an oplock
+     * Create the owner details for an oplock
      *
      * @param sess SMBSrvSession
-     * @param opLock OpLockDetailsAdapter
+     * @param vcId int
+     * @param opLock OpLockDetails
+     * @return OplockOwner
      */
-    public void setOplockOwner(SMBSrvSession sess, OpLockDetailsAdapter opLock) {
-        opLock.setOplockOwner( new SMBV1OplockOwner( getTreeId(), getProcessId(), getUserId()));
+    public OplockOwner createOplockOwner(SMBSrvSession sess, int vcId, OpLockDetails opLock) {
+        return new SMBV1OplockOwner( sess, getTreeId(), getProcessId(), getUserId());
     }
 
     /**

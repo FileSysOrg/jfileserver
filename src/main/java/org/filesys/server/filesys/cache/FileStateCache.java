@@ -620,29 +620,34 @@ public abstract class FileStateCache {
                 // DEBUG
                 if (hasDebug())
                     Debug.println("Attributes only access for " + fstate);
-            } else if (fstate.getOpenCount() > 0) {
+            }
+            else if (fstate.getOpenCount() > 0) {
 
                 // DEBUG
-                if (hasDebug())
+                if (hasDebug()) {
                     Debug.println("File already open by pid=Ox" + Long.toHexString(fstate.getProcessId()) +
-                            ", sharingMode=" + fstate.getSharedAccess().name() + ", open params=" + params);
+                            ", sharingMode=" + fstate.getSharedAccess().name() + ", oplock=" + fstate.getOpLock());
+                    Debug.println("  Open params=" + params);
+                }
 
                 // Check if the open action indicates a new file create
                 if (params.getOpenAction() == CreateDisposition.CREATE)
                     throw new FileExistsException();
 
-                // Check for impersonation security level from the original process that opened the file
-                if ((params.getSecurityLevel() == ImpersonationLevel.IMPERSONATION ||
-                        params.getSecurityLevel() == ImpersonationLevel.ANONYMOUS) &&
-                        params.getProcessId() == fstate.getProcessId())
-                    nosharing = false;
-
+                // Check the requested access against the current sharing mode
+                //
                 // Check if the caller wants read access, check the sharing mode
-                else if (params.isReadOnlyAccess() && fstate.getSharedAccess().hasRead())
-                    nosharing = false;
+                else if ((params.isReadOnlyAccess() || params.isExecuteAccess()) && !fstate.getSharedAccess().hasRead()) {
+                    nosharing = true;
+                    noshrReason = "Sharing mode disallows read";
+
+                    // DEBUG
+                    if (Debug.EnableDbg && hasDebug())
+                        Debug.println("Sharing mode disallows read access path=" + fstate.getPath());
+                }
 
                 // Check if the caller wants write access, check the sharing mode
-                else if ((params.isReadWriteAccess() || params.isWriteOnlyAccess()) && fstate.getSharedAccess().hasWrite()) {
+                else if ((params.isReadWriteAccess() || params.isWriteOnlyAccess()) && !fstate.getSharedAccess().hasWrite()) {
                     nosharing = true;
                     noshrReason = "Sharing mode disallows write";
 
@@ -651,32 +656,68 @@ public abstract class FileStateCache {
                         Debug.println("Sharing mode disallows write access path=" + fstate.getPath());
                 }
 
+                // Check if the caller wants delete access, check the sharing mode
+                else if (params.isDeleteAccess() && !fstate.getSharedAccess().hasDelete()) {
+                    nosharing = true;
+                    noshrReason = "Sharing mode disallows delete";
+
+                    // DEBUG
+                    if (Debug.EnableDbg && hasDebug())
+                        Debug.println("Sharing mode disallows delete access path=" + fstate.getPath());
+                }
+
+                // Check the existing access mask with the requested sharing mode
+                //
+                // Check if the existing open has read access and the request allows read sharing
+                else if ((fstate.isReadOnlyAccess() || fstate.isExecuteAccess()) && !params.getSharedAccess().hasRead()) {
+                    nosharing = true;
+                    noshrReason = "Requested sharing mode disallows read";
+
+                    // DEBUG
+                    if (Debug.EnableDbg && hasDebug())
+                        Debug.println("Requested sharing mode disallows read access path=" + fstate.getPath());
+                }
+
+                // Check if the existing open has write access and the request allows write sharing
+                else if ((fstate.isReadWriteAccess() || fstate.isWriteOnlyAccess()) && !params.getSharedAccess().hasWrite()) {
+                    nosharing = true;
+                    noshrReason = "Requested sharing mode disallows write";
+
+                    // DEBUG
+                    if (Debug.EnableDbg && hasDebug())
+                        Debug.println("Requested sharing mode disallows write access path=" + fstate.getPath());
+                }
+
+                // Check if the existing open has delete access and the request allows delete sharing
+                else if (fstate.isDeleteAccess() && !params.getSharedAccess().hasDelete()) {
+                    nosharing = true;
+                    noshrReason = "Requested sharing mode disallows delete";
+
+                    // DEBUG
+                    if (Debug.EnableDbg && hasDebug())
+                        Debug.println("Requested sharing mode disallows delete access path=" + fstate.getPath());
+                }
+
+                // Check for write access when there is a level II oplock on the file
+                else if (( params.isReadWriteAccess() || params.isWriteOnlyAccess()) && fstate.hasOpLock() && fstate.getOpLock().getLockType() == OpLockType.LEVEL_II) {
+                    nosharing = true;
+                    noshrReason = "Request for write access when level II oplock active";
+
+                    // DEBUG
+                    if (Debug.EnableDbg && hasDebug())
+                        Debug.println("Request for write access when level II oplock active, path=" + fstate.getPath());
+                }
+
                 // Check if the file has been opened for exclusive access
                 else if (fstate.getSharedAccess() == SharingMode.NOSHARING) {
                     nosharing = true;
                     noshrReason = "Sharing mode exclusive";
                 }
 
-                // Check if the required sharing mode is allowed by the current file open
-                else if ((fstate.getSharedAccess().intValue() & params.getSharedAccess().intValue()) != params.getSharedAccess().intValue()) {
-                    nosharing = true;
-                    noshrReason = "Sharing mode mismatch";
-
-                    // DEBUG
-                    if (Debug.EnableDbg && hasDebug())
-                        Debug.println("Local share mode=" + fstate.getSharedAccess().name() + ", params share mode=" + params.getSharedAccess().name());
-                }
-
                 // Check if the caller wants exclusive access to the file
                 else if (params.getSharedAccess() == SharingMode.NOSHARING) {
                     nosharing = true;
-                    noshrReason = "Requestor wants exclusive mode";
-                }
-
-                // Check for anonymous impersonation
-                else if ( params.getSecurityLevel() == ImpersonationLevel.ANONYMOUS) {
-                    nosharing = true;
-                    noshrReason = "Anonymous impersonation";
+                    noshrReason = "Requester wants exclusive mode";
                 }
             }
 
@@ -686,6 +727,7 @@ public abstract class FileStateCache {
             else if (attribsOnly == false) {
 
                 // Update the file sharing mode, process id and primary owner details, if this is the first file open
+                fstate.setAccessMask( params.getAccessMode());
                 fstate.setSharedAccess(params.getSharedAccess());
                 fstate.setProcessId(params.getProcessId());
 
@@ -736,7 +778,8 @@ public abstract class FileStateCache {
 
                     if (openCount == 0) {
 
-                        // Reset the sharing mode, no current file opens
+                        // Reset the access mode and sharing mode, no current file opens
+                        fstate.setAccessMask( 0);
                         fstate.setSharedAccess(SharingMode.ALL);
                     }
                 }

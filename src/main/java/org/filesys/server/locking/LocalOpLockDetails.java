@@ -22,6 +22,7 @@ package org.filesys.server.locking;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 
 import org.filesys.debug.Debug;
 import org.filesys.server.filesys.DeferFailedException;
@@ -57,33 +58,8 @@ public class LocalOpLockDetails extends OpLockDetailsAdapter {
     // Flag to indicate the oplock break timed out
     private boolean m_failedBreak;
 
-    // Oplock owner session
-    private SMBSrvSession m_ownerSess;
-
-    // Oplock owner detals
-    private OplockOwner m_oplockOwner;
-
-    /**
-     * Class constructor
-     *
-     * @param lockTyp OpLockType
-     * @param path    String
-     * @param sess    SMBSrvSession
-     * @param pkt     SMBSrvPacket
-     * @param folder  boolean
-     */
-    public LocalOpLockDetails(OpLockType lockTyp, String path, SMBSrvSession sess, SMBSrvPacket pkt, boolean folder) {
-        m_type = lockTyp;
-        m_path = path;
-
-        m_folder = folder;
-
-        m_ownerSess = sess;
-
-        // Get the associated parser
-        SMBParser parser = pkt.getParser();
-        parser.setOplockOwner(sess, this);
-    }
+    // Oplock owner details
+    private List<OplockOwner> m_oplockOwners;
 
     /**
      * Class constructor
@@ -100,8 +76,7 @@ public class LocalOpLockDetails extends OpLockDetailsAdapter {
 
         m_folder = folder;
 
-        m_ownerSess = sess;
-        m_oplockOwner = owner;
+        setOplockOwner( owner);
     }
 
     /**
@@ -119,7 +94,9 @@ public class LocalOpLockDetails extends OpLockDetailsAdapter {
      * @return SMBSrvSession
      */
     public SMBSrvSession getOwnerSession() {
-        return m_ownerSess;
+        if ( m_oplockOwners != null && m_oplockOwners.size() > 0)
+            return m_oplockOwners.get( 0).getSession();
+        return null;
     }
 
     /**
@@ -128,7 +105,7 @@ public class LocalOpLockDetails extends OpLockDetailsAdapter {
      * @return boolean
      */
     public final boolean hasOplockOwner() {
-        return m_oplockOwner != null ? true : false;
+        return m_oplockOwners != null && m_oplockOwners.size() > 0;
     }
 
     /**
@@ -137,7 +114,67 @@ public class LocalOpLockDetails extends OpLockDetailsAdapter {
      * @return OplockOwner
      */
     public final OplockOwner getOplockOwner() {
-        return m_oplockOwner;
+        if ( m_oplockOwners != null && m_oplockOwners.size() > 0)
+            return m_oplockOwners.get( 0);
+        return null;
+    }
+
+    /**
+     * For a shared level II oplock there can be multiple owners, return the number of owners
+     *
+     * @return int
+     */
+    public final int numberOfOwners() {
+        if ( m_oplockOwners != null)
+            return m_oplockOwners.size();
+        return 0;
+    }
+
+    /**
+     * Return the list of oplock owners
+     *
+     * @return List&lt;OplockOwner&gt;
+     */
+    public final List<OplockOwner> getOwnerList() { return m_oplockOwners; }
+
+    /**
+     * Add another owner to the list, for level II oplocks
+     *
+     * @param owner OplockOwner
+     * @exception InvalidOplockStateException Not a level II oplock, or no owner list
+     */
+    public final void addOwner(OplockOwner owner)
+        throws InvalidOplockStateException {
+
+        // Make sure this is a level II oplock
+        if ( getLockType() != OpLockType.LEVEL_II)
+            throw new InvalidOplockStateException( "Not a level II oplock");
+        if ( m_oplockOwners == null)
+            throw new InvalidOplockStateException( "No existing owner list");
+
+        m_oplockOwners.add( owner);
+    }
+
+    /**
+     * Remove an owner from a level II shared oplock
+     *
+     * @param owner OplockOwner
+     * @return OplockOwner
+     * @exception InvalidOplockStateException Not a level II oplock, or no owner list
+     */
+    public final OplockOwner removeOplockOwner(OplockOwner owner)
+        throws InvalidOplockStateException {
+
+        // Make sure this is a level II oplock
+        if ( getLockType() != OpLockType.LEVEL_II)
+            throw new InvalidOplockStateException( "Not a level II oplock");
+        if ( m_oplockOwners == null)
+            throw new InvalidOplockStateException( "No existing owner list");
+
+        int idx = m_oplockOwners.indexOf( owner);
+        if ( idx != -1)
+            return m_oplockOwners.remove( idx);
+        return null;
     }
 
     /**
@@ -193,7 +230,9 @@ public class LocalOpLockDetails extends OpLockDetailsAdapter {
      * @param owner OplockOwner
      */
     public void setOplockOwner(OplockOwner owner) {
-        m_oplockOwner = owner;
+        if ( m_oplockOwners == null)
+            m_oplockOwners = new ArrayList<>();
+        m_oplockOwners.add( owner);
     }
 
     /**
@@ -213,8 +252,8 @@ public class LocalOpLockDetails extends OpLockDetailsAdapter {
         m_failedBreak = true;
 
         // DEBUG
-        if ( m_ownerSess != null && m_ownerSess.hasDebug( SMBSrvSession.Dbg.OPLOCK))
-            m_ownerSess.debugPrintln("*** Oplock break failed, timed out");
+        if ( getOwnerSession() != null && getOwnerSession().hasDebug( SMBSrvSession.Dbg.OPLOCK))
+            getOwnerSession().debugPrintln("*** Oplock break failed, timed out");
     }
 
     /**
@@ -464,22 +503,33 @@ public class LocalOpLockDetails extends OpLockDetailsAdapter {
         else
             str.append("NULL");
 
-        str.append(", Owner=");
-        if ( hasOplockOwner())
-            str.append( getOplockOwner().toString());
-        else
-            str.append("NULL");
+        if ( getLockType() != OpLockType.LEVEL_II) {
+            str.append(", Owner=");
+            if (hasOplockOwner())
+                str.append(getOplockOwner().toString());
+            else
+                str.append("NULL");
 
-        if (hasDeferredSessions()) {
-            str.append(",DeferList=");
-            str.append(numberOfDeferredSessions());
+            if (hasDeferredSessions()) {
+                str.append(",DeferList=");
+                str.append(numberOfDeferredSessions());
+            }
+
+            if (hasOplockBreakFailed())
+                str.append(" BreakFailed");
+            else if (hasBreakInProgress())
+                str.append(" BreakInProgress");
         }
+        else {
+            str.append(", Owners=");
+            str.append( numberOfOwners());
+            str.append(", SessIds=");
 
-        if (hasOplockBreakFailed())
-            str.append(" BreakFailed");
-        else if (hasBreakInProgress())
-            str.append(" BreakInProgress");
-
+            for( OplockOwner owner: m_oplockOwners) {
+                str.append( owner.getSession().getUniqueId());
+                str.append(",");
+            }
+        }
         str.append("]");
 
         return str.toString();

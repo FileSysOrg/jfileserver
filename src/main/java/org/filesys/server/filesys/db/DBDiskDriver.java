@@ -175,13 +175,16 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
                     Debug.println("** File close, file=" + file.getFullName() + ", openCount=" + fstate.getOpenCount());
 
                 // Check if there is an oplock on the file
-                if (jdbcFile.hasOpLock()) {
+                if (jdbcFile.hasOpLock() && sess instanceof SMBSrvSession) {
+
+                    // Access the SMB session
+                    SMBSrvSession smbSess = (SMBSrvSession) sess;
 
                     // Release the oplock
                     OpLockInterface flIface = (OpLockInterface) this;
                     OpLockManager oplockMgr = flIface.getOpLockManager(sess, tree);
 
-                    oplockMgr.releaseOpLock(jdbcFile.getOpLock().getPath());
+                    oplockMgr.releaseOpLock(jdbcFile.getOpLock().getPath(), jdbcFile.getOplockOwner());
 
                     //  DEBUG
                     if (Debug.EnableInfo && hasDebug())

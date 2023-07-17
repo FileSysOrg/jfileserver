@@ -29,10 +29,7 @@ import org.filesys.locking.FileLock;
 import org.filesys.locking.FileLockList;
 import org.filesys.locking.LockConflictException;
 import org.filesys.locking.NotLockedException;
-import org.filesys.server.filesys.ExistingOpLockException;
-import org.filesys.server.filesys.FileName;
-import org.filesys.server.filesys.FileOpenParams;
-import org.filesys.server.filesys.FileStatus;
+import org.filesys.server.filesys.*;
 import org.filesys.server.filesys.pseudo.PseudoFile;
 import org.filesys.server.filesys.pseudo.PseudoFileList;
 import org.filesys.server.locking.OpLockDetails;
@@ -99,7 +96,8 @@ public abstract class FileState implements Serializable {
     //	Open file count
     private int m_openCount;
 
-    // Sharing mode and PID (or session/virtual circuit id) of first process to open the file
+    // Sharing mode, access mask and PID (or session/virtual circuit id) of first process to open the file
+    private int m_accessMask;
     private SharingMode m_sharedAccess = SharingMode.ALL;
     private long m_pid = -1L;
 
@@ -215,13 +213,18 @@ public abstract class FileState implements Serializable {
     public abstract int getFileId();
 
     /**
+     * Return the access mask, from the first file open
+     *
+     * @return int
+     */
+    public int getAccessMask() { return m_accessMask; }
+
+    /**
      * Return the shared access mode
      *
      * @return SharingMode
      */
-    public final SharingMode getSharedAccess() {
-        return m_sharedAccess;
-    }
+    public final SharingMode getSharedAccess() { return m_sharedAccess; }
 
     /**
      * Return the PID of the first process to open the file, or -1 if the file is not open
@@ -416,6 +419,16 @@ public abstract class FileState implements Serializable {
      */
     public void setRetentionExpiryDateTime(long expires) {
         m_retainUntil = expires;
+    }
+
+    /**
+     * Set the access mask, from the first file open
+     *
+     * @param accMask int
+     */
+    public void setAccessMask(int accMask) {
+        if ( getOpenCount() == 0)
+            m_accessMask = accMask;
     }
 
     /**
@@ -950,6 +963,81 @@ public abstract class FileState implements Serializable {
     }
 
     /**
+     * Determine if the file is to be opened read-only
+     *
+     * @return boolean
+     */
+    public final boolean isReadOnlyAccess() {
+        if ((m_accessMask & AccessMode.NTReadWrite) == AccessMode.NTRead ||
+                (m_accessMask & AccessMode.NTGenericReadWrite) == AccessMode.NTGenericRead)
+            return true;
+        return false;
+    }
+
+    /**
+     * Determine if the file is to be opened write-only
+     *
+     * @return boolean
+     */
+    public final boolean isWriteOnlyAccess() {
+        if ((m_accessMask & AccessMode.NTReadWrite) == AccessMode.NTWrite ||
+                (m_accessMask & AccessMode.NTGenericReadWrite) == AccessMode.NTGenericWrite)
+            return true;
+        return false;
+    }
+
+    /**
+     * Determine if the file is to be opened read/write
+     *
+     * @return boolean
+     */
+    public final boolean isReadWriteAccess() {
+        if ((m_accessMask & AccessMode.NTReadWrite) == AccessMode.NTReadWrite ||
+                (m_accessMask & AccessMode.NTGenericReadWrite) == AccessMode.NTGenericReadWrite ||
+                m_accessMask == AccessMode.NTGenericAll)
+            return true;
+        return false;
+    }
+
+    /**
+     * Determine if the file is to be opened with delete access
+     *
+     * @return boolean
+     */
+    public final boolean isDeleteAccess() {
+        return (m_accessMask & AccessMode.NTDelete) != 0;
+    }
+
+    /**
+     * Determine if the file is to be opened with execute access
+     *
+     * @return boolean
+     */
+    public final boolean isExecuteAccess() {
+        return (m_accessMask & AccessMode.NTExecute) != 0;
+    }
+
+    /**
+     * File has been marked for delete on close, change the sharing mode to none so that
+     * any further file open attempts will fail with a sharing violation error
+     */
+    public final void setDeleteOnClose() { m_sharedAccess = SharingMode.NOSHARING; }
+
+    /**
+     * Determine if the file open is to access the file attributes/metadata only
+     *
+     * @return boolean
+     */
+    public final boolean isAttributesOnlyAccess() {
+        if ((m_accessMask & (AccessMode.NTReadWrite + AccessMode.NTAppend)) == 0 &&
+                (m_accessMask & AccessMode.NTGenericReadWrite) == 0 &&
+                (m_accessMask & (AccessMode.NTReadAttrib + AccessMode.NTWriteAttrib)) != 0)
+            return true;
+        return false;
+    }
+
+
+    /**
      * Normalize the path to uppercase the directory names and keep the case of the file name.
      *
      * @param path String
@@ -1063,7 +1151,9 @@ public abstract class FileState implements Serializable {
         str.append(getOpenCount());
 
         if (getOpenCount() > 0) {
-            str.append("(shr=");
+            str.append("(access=0x");
+            str.append( Integer.toHexString( getAccessMask()));
+            str.append(",shr=");
             str.append(getSharedAccess().name());
             str.append(",pid=0x");
             str.append(Long.toHexString(getProcessId()));
