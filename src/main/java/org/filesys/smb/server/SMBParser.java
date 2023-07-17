@@ -19,7 +19,9 @@ package org.filesys.smb.server;
 
 import org.filesys.server.auth.AuthenticatorException;
 import org.filesys.server.filesys.postprocess.PostRequestProcessor;
+import org.filesys.server.locking.OpLockDetails;
 import org.filesys.server.locking.OpLockDetailsAdapter;
+import org.filesys.server.locking.OplockOwner;
 import org.filesys.smb.dcerpc.UUID;
 import org.filesys.util.DataPacker;
 
@@ -711,12 +713,14 @@ public abstract class SMBParser {
         throws AuthenticatorException, SMBSrvException;
 
     /**
-     * Set the owner details for an oplock
+     * Create the owner details for an oplock
      *
      * @param sess SMBSrvSession
-     * @param opLock OpLockDetailsAdapter
+     * @param vcId int
+     * @param opLock OpLockDetails
+     * @return OplockOwner
      */
-    public abstract void setOplockOwner(SMBSrvSession sess, OpLockDetailsAdapter opLock);
+    public abstract OplockOwner createOplockOwner(SMBSrvSession sess, int vcId, OpLockDetails opLock);
 
     /**
      * Do any final processing to a response before it is sent out

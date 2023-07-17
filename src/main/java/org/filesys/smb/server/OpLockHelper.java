@@ -34,6 +34,10 @@ import java.io.IOException;
  */
 public class OpLockHelper {
 
+    // File access modes
+    private static final int FileAccessRead         = 0x00120089;
+    private static final int FileAccessReadWrite    = 0x0012019F;
+
     /**
      * Grant an oplock, check if the filesystem supports oplocks, grant the requested oplock and return the
      * oplock details, or null if no oplock granted or requested.
@@ -57,7 +61,7 @@ public class OpLockHelper {
 
         if (disk instanceof OpLockInterface) {
 
-            // Get the oplock interfcae, check if oplocks are enabled
+            // Get the oplock interface, check if oplocks are enabled
             OpLockInterface oplockIface = (OpLockInterface) disk;
             if (oplockIface.isOpLocksEnabled(sess, tree) == false)
                 return null;
@@ -81,14 +85,21 @@ public class OpLockHelper {
                 // Get the oplock type
                 OpLockType oplockTyp = params.requestedOplockType();
 
-                if ( oplockTyp == OpLockType.LEVEL_NONE)
+                if (oplockTyp == OpLockType.LEVEL_NONE)
                     return null;
 
+                // For read-only access the oplock type should be changed to a level II oplock
+/**
+                if (oplockTyp == OpLockType.LEVEL_BATCH && params.getAccessMode() == FileAccessRead) {
+                    oplockTyp = OpLockType.LEVEL_II;
+
+                    // DEBUG
+                    if ( Debug.EnableDbg && sess.hasDebug( SMBSrvSession.Dbg.OPLOCK))
+                        sess.debugPrintln("Read-only file open, convert request for batch oplock to level II");
+                }
+**/
                 // Create the oplock details
-                if ( params.hasOplockOwner())
-                    oplock = new LocalOpLockDetails(oplockTyp, params.getPath(), sess, params.getOplockOwner(), netFile.isDirectory());
-                else
-                    oplock = new LocalOpLockDetails(oplockTyp, params.getPath(), sess, pkt, netFile.isDirectory());
+                oplock = new LocalOpLockDetails(oplockTyp, params.getPath(), sess, params.getOplockOwner(), netFile.isDirectory());
 
                 try {
 
@@ -96,7 +107,7 @@ public class OpLockHelper {
                     if (oplockMgr.grantOpLock(params.getPath(), oplock, netFile)) {
 
                         // Save the oplock details with the opened file
-                        netFile.setOpLock(oplock);
+                        netFile.setOpLock(oplock, params.getOplockOwner());
 
                         // DEBUG
                         if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.Dbg.OPLOCK))
@@ -206,7 +217,7 @@ public class OpLockHelper {
                         // Check for a batch oplock, is the owner the same
                         if ( oplock.getLockType() == OpLockType.LEVEL_BATCH && params.requestBatchOpLock()) {
 
-                            // Check if the current oplock owner is the same as the requestor
+                            // Check if the current oplock owner is the same as the requester
                             if ( localOpLock.getOplockOwner().isOwner( OpLockType.LEVEL_BATCH, params.getOplockOwner())) {
 
                                 // DEBUG
@@ -270,7 +281,7 @@ public class OpLockHelper {
                     else {
 
                         //	Oplock owner session is no longer valid, release the oplock
-                        oplockMgr.releaseOpLock(oplock.getPath());
+                        oplockMgr.releaseOpLock(oplock.getPath(), params.getOplockOwner());
 
                         // DEBUG
                         if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.Dbg.OPLOCK))
@@ -367,10 +378,10 @@ public class OpLockHelper {
                 if (oplock != null) {
 
                     // Release the oplock
-                    oplockMgr.releaseOpLock(oplock.getPath());
+                    oplockMgr.releaseOpLock(oplock.getPath(), netFile.getOplockOwner());
 
-                    // Clear the network file oplock
-                    netFile.setOpLock(null);
+                    // Clear the network file oplock and owner
+                    netFile.setOpLock(null, null);
 
                     // DEBUG
                     if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.Dbg.OPLOCK))

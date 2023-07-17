@@ -162,6 +162,18 @@ public class OpLockDetailsAdapter implements OpLockDetails {
     public void setOplockOwner(OplockOwner owner) {}
 
     /**
+     * Remove an oplock owner
+     *
+     * @param owner OplockOwner
+     * @return OplockOwner
+     * @throws InvalidOplockStateException Not a level II oplock, or empty owner list
+     */
+    public OplockOwner removeOplockOwner(OplockOwner owner)
+        throws InvalidOplockStateException {
+            return null;
+    }
+
+    /**
      * Set the owner file id
      *
      * @param fileId int

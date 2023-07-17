@@ -27,6 +27,7 @@ import java.util.Set;
 import org.filesys.locking.FileLock;
 import org.filesys.locking.FileLockList;
 import org.filesys.server.locking.OpLockDetails;
+import org.filesys.server.locking.OplockOwner;
 
 /**
  * <p>
@@ -135,8 +136,9 @@ public abstract class NetworkFile {
     // File status flags
     private Set<Flags> m_flags = EnumSet.of( Flags.CLOSED);
 
-    // Oplock details
+    // Oplock details and owner
     private OpLockDetails m_oplock;
+    private OplockOwner m_oplockOwner;
 
     // Access token object
     private FileAccessToken m_accessToken;
@@ -869,7 +871,7 @@ public abstract class NetworkFile {
      * @return boolean
      */
     public final boolean hasOpLock() {
-        return m_oplock != null ? true : false;
+        return m_oplock != null;
     }
 
     /**
@@ -882,12 +884,28 @@ public abstract class NetworkFile {
     }
 
     /**
+     * Check if there is an oplock owner
+     *
+     * @return boolean
+     */
+    public final boolean hasOplockOwner() { return m_oplockOwner != null; }
+
+    /**
+     * Return the oplock owner
+     *
+     * @return OplockOwner
+     */
+    public final OplockOwner getOplockOwner() { return m_oplockOwner; }
+
+    /**
      * Set/clear the oplock on this file
      *
      * @param oplock OpLockDetails
+     * @param owner OplockOwner
      */
-    public final void setOpLock(OpLockDetails oplock) {
+    public final void setOpLock(OpLockDetails oplock, OplockOwner owner) {
         m_oplock = oplock;
+        m_oplockOwner = owner;
     }
 
     /**

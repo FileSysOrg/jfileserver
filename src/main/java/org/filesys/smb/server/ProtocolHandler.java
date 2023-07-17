@@ -30,6 +30,8 @@ import org.filesys.server.auth.ISMBAuthenticator;
 import org.filesys.server.core.NoPooledMemoryException;
 import org.filesys.server.filesys.*;
 import org.filesys.server.locking.LocalOpLockDetails;
+import org.filesys.server.locking.OpLockDetails;
+import org.filesys.server.locking.OplockOwner;
 import org.filesys.smb.Dialect;
 import org.filesys.smb.server.notify.NotifyChangeEvent;
 import org.filesys.smb.server.notify.NotifyRequest;

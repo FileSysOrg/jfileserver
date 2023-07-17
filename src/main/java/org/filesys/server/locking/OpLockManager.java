@@ -82,8 +82,9 @@ public interface OpLockManager {
      * Release an oplock
      *
      * @param path String
+     * @param owner OplockOwner
      */
-    public void releaseOpLock(String path);
+    public void releaseOpLock(String path, OplockOwner owner);
 
     /**
      * Change an oplock type

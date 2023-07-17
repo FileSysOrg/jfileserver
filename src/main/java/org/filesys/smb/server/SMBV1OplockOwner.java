@@ -36,19 +36,24 @@ public class SMBV1OplockOwner implements OplockOwner {
 
     private int m_fileId;
 
+    private transient SMBSrvSession m_ownerSess;
+
     /**
      * Class constructor
      *
+     * @param sess SMBSrvSession
      * @param treeId int
      * @param procId int
      * @param userId int
      */
-    public SMBV1OplockOwner(int treeId, int procId, int userId) {
+    public SMBV1OplockOwner(SMBSrvSession sess, int treeId, int procId, int userId) {
         m_treeId = treeId;
         m_processId = procId;
         m_userId = userId;
 
         m_fileId = -1;
+
+        m_ownerSess = sess;
     }
 
     /**
@@ -86,6 +91,13 @@ public class SMBV1OplockOwner implements OplockOwner {
     public final int getFileId() {
         return m_fileId;
     }
+
+    /**
+     * Return the owner session
+     *
+     * @return SMBSrvSession
+     */
+    public final SMBSrvSession getSession() { return m_ownerSess; }
 
     /**
      * Set the file id

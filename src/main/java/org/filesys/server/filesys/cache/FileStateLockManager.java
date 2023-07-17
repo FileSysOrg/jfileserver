@@ -32,10 +32,7 @@ import org.filesys.server.filesys.DeferFailedException;
 import org.filesys.server.filesys.ExistingOpLockException;
 import org.filesys.server.filesys.NetworkFile;
 import org.filesys.server.filesys.TreeConnection;
-import org.filesys.server.locking.LockManager;
-import org.filesys.server.locking.LockParams;
-import org.filesys.server.locking.OpLockDetails;
-import org.filesys.server.locking.OpLockManager;
+import org.filesys.server.locking.*;
 import org.filesys.server.thread.ThreadRequestPool;
 import org.filesys.server.thread.TimedThreadRequest;
 import org.filesys.smb.OpLockType;
@@ -327,25 +324,50 @@ public class FileStateLockManager implements LockManager, OpLockManager, Runnabl
      * Release an oplock
      *
      * @param path String
+     * @param owner OplockOwner
      */
-    public void releaseOpLock(String path) {
+    public void releaseOpLock(String path, OplockOwner owner) {
 
         // Get the file state
         FileState fstate = m_stateCache.findFileState(path);
-        if (fstate != null)
-            fstate.clearOpLock();
+        if (fstate != null && fstate.getOpLock() != null) {
 
-        // Remove from the pending oplock break queue
-        synchronized (m_oplockQueue) {
+            // Get the oplock details
+            OpLockDetails oplock = fstate.getOpLock();
 
-            // Remove any active oplock break from the queue
-            OpLockDetails oplock = m_oplockQueue.remove(path);
+            // For a shared level II oplock we remove the owner, there may be multiple owners
+            if ( oplock.getLockType() == OpLockType.LEVEL_II) {
 
-            // Check if there is a deferred CIFS request pending for this oplock
-            if (oplock != null && oplock.hasDeferredSessions()) {
+                try {
 
-                // Requeue the deferred requests to the thread pool for processing
-                oplock.requeueDeferredRequests();
+                    // Remove the oplock owner
+                    OplockOwner remOwner = oplock.removeOplockOwner(owner);
+
+                    // TODO: If there is only one oplock owner left then send an oplock break notification to the remaining owner
+                    // TODO: Clear the oplock
+                }
+                catch ( InvalidOplockStateException ex)  {
+
+                }
+            }
+            else {
+
+                // Remove the oplock from the file state
+                fstate.clearOpLock();
+
+                // Remove from the pending oplock break queue
+                synchronized (m_oplockQueue) {
+
+                    // Remove any active oplock break from the queue
+                    OpLockDetails remOplock = m_oplockQueue.remove(path);
+
+                    // Check if there is a deferred CIFS request pending for this oplock
+                    if (remOplock != null && remOplock.hasDeferredSessions()) {
+
+                        // Requeue the deferred requests to the thread pool for processing
+                        remOplock.requeueDeferredRequests();
+                    }
+                }
             }
         }
     }
