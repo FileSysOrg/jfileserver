@@ -44,7 +44,7 @@ import org.filesys.smb.server.SMBSrvPacket;
 import org.filesys.smb.server.SMBSrvSession;
 
 /**
- * Srvsvc DCE/RPC Handler Class
+ * Server Service DCE/RPC Handler Class
  *
  * @author gkspencer
  */

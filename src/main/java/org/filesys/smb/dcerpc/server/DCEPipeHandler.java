@@ -37,7 +37,7 @@ public class DCEPipeHandler {
             null,                // winreg
             new WkssvcDCEHandler(),
             null,                // NETLOGON
-            null,                // lsarpc
+            new LsaRpcDCEHandler(),
             null,                // spoolss
             null,                // netdfs
             null,                // service control
@@ -51,7 +51,7 @@ public class DCEPipeHandler {
      * @param typ DCEPipeType
      * @return DCEHandler
      */
-    public final static DCEHandler getHandlerForType(DCEPipeType typ) {
+    public static DCEHandler getHandlerForType(DCEPipeType typ) {
         int ival = typ.intValue();
 
         if (ival >= 0 && ival < _handlers.length)
@@ -65,7 +65,7 @@ public class DCEPipeHandler {
      * @param typ DCCEPipeType
      * @param handler DCEHandler
      */
-    public final static void addHandlerForType(DCEPipeType typ, DCEHandler handler) {
+    public static void addHandlerForType(DCEPipeType typ, DCEHandler handler) {
         int ival = typ.intValue();
 
         if (ival >= 0 && ival < _handlers.length)

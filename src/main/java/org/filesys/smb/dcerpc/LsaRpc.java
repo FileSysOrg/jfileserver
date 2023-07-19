@@ -1,35 +1,33 @@
 /*
- * Copyright (C) 2006-2010 Alfresco Software Limited.
+ * Copyright (C) 2023 GK Spencer
  *
- * This file is part of Alfresco
- *
- * Alfresco is free software: you can redistribute it and/or modify
+ * JFileServer is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * Alfresco is distributed in the hope that it will be useful,
+ * JFileServer is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with Alfresco. If not, see <http://www.gnu.org/licenses/>.
+ * along with JFileServer. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package org.filesys.smb.dcerpc;
 
 /**
- * Workstation Service Operation Ids Class
+ * Local Security Authority Service Operation Id Class
  *
- * <p>Contains constants for the workstation DCE/RPC service requests.
+ *  * <p>Contains constants for the local security authority DCE/RPC service requests.
  *
  * @author gkspencer
  */
-public class Wkssvc {
+public class LsaRpc {
 
-    //	Wkssvc opcodes
-    public static final int NetWkstaGetInfo = 0x00;
+    //	LsaRpc opcodes
+    public static final int DsRoleGetPrimaryDomainInformation = 0x00;
 
     /**
      * Convert an opcode to a function name
@@ -41,10 +39,11 @@ public class Wkssvc {
 
         String ret = "";
         switch (opCode) {
-            case NetWkstaGetInfo:
-                ret = "NetWkstaGetInfo";
+            case DsRoleGetPrimaryDomainInformation:
+                ret = "DsRoleGetPrimaryDomainInformation";
                 break;
         }
+
         return ret;
     }
 }

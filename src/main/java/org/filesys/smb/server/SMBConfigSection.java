@@ -171,6 +171,10 @@ public class SMBConfigSection extends ConfigSection {
     // events are re-enabled and the thread request exits processing
     private int m_maxPacketsPerRun = 4;     // original default, based on SMB1
 
+    // Values for the Local Security Authority
+    private String m_dnsName;
+    private String m_forestName;
+
     /**
      * Class constructor
      *
@@ -627,6 +631,20 @@ public class SMBConfigSection extends ConfigSection {
      * @return int
      */
     public final int getMaximumPacketsPerThreadRun() { return m_maxPacketsPerRun; }
+
+    /**
+     * Return the DNS name of the server
+     *
+     * @return String
+     */
+    public final String getDNSName() { return m_dnsName; }
+
+    /**
+     * Return the forest name for the server
+     *
+     * @return String
+     */
+    public final String getForestName() { return m_forestName; }
 
     /**
      * Check if native code calls are disabled
@@ -1461,6 +1479,20 @@ public class SMBConfigSection extends ConfigSection {
         //  Return the change status
         return sts;
     }
+
+    /**
+     * Set the DNS name of the server
+     *
+     * @param dnsName String
+     */
+    public final void setDNSName(String dnsName) { m_dnsName = dnsName; }
+
+    /**
+     * Set the forest name of the server
+     *
+     * @param forestName String
+     */
+    public final void setForestName(String forestName) { m_forestName = forestName; }
 
     /**
      * Close the configuration section
