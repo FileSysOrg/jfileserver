@@ -1154,6 +1154,26 @@ public class DCEBuffer {
     }
 
     /**
+     * Append a short value to the buffer
+     *
+     * @param sval int
+     * @param align int
+     */
+    public final void putShort(int sval, int align) {
+
+        //	Check if there is enough space in the buffer
+        if (m_buffer.length - m_pos < 2)
+            extendBuffer();
+
+        //	Pack the short value
+        DataPacker.putIntelShort(sval, m_buffer, m_pos);
+        m_pos += 2;
+
+        //	Align the new buffer position
+        alignPosition(align);
+    }
+
+    /**
      * Append a DCE string to the buffer
      *
      * @param str String
@@ -1538,6 +1558,22 @@ public class DCEBuffer {
         m_pos += 4;
         DataPacker.putZeros(m_buffer, m_pos, 4);
         m_pos += 4;
+    }
+
+    /**
+     * Append zero bytes to the buffer
+     *
+     * @param bytCnt int
+     */
+    public final void putZeroBytes(int bytCnt) {
+
+        //	Check if there is enough space in the buffer
+        if (m_buffer.length - m_pos < bytCnt)
+            extendBuffer(bytCnt * 2);
+
+        //	Pack the zero byte values
+        DataPacker.putZeros(m_buffer, m_pos, bytCnt);
+        m_pos += bytCnt;
     }
 
     /**

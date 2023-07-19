@@ -1271,6 +1271,23 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 
 		if ( elem != null)
 			smbConfig.setSocketKeepAlive( false);
+
+		// Check for the values used by the Local Security Authority DCE/RPC service
+		elem = findChildNode( "dnsName", host.getChildNodes());
+
+		if ( elem != null) {
+			String dnsName = getText( elem);
+			if ( dnsName != null && !dnsName.isEmpty())
+				smbConfig.setDNSName( dnsName);
+		}
+
+		elem = findChildNode( "forestName", host.getChildNodes());
+
+		if ( elem != null) {
+			String forestName = getText( elem);
+			if ( forestName != null && !forestName.isEmpty())
+				smbConfig.setForestName( forestName);
+		}
 	}
 
 	/**

@@ -20,7 +20,7 @@
 package org.filesys.smb.dcerpc;
 
 /**
- * Srvsvc Operation Ids Class
+ * Server Service Operation Ids Class
  *
  * <p>Contains constants for the DCE/RPC server service requests.
  *
@@ -49,7 +49,7 @@ public class Srvsvc {
      * @param opCode int
      * @return String
      */
-    public final static String getOpcodeName(int opCode) {
+    public static String getOpcodeName(int opCode) {
 
         String ret = "";
         switch (opCode) {
