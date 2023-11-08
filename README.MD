@@ -8,8 +8,8 @@ and NFS protocols. A virtual filesystem interface allows custom filesystems to b
 with a database filesystem framework that makes it easy to use a database to store the filesystem
 metadata, and optionally the file data.
 
-The file server is highly scaleable using asynchronous I/O, thread pools and memory pools
-to optimise the throughput. The server may be clustered for additional scaleability based
+The file server is highly scalable using asynchronous I/O, thread pools and memory pools
+to optimise the throughput. The server may be clustered for additional scalability based
 on the Hazelcast cluster technology.
 
 An Enterprise add-on module adds support for SMBv2 (higher performance) and SMBv3 (full encryption).
@@ -38,7 +38,7 @@ are licensed under the same GNU LGPL v3.0 license as the original Alfresco-JLAN 
 
 JDK Version
 -----------
-The JFileServer code uses features of JDK version 7 onwards.
+The JFileServer code uses features of JDK version 11 onwards.
 
 Docker
 ------
@@ -50,7 +50,7 @@ For a list of the available Docker images see <https://hub.docker.com/r/filesyso
 
 Website
 -------
-The main website can be found at <http://www.filesys.org>.
+The main website can be found at <https://www.filesys.org>.
 
 Additional information and documentation will be added there in the near future.
 
