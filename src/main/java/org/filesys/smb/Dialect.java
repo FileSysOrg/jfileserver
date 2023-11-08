@@ -412,6 +412,8 @@ public final class Dialect {
      * @return SMB dialect type string.
      */
     public static String DialectTypeString(int dia) {
+        if ( dia < 0 || dia >= protType.length)
+            return "Unknown";
         return protType[dia];
     }
 
@@ -440,6 +442,9 @@ public final class Dialect {
                 break;
             case 0x0210:
                 protoId = SMB2_210;
+                break;
+            case 0x02FF:
+                protoId = SMB2_Any;
                 break;
             case 0x0300:
                 protoId = SMB3_300;

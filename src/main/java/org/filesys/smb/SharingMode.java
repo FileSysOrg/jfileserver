@@ -61,21 +61,30 @@ public enum SharingMode {
      *
      * @return boolean
      */
-    public final boolean hasRead() { return (shareMode & READ.intValue()) != 0 ? true : false; }
+    public final boolean hasRead() { return (shareMode & READ.intValue()) != 0; }
 
     /**
      * Check for the write bit
      *
      * @return boolean
      */
-    public final boolean hasWrite() { return (shareMode & WRITE.intValue()) != 0 ? true : false; }
+    public final boolean hasWrite() { return (shareMode & WRITE.intValue()) != 0; }
 
     /**
      * Check for the delete bit
      *
      * @return boolean
      */
-    public final boolean hasDelete() { return (shareMode & DELETE.intValue()) != 0 ? true : false; }
+    public final boolean hasDelete() { return (shareMode & DELETE.intValue()) != 0; }
+
+    /**
+     * Check if the current sharing mode allows the specified sharing mode
+     *
+     * @param mode SharingMode
+     */
+    public final boolean allowsMode( SharingMode mode) {
+        return (this.shareMode & mode.intValue()) == mode.intValue();
+    }
 
     /**
      * Create a sharing mode from an int
