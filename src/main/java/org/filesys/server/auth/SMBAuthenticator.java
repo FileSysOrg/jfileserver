@@ -180,8 +180,13 @@ public abstract class SMBAuthenticator implements ISMBAuthenticator {
     public void initialize(ServerConfiguration config, ConfigElement params)
             throws InvalidConfigurationException {
 
+        // Check if debug output is enabled
         if (params.getChild("Debug") != null)
             setDebug(true);
+
+        // Check if the 'guest' user is enabled, required by the Windows Protocol Test Suite
+        if(params.getChild( "allowGuest") != null)
+            m_allowGuest = true;
 
         // Save the server configuration so we can access the authentication component
         setConfig(config);

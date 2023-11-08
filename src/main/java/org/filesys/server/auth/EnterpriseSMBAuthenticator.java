@@ -23,6 +23,7 @@ package org.filesys.server.auth;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Paths;
@@ -932,7 +933,7 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
      * @return AuthStatus
      * @exception SMBSrvException SMB error
      */
-    private final AuthStatus doNtlmsspSessionSetup(SMBSrvSession sess, ClientInfo client, SecurityBlob secBlob, boolean spnego)
+    private AuthStatus doNtlmsspSessionSetup(SMBSrvSession sess, ClientInfo client, SecurityBlob secBlob, boolean spnego)
             throws SMBSrvException {
 
         // Make sure NTLM logons are enabled
@@ -1051,8 +1052,11 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
             if ( hasDebugOutput())
                 debugOutput("[SMB] Received NTLM Type3/Authenticate - " + type3Msg.toString());
 
+            // Save the client NTLM flags
+            secBlob.setNTLMFlags( type3Msg.getFlags());
+
             // Make sure a type 2 message was stored in the first stage of the session setup
-            if (sess.hasSetupObject(client.getProcessId(), SetupObjectType.Type2Message) == false) {
+            if ( !sess.hasSetupObject(client.getProcessId(), SetupObjectType.Type2Message)) {
 
                 // Clear the setup object
                 sess.removeAllSetupObjects(client.getProcessId());
@@ -1104,6 +1108,9 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
 
                     // Looks like an NTLMv2 blob
                     doNTLMv2Logon(sess, client, type3Msg);
+
+                    // Check if the NTLM message MIC requires verification
+                    secBlob.setRequireVerifyMIC( type3Msg.requiresMICVerify());
 
                     // Debug
                     if (hasDebugOutput())
@@ -1210,10 +1217,11 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
                     // Verify the received MIC token
                     NegTokenInit negInit = (NegTokenInit) sess.getSetupObject(client.getProcessId(), SetupObjectType.NegTokenInit);
 
-                    if ( negInit.hasMechListBytes()) {
+                    if ( negInit != null && negInit.hasMechListBytes()) {
                         byte[] mechList = negInit.getMechListBytes();
 
-                        if (verifyMIC(sess, mechList, 0, mechList.length, negToken.getMechListMIC(), client.getProcessId()) == false) {
+                        if ( ntlmBlob.requiresMICVerification() &&
+                                !verifyMIC(sess, mechList, 0, mechList.length, negToken.getMechListMIC(), ntlmBlob.hasNTLMFlag(NTLM.FlagKeyExchange))) {
 
                             // Return a logon failure status
                             throw new SMBSrvException(SMBStatus.NTLogonFailure, SMBStatus.ErrDos, SMBStatus.DOSAccessDenied);
@@ -1223,11 +1231,11 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
                     // Get the original NegTokenInit that started the authentication
                     NegTokenInit initToken = (NegTokenInit) sess.getSetupObject( client.getProcessId(), SetupObjectType.NegTokenInit);
 
-                    if ( initToken.hasMechListBytes()) {
+                    if ( initToken != null && initToken.hasMechListBytes()) {
 
                         // Generate the MIC token for the response
                         byte[] initTokenByts = initToken.getMechListBytes();
-                        mechListMIC = generateMIC(sess, initTokenByts, 0, initTokenByts.length, 0);
+                        mechListMIC = generateMIC(sess, initTokenByts, 0, initTokenByts.length, 0, ntlmBlob.hasNTLMFlag(NTLM.FlagKeyExchange));
                     }
 
                     // No longer need the NTLM messages
@@ -1263,11 +1271,17 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
             sess.setSetupObject( client.getProcessId(), negToken, SetupObjectType.NegTokenInit);
 
             // Determine the authentication mechanism the client is using and logon
-            String oidStr = null;
-            if (negToken.numberOfOids() > 0)
-                oidStr = negToken.getOidAt(0).toString();
+            boolean hasNTLMSSPOid  = negToken.hasOid( OID.NTLMSSP);
+            boolean hasKerberosOid = negToken.hasOid( OID.KERBEROS5) || negToken.hasOid( OID.MSKERBEROS5);
 
-            if (oidStr != null && oidStr.equals(OID.ID_NTLMSSP)) {
+            // Check the mech token for NTLMSSP
+            byte[] mechToken = negToken.getMechtoken();
+            boolean isNTLMSSP = false;
+
+            if ( mechToken != null && SecurityBlob.checkForNTLMSSP( mechToken, 0))
+                isNTLMSSP = true;
+
+            if (isNTLMSSP || hasNTLMSSPOid) {
 
                 // NTLMSSP logon, get the NTLMSSP security blob that is inside the SPNEGO blob
                 byte[] ntlmsspBlob = negToken.getMechtoken();
@@ -1301,7 +1315,7 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
                 // Package the NTLMSSP response in an SPNEGO response
                 negTarg = new NegTokenTarg(spnegoSts, OID.NTLMSSP, ntlmBlob.getResponseBlob());
             }
-            else if (oidStr != null && (oidStr.equals(OID.ID_MSKERBEROS5) || oidStr.equals(OID.ID_KERBEROS5))) {
+            else if ( hasKerberosOid) {
 
                 // Kerberos logon
                 negTarg = doKerberosLogon(sess, negToken, client);
@@ -1371,6 +1385,16 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
      */
     private final NegTokenTarg doKerberosLogon(SMBSrvSession sess, NegTokenInit negToken, ClientInfo client)
             throws SMBSrvException {
+
+        // Make sure the login context is setup, if not then Kerberos logins are not allowed
+        if ( m_loginContext == null) {
+
+            // Debug
+            if (Debug.EnableDbg && hasDebug())
+                debugOutput("[SMB] Kerberos logon attempted, not enabled on server");
+
+            throw new SMBSrvException(SMBStatus.NTLogonFailure, SMBStatus.ErrDos, SMBStatus.DOSAccessDenied);
+        }
 
         //  Authenticate the user
         KerberosDetails krbDetails = null;
@@ -1539,12 +1563,25 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
             sess.setLoggedOn(true);
         } else {
 
-            // Log a warning, user does not exist
-            if (Debug.EnableError && hasDebug())
-                debugOutput("[SMB] User does not exist, " + userName);
+            // Check if this is a guest logon, if allowed
+            if ( allowGuest() && userName.equalsIgnoreCase( getGuestUserName())) {
 
-            // Return a logon failure
-            throw new SMBSrvException(SMBStatus.NTLogonFailure, SMBStatus.ErrDos, SMBStatus.DOSAccessDenied);
+                // Logon as a guest
+                client.setUserName( userName);
+                client.setGuest( true);
+
+                // Indiciate that the session is logged on
+                sess.setLoggedOn( true);
+            }
+            else {
+
+                // Log a warning, user does not exist
+                if (Debug.EnableError && hasDebug())
+                    debugOutput("[SMB] User does not exist, " + userName);
+
+                // Return a logon failure
+                throw new SMBSrvException(SMBStatus.NTLogonFailure, SMBStatus.ErrDos, SMBStatus.DOSAccessDenied);
+            }
         }
     }
 
@@ -1592,12 +1629,25 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
             sess.setLoggedOn(true);
         } else {
 
-            // Log a warning, user does not exist
-            if (Debug.EnableError && hasDebug())
-                debugOutput("[SMB] User does not exist, " + userName);
+            // Check if this is a guest logon, if allowed
+            if ( allowGuest() && userName.equalsIgnoreCase( getGuestUserName())) {
 
-            // Return a logon failure
-            throw new SMBSrvException(SMBStatus.NTLogonFailure, SMBStatus.ErrDos, SMBStatus.DOSAccessDenied);
+                // Logon as a guest
+                client.setUserName( userName);
+                client.setGuest( true);
+
+                // Indiciate that the session is logged on
+                sess.setLoggedOn( true);
+            }
+            else {
+
+                // Log a warning, user does not exist
+                if (Debug.EnableError && hasDebug())
+                    debugOutput("[SMB] User does not exist, " + userName);
+
+                // Return a logon failure
+                throw new SMBSrvException(SMBStatus.NTLogonFailure, SMBStatus.ErrDos, SMBStatus.DOSAccessDenied);
+            }
         }
     }
 
@@ -1619,7 +1669,7 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
         String userName = type3Msg.getUserName();
 
         // Check for a null logon
-        if (userName.length() == 0) {
+        if (userName.isEmpty()) {
 
             // DEBUG
             if (hasDebugOutput())
@@ -1694,11 +1744,34 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
                     // Make sure we got an encrypted session key from the client
                     if ( type3Msg.hasSessionKey()) {
 
+                        // Generate the base session key
+                        generateSessionKeyViaKeyExchange( sess, type3Msg, v2hash, clientHmac);
+
                         // Generate the various session keys/ciphers
                         generateSessionKeys(sess, type3Msg, v2hash, srvHmac, clientHmac);
                     }
                     else
                         throw new SMBSrvException(SMBStatus.NTLogonFailure, SMBStatus.ErrDos, SMBStatus.DOSAccessDenied);
+                }
+                else {
+
+                    // Generate the session key
+                    generateSessionKeyViaUserSessionKey( sess, type3Msg, v2blob, srvChallenge, v2hash, srvHmac);
+
+                    // Generate the various session keys/ciphers
+                    generateSessionKeys(sess, type3Msg, v2hash, srvHmac, clientHmac);
+                }
+
+                // Check if the NTLM authentication message requires MIC verification
+                List<TargetInfo> tList = v2blob.getTargetInfo();
+
+                if ( tList != null) {
+
+                    // Check for the Flags AV Pair value
+                    FlagsTargetInfo tInfo = (FlagsTargetInfo) TargetInfo.findTypeInList( tList, TargetInfo.Type.FLAGS);
+
+                    if ( tInfo != null && ( tInfo.getValue() & NTLM.AvFlagsMICSupplied) != 0)
+                        type3Msg.setRequiresMICVerify( true);
                 }
 
                 // Store the full user name in the client information, indicate that this is not a guest logon
@@ -1719,12 +1792,25 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
             }
         } else {
 
-            // Log a warning, user does not exist
-            if (hasDebugOutput())
-                debugOutput("[SMB] User does not exist, " + userName);
+            // Check if this is a guest logon, if allowed
+            if ( allowGuest() && userName.equalsIgnoreCase( getGuestUserName())) {
 
-            // Return a logon failure
-            throw new SMBSrvException(SMBStatus.NTLogonFailure, SMBStatus.ErrDos, SMBStatus.DOSAccessDenied);
+                // Logon as a guest
+                client.setUserName( userName);
+                client.setGuest( true);
+
+                // Indicate that the session is logged on
+                sess.setLoggedOn( true);
+            }
+            else {
+
+                // Log a warning, user does not exist
+                if (hasDebugOutput())
+                    debugOutput("[SMB] User does not exist, " + userName);
+
+                // Return a logon failure
+                throw new SMBSrvException(SMBStatus.NTLogonFailure, SMBStatus.ErrDos, SMBStatus.DOSAccessDenied);
+            }
         }
     }
 
@@ -1739,7 +1825,7 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
             throws SMBSrvException {
 
         // Check for a null logon
-        if (client.getUserName().length() == 0) {
+        if (client.getUserName().isEmpty()) {
 
             // DEBUG
             if (hasDebugOutput())
@@ -1813,12 +1899,24 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
             }
         } else {
 
-            // Log a warning, user does not exist
-            if (hasDebugOutput())
-                debugOutput("[SMB] User does not exist, " + client.getUserName());
+            // Check if this is a guest logon, if allowed
+            if ( allowGuest() && client.getUserName().equalsIgnoreCase( getGuestUserName())) {
 
-            // Return a logon failure
-            throw new SMBSrvException(SMBStatus.NTLogonFailure, SMBStatus.ErrDos, SMBStatus.DOSAccessDenied);
+                // Logon as a guest
+                client.setGuest( true);
+
+                // Indiciate that the session is logged on
+                sess.setLoggedOn( true);
+            }
+            else {
+
+                // Log a warning, user does not exist
+                if (hasDebugOutput())
+                    debugOutput("[SMB] User does not exist, " + client.getUserName());
+
+                // Return a logon failure
+                throw new SMBSrvException(SMBStatus.NTLogonFailure, SMBStatus.ErrDos, SMBStatus.DOSAccessDenied);
+            }
         }
     }
 
@@ -1840,7 +1938,7 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
         String userName = type3Msg.getUserName();
 
         // Check for a null logon
-        if (userName.length() == 0) {
+        if ( userName.isEmpty()) {
 
             // DEBUG
             if (hasDebugOutput())
@@ -1929,7 +2027,7 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
 
             if (clientHash != null && localHash != null && clientHash.length == localHash.length) {
 
-                if ( Arrays.equals( clientHash, localHash) == false) {
+                if ( !Arrays.equals(clientHash, localHash)) {
 
                     // Return a logon failure
                     throw new SMBSrvException(SMBStatus.NTLogonFailure, SMBStatus.ErrDos, SMBStatus.DOSAccessDenied);
@@ -2145,21 +2243,69 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
     }
 
     /**
-     * Generate the session keys/ciphers
+     * Generate the NTLMv2 user session key
+     *
+     * @param sess SMBSrvSession
+     * @param type3 Type3NTLMMessage
+     * @param v2blob NTLMv2Blob
+     * @param challenge byte[]
+     * @param v2hash byte[]
+     * @param srvHmac byte[]
+     * @exception Exception Error initializing the keys
+     */
+    private void generateSessionKeyViaUserSessionKey(SMBSrvSession sess, Type3NTLMMessage type3, NTLMv2Blob v2blob, byte[] challenge, byte[] v2hash, byte[] srvHmac)
+            throws Exception {
+
+        // DEBUG
+        if (hasDebugOutput())
+            debugOutput("[SMB] Generate session key using user session key");
+
+        // Calculate the temp value
+        Mac hmacMd5 = Mac.getInstance("HMACMD5");
+        SecretKeySpec hashKey = new SecretKeySpec(v2hash, "MD5");
+
+        hmacMd5.init( hashKey);
+        hmacMd5.update( challenge);
+
+        DataBuffer tempBuf = v2blob.getTempBytes();
+        hmacMd5.update( tempBuf.getBuffer(), tempBuf.getOffset(), tempBuf.getLength());
+        byte[] ntResponse = hmacMd5.doFinal();
+
+        byte[] ntResponseBuf = new byte[ ntResponse.length + tempBuf.getLength()];
+        System.arraycopy( ntResponse, 0, ntResponseBuf, 0, ntResponse.length);
+        System.arraycopy( tempBuf.getBuffer(), tempBuf.getOffset(), ntResponseBuf, ntResponse.length, tempBuf.getLength());
+
+        byte[] ntProofStr = Arrays.copyOfRange( ntResponseBuf, 0, 16);
+
+        hmacMd5 = Mac.getInstance("HMACMD5");
+
+        hmacMd5.init(hashKey);
+        hmacMd5.update(ntProofStr);
+        byte[] sessBaseKey = hmacMd5.doFinal();
+
+        // Store the session key
+        sess.addSessionKey(KeyType.SessionKey, sessBaseKey);
+
+        // DEBUG
+        if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.SIGNING))
+            sess.debugPrintln("Set session key=" + HexDump.hexString(sessBaseKey));
+    }
+
+    /**
+     * Generate the session key using key exchange
      *
      * @param sess SMBSrvSession
      * @param type3 Type3NTLMMessage
      * @param v2hash byte[]
-     * @param srvHMAC byte[]
      * @param clientHMAC byte[]
      * @exception Exception Error initializing the keys
      */
-    private void generateSessionKeys(SMBSrvSession sess, Type3NTLMMessage type3, byte[] v2hash, byte[] srvHMAC, byte[] clientHMAC)
+    private void generateSessionKeyViaKeyExchange(SMBSrvSession sess, Type3NTLMMessage type3, byte[] v2hash, byte[] clientHMAC)
         throws Exception {
 
         // DEBUG
         if (hasDebugOutput())
-            debugOutput("[SMB] Generate session keys, v2hash=" + HexDump.hexString( v2hash));
+            debugOutput("[SMB] Generate session key using key exchange");
 
         // Calculate the session base key
         Mac hmacMd5 = Mac.getInstance("HMACMD5");
@@ -2189,6 +2335,30 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
         // DEBUG
         if (Debug.EnableInfo && sess.hasDebug(SMBSrvSession.Dbg.SIGNING))
             sess.debugPrintln("Set session key=" + HexDump.hexString(randSessKey));
+    }
+
+    /**
+     * Generate the session keys/ciphers
+     *
+     * @param sess SMBSrvSession
+     * @param type3 Type3NTLMMessage
+     * @param v2hash byte[]
+     * @param srvHMAC byte[]
+     * @param clientHMAC byte[]
+     * @exception Exception Error initializing the keys
+     */
+    private void generateSessionKeys(SMBSrvSession sess, Type3NTLMMessage type3, byte[] v2hash, byte[] srvHMAC, byte[] clientHMAC)
+        throws Exception {
+
+        // DEBUG
+        if (hasDebugOutput())
+            debugOutput("[SMB] Generate session keys");
+
+        // Get the base session key
+        byte[] baseSessKey = (byte[]) sess.getSessionKey( KeyType.SessionKey);
+
+        if ( baseSessKey == null)
+            throw new AccessDeniedException( "No base session key");
 
         // Check if extended security has been negotiated
         if ( type3.hasFlag(NTLM.FlagNegotiateExtSecurity)) {
@@ -2196,7 +2366,7 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
             // Generate the NTLM server signing key
             MessageDigest md5 = MessageDigest.getInstance("MD5");
 
-            md5.update(randSessKey);
+            md5.update(baseSessKey);
             md5.update(NTLM.SERVER_SIGNING_KEY_CONST);
 
             byte[] srvSigningKey = md5.digest();
@@ -2207,7 +2377,7 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
             // Generate the NTLM client signing key
             md5.reset();
 
-            md5.update(randSessKey);
+            md5.update(baseSessKey);
             md5.update(NTLM.CLIENT_SIGNING_KEY_CONST);
 
             byte[] clientSigningKey = md5.digest();
@@ -2218,7 +2388,7 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
             // Generate the NTLM server sealing key
             md5.reset();
 
-            md5.update(randSessKey);
+            md5.update(baseSessKey);
             md5.update(NTLM.SERVER_SEALING_KEY_CONST);
 
             byte[] srvSealingKey = md5.digest();
@@ -2229,7 +2399,7 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
             // Generate the NTLM client sealing key
             md5.reset();
 
-            md5.update(randSessKey);
+            md5.update(baseSessKey);
             md5.update(NTLM.CLIENT_SEALING_KEY_CONST);
 
             byte[] clientSealingKey = md5.digest();
@@ -2263,10 +2433,14 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
      * @param offset int
      * @param len int
      * @param rxMIC byte[]
-     * @param pid int
+     * @param extSecurity boolean
      * @return boolean
      */
-    protected final boolean verifyMIC(SMBSrvSession sess, byte[] buf, int offset, int len, byte[] rxMIC, int pid) {
+    protected final boolean verifyMIC(SMBSrvSession sess, byte[] buf, int offset, int len, byte[] rxMIC, boolean extSecurity) {
+
+        // DEBUG
+        if ( hasDebugOutput())
+            sess.debugPrintln("Verify MIC buf=" + HexDump.hexString( rxMIC) + ", extSecurity=" + extSecurity);
 
         // Make sure the received MIC looks like a valid MIC token
         if ( rxMIC == null || rxMIC.length != MIC_TOKEN_LENGTH)
@@ -2282,36 +2456,42 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
 
             // Get the client signing/sealing keys and RC4 context
             byte[] clientSigningKey = (byte[]) sess.getSessionKey(KeyType.NTLMClientSigningKey);
-            Cipher clientRC4 = (Cipher) sess.getSessionKey(KeyType.NTLMClientRC4Context);
+            if ( clientSigningKey == null)
+                return false;
 
             // HMAC-MD5 of sequence number+data using the client signing key/RC4
-            SecretKeySpec md5Key = new SecretKeySpec( clientSigningKey, "MD5");
+            SecretKeySpec md5Key = new SecretKeySpec(clientSigningKey, "MD5");
             Mac hmacMD5 = Mac.getInstance("HMACMD5");
 
-            byte[] seqNo = new byte[] { 0x00, 0x00, 0x00, 0x00};
-
-            hmacMD5.init( md5Key);
-            hmacMD5.update( rxMICBuf.getBuffer(), MIC_TOKEN_SEQNO, 4);
-            hmacMD5.update( buf, offset, len);
+            hmacMD5.init(md5Key);
+            hmacMD5.update(rxMICBuf.getBuffer(), MIC_TOKEN_SEQNO, 4);   // sequence number
+            hmacMD5.update(buf, offset, len);                               // message bytes
             byte[] md5Chk = hmacMD5.doFinal();
 
             // RC4 first 8 bytes of the HMAC-MD5 result
-            byte[] chkSum = clientRC4.update(md5Chk, 0, 8);
+            byte[] chkSum = Arrays.copyOf( md5Chk, 8);
+
+            if ( extSecurity) {
+                Cipher clientRC4 = (Cipher) sess.getSessionKey(KeyType.NTLMClientRC4Context);
+
+                if ( clientRC4 != null)
+                    chkSum = clientRC4.update(chkSum);
+            }
 
             // Build the MIC token
             DataBuffer micToken = new DataBuffer(16);
 
-            micToken.putInt( MIC_TOKEN_VER_NTLMSSP);
+            micToken.putInt(MIC_TOKEN_VER_NTLMSSP);
             micToken.appendData(chkSum);
-            micToken.putInt( 0);
+            micToken.putInt(0);
 
             // Check if the MIC token is valid
-            if ( Arrays.equals(rxMIC, micToken.getBuffer()))
+            if (Arrays.equals(rxMIC, micToken.getBuffer()))
                 micSts = true;
 
             // DEBUG
-            if (micSts == false && hasDebugOutput()) {
-                sess.debugPrintln("Verify MIC, generated MIC token=" + HexDump.hexString(micToken.getBuffer()));
+            if (!micSts && hasDebugOutput()) {
+                sess.debugPrintln("Verify MIC, generated MIC token=" + HexDump.hexString(micToken.getBuffer()) + ", extSecurity=" + extSecurity);
                 sess.debugPrintln("             Received MIC token=" + HexDump.hexString(rxMIC));
             }
         }
@@ -2331,9 +2511,14 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
      * @param offset int
      * @param len int
      * @param seqNo int
+     * @param extSecurity boolean
      * @return byte[]
      */
-    protected final byte[] generateMIC(SMBSrvSession sess, byte[] buf, int offset, int len, int seqNo) {
+    protected final byte[] generateMIC(SMBSrvSession sess, byte[] buf, int offset, int len, int seqNo, boolean extSecurity) {
+
+        // DEBUG
+        if ( hasDebugOutput())
+            sess.debugPrintln("Generate MIC buf=" + HexDump.hexString( buf, offset, len, "") + ", extSecurity=" + extSecurity);
 
         // Get the server signing key
         byte[] srvSigningKey = (byte[]) sess.getSessionKey(KeyType.NTLMServerSigningKey);
@@ -2359,8 +2544,10 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
 
                 byte[] chkSum = hmacMd5.doFinal();
 
-                Cipher srvRC4 = (Cipher) sess.getSessionKey(KeyType.NTLMServerRC4Context);
-                chkSum = srvRC4.update(chkSum, 0, 8);
+                if ( extSecurity) {
+                    Cipher srvRC4 = (Cipher) sess.getSessionKey(KeyType.NTLMServerRC4Context);
+                    chkSum = srvRC4.update(chkSum, 0, 8);
+                }
 
                 micToken = new DataBuffer(16);
                 micToken.putInt(MIC_TOKEN_VER_NTLMSSP);
