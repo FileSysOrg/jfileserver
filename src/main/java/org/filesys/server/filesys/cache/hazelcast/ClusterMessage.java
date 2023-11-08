@@ -45,7 +45,7 @@ public class ClusterMessage implements Serializable {
     private String m_fromNode;
 
     // Message type
-    private int m_msgType;
+    private ClusterMessageType m_msgType;
 
     /**
      * Default constructor
@@ -57,9 +57,9 @@ public class ClusterMessage implements Serializable {
      * Class constructor
      *
      * @param targetNode String
-     * @param msgType    int
+     * @param msgType    ClusterMessageType
      */
-    public ClusterMessage(String targetNode, int msgType) {
+    public ClusterMessage(String targetNode, ClusterMessageType msgType) {
         m_targetNode = targetNode;
         m_msgType = msgType;
     }
@@ -69,9 +69,9 @@ public class ClusterMessage implements Serializable {
      *
      * @param targetNode String
      * @param fromNode   String
-     * @param msgType    int
+     * @param msgType    ClusterMessageType
      */
-    public ClusterMessage(String targetNode, String fromNode, int msgType) {
+    public ClusterMessage(String targetNode, String fromNode, ClusterMessageType msgType) {
         m_targetNode = targetNode;
         m_fromNode = fromNode;
         m_msgType = msgType;
@@ -82,9 +82,9 @@ public class ClusterMessage implements Serializable {
      *
      * @param targetNode String
      * @param fromNode   ClusterNode
-     * @param msgType    int
+     * @param msgType    ClusterMessageType
      */
-    public ClusterMessage(String targetNode, ClusterNode fromNode, int msgType) {
+    public ClusterMessage(String targetNode, ClusterNode fromNode, ClusterMessageType msgType) {
         m_targetNode = targetNode;
         if (fromNode != null)
             m_fromNode = fromNode.getName();
@@ -106,15 +106,15 @@ public class ClusterMessage implements Serializable {
      * @return boolean
      */
     public final boolean isAllNodes() {
-        return m_targetNode.equals(AllNodes) ? true : false;
+        return m_targetNode.equals(AllNodes);
     }
 
     /**
      * Return the message type
      *
-     * @return int
+     * @return ClusterMessageType
      */
-    public final int isType() {
+    public final ClusterMessageType isType() {
         return m_msgType;
     }
 
@@ -124,7 +124,7 @@ public class ClusterMessage implements Serializable {
      * @return boolean
      */
     public final boolean hasFromNode() {
-        return (m_fromNode != null && m_fromNode.length() > 0) ? true : false;
+        return m_fromNode != null && !m_fromNode.isEmpty();
     }
 
     /**
@@ -166,7 +166,7 @@ public class ClusterMessage implements Serializable {
             str.append(getFromNode());
         }
         str.append(",type=");
-        str.append(ClusterMessageType.getTypeAsString(isType()));
+        str.append( isType());
         str.append("]");
 
         return str.toString();

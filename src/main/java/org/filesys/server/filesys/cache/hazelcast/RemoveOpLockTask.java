@@ -25,9 +25,9 @@ import org.filesys.server.filesys.cache.cluster.ClusterFileState;
 import com.hazelcast.map.IMap;
 
 /**
- * Rename File State Task Class
+ * Remove Oplock File State Task Class
  *
- * <p>Used to synchronize renaing a file state by executing on the remote node that owns the file state/key.
+ * <p>Used to synchronize removing an oplock from a file state by executing on the remote node that owns the file state/key.
  *
  * @author gkspencer
  */
@@ -62,7 +62,7 @@ public class RemoveOpLockTask extends RemoteStateTask<Boolean> {
      * @return Boolean
      * @throws Exception Error running remote task
      */
-    protected Boolean runRemoteTaskAgainstState(IMap<String, ClusterFileState> stateCache, ClusterFileState fState)
+    protected Boolean runRemoteTaskAgainstState(IMap<String, HazelCastClusterFileState> stateCache, HazelCastClusterFileState fState)
             throws Exception {
 
         // DEBUG
@@ -73,6 +73,6 @@ public class RemoveOpLockTask extends RemoteStateTask<Boolean> {
         fState.clearOpLock();
 
         // Return a success status
-        return new Boolean(true);
+        return Boolean.TRUE;
     }
 }

@@ -75,7 +75,7 @@ public class FileDataUpdateTask extends RemoteStateTask<Boolean> {
      * @return Boolean
      * @throws Exception Error running remote task
      */
-    protected Boolean runRemoteTaskAgainstState(IMap<String, ClusterFileState> stateCache, ClusterFileState fState)
+    protected Boolean runRemoteTaskAgainstState(IMap<String, HazelCastClusterFileState> stateCache, HazelCastClusterFileState fState)
             throws Exception {
 
         // DEBUG
@@ -85,7 +85,7 @@ public class FileDataUpdateTask extends RemoteStateTask<Boolean> {
         // Check if this is the start of the data update
         boolean updSts = false;
 
-        if (m_startUpdate == true) {
+        if ( m_startUpdate) {
 
             // Check if there is an existing data update on this file
             if (fState.hasDataUpdateInProgress()) {
@@ -109,7 +109,7 @@ public class FileDataUpdateTask extends RemoteStateTask<Boolean> {
             if (fState.hasDataUpdateInProgress()) {
 
                 // Check the node
-                if (fState.getDataUpdateNode().equals(m_updateNode) == false) {
+                if ( !fState.getDataUpdateNode().equals(m_updateNode)) {
 
                     // DEBUG
                     if (hasDebug())
@@ -129,6 +129,6 @@ public class FileDataUpdateTask extends RemoteStateTask<Boolean> {
         }
 
         // Return the updated file state
-        return new Boolean(updSts);
+        return updSts;
     }
 }

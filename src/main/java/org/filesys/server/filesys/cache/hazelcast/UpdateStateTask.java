@@ -70,7 +70,7 @@ public class UpdateStateTask extends RemoteStateTask<Boolean> {
      * @return Boolean
      * @throws Exception Error running remote task
      */
-    protected Boolean runRemoteTaskAgainstState(IMap<String, ClusterFileState> stateCache, ClusterFileState fState)
+    protected Boolean runRemoteTaskAgainstState(IMap<String, HazelCastClusterFileState> stateCache, HazelCastClusterFileState fState)
             throws Exception {
 
         // DEBUG
@@ -102,6 +102,6 @@ public class UpdateStateTask extends RemoteStateTask<Boolean> {
         }
 
         // Return a status
-        return new Boolean(changedSts);
+        return changedSts;
     }
 }

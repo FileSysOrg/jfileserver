@@ -22,7 +22,9 @@ package org.filesys.server.filesys.cache.hazelcast;
 import org.filesys.debug.Debug;
 import org.filesys.server.filesys.*;
 import org.filesys.server.filesys.cache.FileState;
+import org.filesys.server.filesys.cache.FileStateCache;
 import org.filesys.server.filesys.cache.cluster.ClusterFileState;
+import org.filesys.server.locking.OpLockDetails;
 import org.filesys.smb.ImpersonationLevel;
 import org.filesys.smb.OpLockType;
 import org.filesys.smb.SharingMode;
@@ -37,7 +39,7 @@ import com.hazelcast.map.IMap;
  *
  * @author gkspencer
  */
-public class GrantFileAccessTask extends RemoteStateTask<FileAccessToken> {
+public class GrantFileAccessTask extends RemoteStateTask<GrantAccessResponse> {
 
     // Serialization id
     private static final long serialVersionUID = 1L;
@@ -71,155 +73,72 @@ public class GrantFileAccessTask extends RemoteStateTask<FileAccessToken> {
      *
      * @param stateCache Map of paths/cluster file states
      * @param fState     HazelCastFileState
-     * @return FileAccessToken
+     * @return GrantAccessResponse
      * @throws Exception Error running remote task
      */
-    protected FileAccessToken runRemoteTaskAgainstState(IMap<String, ClusterFileState> stateCache, ClusterFileState fState)
+    protected GrantAccessResponse runRemoteTaskAgainstState(IMap<String, HazelCastClusterFileState> stateCache, HazelCastClusterFileState fState)
             throws Exception {
 
         // DEBUG
         if (hasDebug())
-            Debug.println("GrantFileAccessTask: Open params=" + m_params + " path " + fState);
+            Debug.println("GrantFileAccessTask: Open params=" + m_params + " state=" + fState);
 
         // Check if the current file open allows the required shared access
-        boolean nosharing = false;
-        OpLockType grantedOplock = OpLockType.LEVEL_NONE;
-        boolean oplockNotAvailable = false;
-        String noshrReason = null;
-        boolean attribsOnly = false;
+        OpLockType availOplock = OpLockType.LEVEL_NONE;
+        HazelCastAccessToken hcToken = null;
 
-        if (m_params.isAttributesOnlyAccess()) {
+        // Get the current oplock details
+        OpLockDetails curOplock = fState.getOpLock();
 
-            // File attributes/metadata access only
-            attribsOnly = true;
+        // Check if the file can be accessed with the requested access mode and sharing mode
+        if (FileStateCache.checkFileAccess( m_params.asFileOpenParams(), fState, m_params.getFileStatus(), hasDebug())) {
 
-            // DEBUG
-            if (hasDebug())
-                Debug.println("Attributes only access for " + fState);
-        } else if (fState.getOpenCount() > 0) {
+            // Check if an oplock was requested
+            if ( m_params.hasOpLockRequest() && !m_params.isDirectory()) {
 
-            // Get the current primary owner details, the owner node name/port
-            String curPrimaryOwner = (String) fState.getPrimaryOwner();
+                // For a batch oplock this should be the first file open
+                if ( m_params.getOpLockType() == OpLockType.LEVEL_BATCH) {
 
-            // DEBUG
-            if (hasDebug())
-                Debug.println("File already open by " + curPrimaryOwner + ", pid=" + fState.getProcessId() +
-                        ", sharingMode=" + fState.getSharedAccess().name());
+                    // Check if this is the first file open
+                    if ( fState.getOpenCount() == 0) {
 
-            // Check if the open action indicates a new file create
-            if (m_params.getOpenAction() == CreateDisposition.CREATE)
-                throw new FileExistsException();
+                        // Batch oplock is available
+                        availOplock = OpLockType.LEVEL_BATCH;
+                    }
+                    else if ( curOplock != null && curOplock.isLevelIIOplock()) {
 
-            // Check for impersonation security level from the original process that opened the file
-            if ((m_params.getSecurityLevel() == ImpersonationLevel.IMPERSONATION ||
-                    m_params.getSecurityLevel() == ImpersonationLevel.ANONYMOUS) &&
-                    m_params.getProcessId() == fState.getProcessId() &&
-                    curPrimaryOwner.equalsIgnoreCase(m_params.getOwnerName()))
-                nosharing = false;
-
-                // Check if the caller wants read access, check the sharing mode
-            else if (m_params.isReadOnlyAccess() && fState.getSharedAccess().hasRead())
-                nosharing = false;
-
-                // Check if the caller wants write access, check the sharing mode
-            else if ((m_params.isReadWriteAccess() || m_params.isWriteOnlyAccess()) && fState.getSharedAccess().hasWrite()) {
-                nosharing = true;
-                noshrReason = "Sharing mode disallows write";
-
-                // DEBUG
-                if (Debug.EnableDbg && hasDebug())
-                    Debug.println("Sharing mode disallows write access path=" + fState.getPath());
-            }
-
-            // Check if the file has been opened for exclusive access
-            else if (fState.getSharedAccess() == SharingMode.NOSHARING) {
-                nosharing = true;
-                noshrReason = "Sharing mode exclusive";
-            }
-
-            // Check if the required sharing mode is allowed by the current file open
-            else if ((fState.getSharedAccess().intValue() & m_params.getSharedAccess().intValue()) != m_params.getSharedAccess().intValue()) {
-                nosharing = true;
-                noshrReason = "Sharing mode mismatch";
-
-                // DEBUG
-                if (Debug.EnableDbg && hasDebug())
-                    Debug.println("Local share mode=" + fState.getSharedAccess().name() + ", params share mode=" + m_params.getSharedAccess().name());
-            }
-
-            // Check if the caller wants exclusive access to the file
-            else if (m_params.getSharedAccess() == SharingMode.NOSHARING) {
-                nosharing = true;
-                noshrReason = "Requestor wants exclusive mode";
-            }
-
-            // Check for anonymous impersonation
-            else if ( m_params.getSecurityLevel() == ImpersonationLevel.ANONYMOUS) {
-                nosharing = true;
-                noshrReason = "Anonymous impersonation";
-            }
-
-            // Indicate that an oplock is not available, file already open by another client
-            oplockNotAvailable = true;
-
-        } else if (m_params.hasOpLockRequest() && m_params.isDirectory() == false) {
-
-            // Grant the requested oplock, file is not open by any other users
-            grantedOplock = m_params.getOpLockType();
-
-            // DEBUG
-            if (Debug.EnableDbg && hasDebug())
-                Debug.println("Granted oplock type=" + grantedOplock.name());
-        }
-
-        // Check if there is a sharing mode mismatch
-        if (nosharing == true)
-            throw new FileSharingException("File sharing violation, reason " + noshrReason);
-        else if (attribsOnly == false) {
-
-            // Update the file sharing mode, process id and primary owner details, if this is the first file open
-            fState.setSharedAccess(m_params.getSharedAccess());
-            fState.setProcessId(m_params.getProcessId());
-            fState.setPrimaryOwner(m_params.getOwnerName());
-
-            // Add oplock details
-            if (grantedOplock != OpLockType.LEVEL_NONE) {
-
-                try {
-
-                    // Create the remote oplock details
-                    RemoteOpLockDetails remoteOplock = new RemoteOpLockDetails(m_params.getOwnerName(), grantedOplock, fState.getPath(), null);
-                    fState.setOpLock(remoteOplock);
+                        // Shared Level II oplock available
+                        availOplock = OpLockType.LEVEL_II;
+                    }
                 }
-                catch (ExistingOpLockException ex) {
+                else if ( m_params.getOpLockType() == OpLockType.LEVEL_II) {
 
-                    // DEBUG
-                    if (hasDebug())
-                        Debug.println("Failed to set oplock on " + fState + ", existing oplock=" + fState.getOpLock());
+                    // Check if this is the first file open or there is an existing Level II oplock on the file
+                    if ( fState.getOpenCount() == 0 || curOplock != null && curOplock.getLockType() == OpLockType.LEVEL_II) {
 
-                    // Reset the oplock to not granted
-                    grantedOplock = OpLockType.LEVEL_NONE;
-                    oplockNotAvailable = true;
+                        // Shared Level II oplock is available
+                        availOplock = OpLockType.LEVEL_II;
+                    }
                 }
             }
 
-            // Increment the file open count
-            fState.incrementOpenCount();
+            // Create an access token for the file open
+            hcToken = new HazelCastAccessToken(m_params.getOwnerName(), m_params, availOplock);
+            hcToken.setReleased(true);
+
+            // Add the file access token to the file state
+            fState.addAccessToken( hcToken);
 
             // Set the file status
             if (m_params.getFileStatus() != FileStatus.Unknown)
                 fState.setFileStatusInternal(m_params.getFileStatus(), FileState.ChangeReason.None);
         }
 
-        // Return an access token, mark the local copy as released
-        HazelCastAccessToken hcToken = new HazelCastAccessToken(m_params.getOwnerName(), m_params.getProcessId(), grantedOplock, oplockNotAvailable);
-        hcToken.setReleased(true);
+        // DEBUG
+        if ( hasDebug())
+            Debug.println("GrantFileAccessTask: Returning access token=" + hcToken + ", state=" + fState);
 
-        // Check if the file open is attributes only, mark the token so that the file open count
-        // is not decremented when the file is closed
-        hcToken.setAttributesOnly(attribsOnly);
-
-        // Return the file access token
-        return hcToken;
+        // Return the file access token and updated cluster file state
+        return new GrantAccessResponse( hcToken, fState);
     }
 }

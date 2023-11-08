@@ -24,6 +24,8 @@ import org.filesys.server.filesys.cache.cluster.ClusterFileState;
 import org.filesys.server.filesys.cache.cluster.ClusterFileStateCache;
 import org.filesys.server.filesys.cache.cluster.FileStatePostProcessor;
 
+import java.util.EnumSet;
+
 /**
  * File State Update Post Processor Class
  *
@@ -34,16 +36,16 @@ import org.filesys.server.filesys.cache.cluster.FileStatePostProcessor;
 public class StateUpdatePostProcessor extends FileStatePostProcessor {
 
     // Update mask
-    private int m_updateMask;
+    private EnumSet<ClusterFileState.UpdateFlag> m_updateMask;
 
     /**
      * Class constructor
      *
      * @param stateCache HazelCastClusterFileStateCache
      * @param state      HazelCastClusterFileState
-     * @param updateMask int
+     * @param updateMask EnumSet&lt;UpdateFlag&gt;
      */
-    public StateUpdatePostProcessor(ClusterFileStateCache stateCache, HazelCastClusterFileState state, int updateMask) {
+    public StateUpdatePostProcessor(ClusterFileStateCache stateCache, HazelCastClusterFileState state, EnumSet<ClusterFileState.UpdateFlag> updateMask) {
         super(stateCache, state);
 
         m_updateMask = updateMask;
@@ -52,28 +54,28 @@ public class StateUpdatePostProcessor extends FileStatePostProcessor {
     /**
      * Return the update mask
      *
-     * @return int
+     * @return EnumSet&lt;UpdateFlag&gt;
      */
-    public final int getUpdateMask() {
+    public final EnumSet<ClusterFileState.UpdateFlag> getUpdateMask() {
         return m_updateMask;
     }
 
     /**
      * Add another state update to the existing update mask
      *
-     * @param updateMask int
+     * @param updateFlag UpdateFlag
      */
-    public final void addToUpdateMask(int updateMask) {
-        m_updateMask |= updateMask;
+    public final void addToUpdateMask(ClusterFileState.UpdateFlag updateFlag) {
+        m_updateMask.add( updateFlag);
     }
 
     /**
      * Remove updates from the mask
      *
-     * @param updateMask int
+     * @param updateMask EnumSet&lt;UpdateFlag&gt;
      */
-    public final void removeFromUpdateMask(int updateMask) {
-        m_updateMask &= ~updateMask;
+    public final void removeFromUpdateMask(EnumSet<ClusterFileState.UpdateFlag> updateMask) {
+        m_updateMask.removeAll( updateMask);
     }
 
     /**

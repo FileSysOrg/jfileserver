@@ -27,6 +27,8 @@ import org.filesys.server.filesys.cache.cluster.ClusterFileState;
 import org.filesys.server.filesys.cache.cluster.ClusterFileStateCache;
 import org.filesys.server.locking.OpLockDetails;
 
+import java.util.EnumSet;
+
 /**
  * HazelCast Cluster File State Class
  *
@@ -169,7 +171,7 @@ public class HazelCastClusterFileState extends ClusterFileState {
             super.setFileStatusInternal(status, reason);
 
             // Run a high priority state update
-            runHighPriorityUpdate(UpdateFileStatus);
+            runHighPriorityUpdate(UpdateFlag.FileStatus);
         }
     }
 
@@ -187,7 +189,7 @@ public class HazelCastClusterFileState extends ClusterFileState {
             super.setFileSize(fileSize);
 
             // Queue a low priority state update
-            queueLowPriorityUpdate(UpdateFileSize);
+            queueLowPriorityUpdate(UpdateFlag.FileSize);
         }
     }
 
@@ -205,7 +207,7 @@ public class HazelCastClusterFileState extends ClusterFileState {
             super.setAllocationSize(allocSize);
 
             // Queue a low priority state update
-            queueLowPriorityUpdate(UpdateAllocSize);
+            queueLowPriorityUpdate(UpdateFlag.AllocSize);
         }
     }
 
@@ -223,7 +225,7 @@ public class HazelCastClusterFileState extends ClusterFileState {
             super.updateModifyDateTime(modTime);
 
             // Queue a low priority state update
-            queueLowPriorityUpdate(UpdateModifyDate);
+            queueLowPriorityUpdate(UpdateFlag.ModifyDate);
         }
     }
 
@@ -241,7 +243,7 @@ public class HazelCastClusterFileState extends ClusterFileState {
             super.updateChangeDateTime(changeTime);
 
             // Queue a low priority state update
-            queueLowPriorityUpdate(UpdateChangeDate);
+            queueLowPriorityUpdate(UpdateFlag.ChangeDate);
         }
     }
 
@@ -259,7 +261,7 @@ public class HazelCastClusterFileState extends ClusterFileState {
             super.setRetentionExpiryDateTime(expires);
 
             // Queue a low priority state update
-            queueLowPriorityUpdate(UpdateRetentionExpire);
+            queueLowPriorityUpdate(UpdateFlag.RetentionExpire);
         }
     }
 
@@ -320,36 +322,36 @@ public class HazelCastClusterFileState extends ClusterFileState {
     /**
      * Queue a low priority update for this file state
      *
-     * @param updateMask int
+     * @param updateFlag UpdateFlag
      */
-    protected synchronized void queueLowPriorityUpdate(int updateMask) {
+    protected synchronized void queueLowPriorityUpdate(UpdateFlag updateFlag) {
 
         // Check if there is a state update post processor already queued
         StateUpdatePostProcessor updatePostProc = (StateUpdatePostProcessor) RequestPostProcessor.findPostProcessor(StateUpdatePostProcessor.class);
         if (updatePostProc == null) {
 
             // Create and queue a state update post processor
-            updatePostProc = new StateUpdatePostProcessor(getStateCache(), this, updateMask);
+            updatePostProc = new StateUpdatePostProcessor(getStateCache(), this, EnumSet.of( updateFlag));
             RequestPostProcessor.queuePostProcessor(updatePostProc);
         } else {
 
             // Update the existing post processor
-            updatePostProc.addToUpdateMask(updateMask);
+            updatePostProc.addToUpdateMask(updateFlag);
         }
     }
 
     /**
      * Run a high priority update for this file state
      *
-     * @param updateMask int
+     * @param updateFlag UpdaetFlag
      */
-    protected void runHighPriorityUpdate(int updateMask) {
+    protected void runHighPriorityUpdate(UpdateFlag updateFlag) {
 
         if (getStateCache() != null) {
 
             // Update the file state via the state cache
             HazelCastClusterFileStateCache hcStateCache = (HazelCastClusterFileStateCache) getStateCache();
-            hcStateCache.remoteUpdateState(this, updateMask);
+            hcStateCache.remoteUpdateState(this, EnumSet.of(updateFlag));
         }
     }
 
@@ -366,12 +368,8 @@ public class HazelCastClusterFileState extends ClusterFileState {
         //       The HazelCastClusterFileState set/update methods must not be used.
 
         // File status
-        if (updateMsg.hasUpdate(UpdateFileStatus)) {
+        if (updateMsg.hasUpdate(UpdateFlag.FileStatus)) {
             super.setFileStatus(updateMsg.getFileStatus());
-
-            // TEST
-            if (getFileStatus() == FileStatus.NotExist && getOpenCount() > 0)
-                Debug.println("Setting status to NotExist when openCount>0, fid=" + getFileId() + ", name=" + getPath());
 
             // If the file/folder no longer exists then clear the file id and state attributes
             if (getFileStatus() == FileStatus.NotExist) {
@@ -381,21 +379,21 @@ public class HazelCastClusterFileState extends ClusterFileState {
         }
 
         // File size/allocation size
-        if (updateMsg.hasUpdate(UpdateFileSize))
+        if (updateMsg.hasUpdate(UpdateFlag.FileSize))
             super.setFileSize(updateMsg.getFileSize());
 
-        if (updateMsg.hasUpdate(UpdateAllocSize))
+        if (updateMsg.hasUpdate(UpdateFlag.AllocSize))
             super.setAllocationSize(updateMsg.getAllocationSize());
 
         // Change/modification date/time
-        if (updateMsg.hasUpdate(UpdateChangeDate))
+        if (updateMsg.hasUpdate(UpdateFlag.ChangeDate))
             super.updateChangeDateTime(updateMsg.getChangeDateTime());
 
-        if (updateMsg.hasUpdate(UpdateModifyDate))
+        if (updateMsg.hasUpdate(UpdateFlag.ModifyDate))
             super.updateModifyDateTime(updateMsg.getModificationDateTime());
 
         // Retention expiry date/time
-        if (updateMsg.hasUpdate(UpdateRetentionExpire))
+        if (updateMsg.hasUpdate(UpdateFlag.RetentionExpire))
             super.setRetentionExpiryDateTime(updateMsg.getRetentionDateTime());
     }
 
@@ -405,10 +403,14 @@ public class HazelCastClusterFileState extends ClusterFileState {
      * @return String
      */
     public String toString() {
-        StringBuffer str = new StringBuffer();
+        StringBuilder str = new StringBuilder();
 
         str.append("[");
         str.append(getPath());
+
+        if ( !isStateValid())
+            str.append(" NotValid");
+
         str.append(",");
         str.append(getFileStatus().name());
         str.append(":Opn=");
@@ -416,11 +418,9 @@ public class HazelCastClusterFileState extends ClusterFileState {
         str.append(super.getOpenCount());    // Local open count only
         if (getOpenCount() > 0) {
             str.append("(shr=");
-            str.append(getSharedAccess().name());
-            str.append(",pid=0x");
-            str.append(Long.toHexString(getProcessId()));
-            str.append(",primary=");
-            str.append(getPrimaryOwner());
+            str.append(getSharedAccess());
+            str.append(",owner=");
+            str.append(getProcessId());
             str.append(")");
         }
 
@@ -461,8 +461,6 @@ public class HazelCastClusterFileState extends ClusterFileState {
 
             str.append("hits=");
             str.append(getNearCacheHitCount());
-            if (isStateValid() == false)
-                str.append(",NotValid");
         }
 
         str.append("]");

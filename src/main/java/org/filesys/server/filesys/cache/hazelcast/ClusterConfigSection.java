@@ -254,7 +254,7 @@ public class ClusterConfigSection extends ConfigSection {
 
             // Clear the Hazelcast instance, shut it down if we created it
             m_hazelcastInstance = null;
-            if (isExternalHazelcast() == false)
+            if ( !isExternalHazelcast())
                 Hazelcast.shutdownAll();
         }
     }

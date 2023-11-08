@@ -69,7 +69,7 @@ public class AddOpLockTask extends RemoteStateTask<Boolean> {
      * @return Boolean
      * @throws Exception Error running remote task
      */
-    protected Boolean runRemoteTaskAgainstState(IMap<String, ClusterFileState> stateCache, ClusterFileState fState)
+    protected Boolean runRemoteTaskAgainstState(IMap<String, HazelCastClusterFileState> stateCache, HazelCastClusterFileState fState)
             throws Exception {
 
         // DEBUG
@@ -80,6 +80,6 @@ public class AddOpLockTask extends RemoteStateTask<Boolean> {
         fState.setOpLock(m_oplock);
 
         // Return a success status
-        return new Boolean(true);
+        return Boolean.TRUE;
     }
 }
