@@ -20,6 +20,11 @@
 
 package org.filesys.server.auth.ntlm;
 
+import org.filesys.util.DataBuffer;
+
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Target Information Class
  *
@@ -117,5 +122,144 @@ public abstract class TargetInfo {
         str.append("]");
 
         return str.toString();
+    }
+
+    /**
+     * Pack a target information list into the specified buffer
+     *
+     * @param tList List&lt;TargetInfo&gt;
+     * @param buf DataBuffer
+     */
+    public static void packInfoList(List<TargetInfo> tList, DataBuffer buf) {
+
+        // Loop through the target information list
+        for ( TargetInfo tInfo : tList) {
+
+            // Pack the target information record
+            switch ( tInfo.isType()) {
+
+                // String target information
+                case SERVER:
+                case DOMAIN:
+                case FULL_DNS:
+                case DNS_DOMAIN:
+                case DNS_TREE:
+                case SPN:
+                    buf.putShort( tInfo.isType().intValue());
+                    buf.putShort( tInfo.valueAsString().length() * 2);
+                    buf.putString( tInfo.valueAsString(), true, false);
+                    break;
+
+                // Timestamp type target information
+                case TIMESTAMP:
+                    TimestampTargetInfo timeInfo = (TimestampTargetInfo) tInfo;
+                    buf.putShort( tInfo.isType().intValue());
+                    buf.putShort( 8);
+                    buf.putLong( timeInfo.getValue());
+                    break;
+
+                // Integer type target information
+                case FLAGS:
+                    FlagsTargetInfo flagInfo = (FlagsTargetInfo) tInfo;
+                    buf.putShort( tInfo.isType().intValue());
+                    buf.putShort( 4);
+                    buf.putInt( flagInfo.getValue());
+                    break;
+            }
+        }
+
+        // Add the end of list marker
+        buf.putShort( Type.END_OF_LIST.intValue());
+        buf.putShort( 0);
+    }
+
+    /**
+     * Unpack a target information list from the specified buffer
+     *
+     * @param tBuf DataBuffer
+     * @param offset int
+     * @return List&lt;TargetInfo&gt;
+     */
+    public static List<TargetInfo> unpackInfoList( DataBuffer tBuf, int offset) {
+
+        // Unpack the target information list from the specified buffer
+        List<TargetInfo> tList = null;
+        boolean endOfList = false;
+
+        while ( !endOfList) {
+
+            // Get the current target information type and data length
+            TargetInfo.Type tTyp = TargetInfo.Type.fromInt( tBuf.getShort());
+            int tLen = tBuf.getShort();
+
+            if ( tTyp == TargetInfo.Type.END_OF_LIST) {
+                endOfList = true;
+                continue;
+            }
+
+            // Get the target information value
+            TargetInfo tInfo = null;
+
+            switch ( tTyp) {
+
+                // String type target information
+                case SERVER:
+                case DOMAIN:
+                case FULL_DNS:
+                case DNS_DOMAIN:
+                case DNS_TREE:
+                case SPN:
+                    String sVal = tBuf.getFixedString( tLen/2, true);
+                    tInfo = new StringTargetInfo( tTyp, sVal);
+                    break;
+
+                // Timestamp type target information
+                case TIMESTAMP:
+                    long lVal = tBuf.getLong();
+                    tInfo = new TimestampTargetInfo( lVal);
+                    break;
+
+                // Integer type target information
+                case FLAGS:
+                    int iVal = tBuf.getInt();
+                    tInfo = new FlagsTargetInfo( iVal);
+                    break;
+
+                // Unsupported types
+                case CHANNEL_BINDING:
+                case SINGLE_HOST:
+                    tBuf.skipBytes( tLen);
+                    break;
+            }
+
+            // Add the target information to the list if valid
+            if ( tInfo != null) {
+                if ( tList == null)
+                    tList = new ArrayList<>();
+                tList.add( tInfo);
+            }
+        }
+
+        // Return the target information list
+        return tList;
+    }
+
+    /**
+     * Find the specified target information type in a list
+     *
+     * @param tList List&lt;TargetInfo&gt;
+     * @param typ TargetInfo.Type
+     * @return TargetInfo
+     */
+    public static TargetInfo findTypeInList( List<TargetInfo> tList, TargetInfo.Type typ) {
+        if ( tList == null)
+            return null;
+
+        for ( TargetInfo tInfo : tList) {
+            if ( tInfo.isType() == typ)
+                return tInfo;
+        }
+
+        return null;
     }
 }

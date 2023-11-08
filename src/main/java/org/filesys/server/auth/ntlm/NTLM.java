@@ -61,6 +61,11 @@ public class NTLM {
     public static final byte[] SERVER_SEALING_KEY_CONST = "session key to server-to-client sealing key magic constant\u0000".getBytes();
     public static final byte[] CLIENT_SEALING_KEY_CONST = "session key to client-to-server sealing key magic constant\u0000".getBytes();
 
+    // NTLM AV Flags values
+    public static final int AvFlagsClientConstrained    = 0x00000001;
+    public static final int AvFlagsMICSupplied          = 0x00000002;
+    public static final int AvFlagsUntrustedTargetSPN   = 0x00000004;
+
     /**
      * Check if the specified flag is set
      *

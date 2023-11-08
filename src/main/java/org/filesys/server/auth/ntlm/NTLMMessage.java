@@ -557,7 +557,7 @@ public abstract class NTLMMessage {
      * @param buf byte[]
      * @return Type
      */
-    public final static Type isNTLMType(byte[] buf) {
+    public static Type isNTLMType(byte[] buf) {
         return isNTLMType(buf, 0);
     }
 
@@ -568,7 +568,7 @@ public abstract class NTLMMessage {
      * @param offset int
      * @return Type
      */
-    public final static Type isNTLMType(byte[] buf, int offset) {
+    public static Type isNTLMType(byte[] buf, int offset) {
 
         // Validate the buffer
         if (buf == null || buf.length < BufferHeaderLen)
