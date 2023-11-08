@@ -21,8 +21,10 @@
 package org.filesys.server.filesys.cache;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 
 import org.filesys.debug.Debug;
 import org.filesys.locking.FileLock;
@@ -93,13 +95,11 @@ public abstract class FileState implements Serializable {
     //	File status, indicates if the file/folder exists and if it is a file or folder.
     private FileStatus m_fileStatus;
 
-    //	Open file count
-    private int m_openCount;
+    // List of current file opens that are accessing the file data (does not include attributes/metadata only access)
+    private List<FileAccessToken> m_accessList;
 
-    // Sharing mode, access mask and PID (or session/virtual circuit id) of first process to open the file
-    private int m_accessMask;
-    private SharingMode m_sharedAccess = SharingMode.ALL;
-    private long m_pid = -1L;
+    // File is marked for delete on close, will not allow further file opens
+    private boolean m_deleteOnClose;
 
     //	File lock list, allocated once there are active locks on this file
     private FileLockList m_lockList;
@@ -193,7 +193,7 @@ public abstract class FileState implements Serializable {
      * @return boolean
      */
     public final boolean isDirectory() {
-        return m_fileStatus == FileStatus.DirectoryExists ? true : false;
+        return m_fileStatus == FileStatus.DirectoryExists;
     }
 
     /**
@@ -202,7 +202,7 @@ public abstract class FileState implements Serializable {
      * @return int
      */
     public int getOpenCount() {
-        return m_openCount;
+        return m_accessList != null ? m_accessList.size() : 0;
     }
 
     /**
@@ -217,22 +217,61 @@ public abstract class FileState implements Serializable {
      *
      * @return int
      */
-    public int getAccessMask() { return m_accessMask; }
+    public int getAccessMask() {
+
+        // If there is an entry in the access list then use the access mask from the first entry, which will be
+        // the first client to open the file, or most recent
+        if (m_accessList != null && !m_accessList.isEmpty()) {
+
+            // Return the access mask from the first file open
+            FileAccessToken token = m_accessList.get(0);
+            if (token != null)
+                return token.getAccessMode();
+        }
+
+        // No current file open, return the default access mode
+        return 0;
+    }
 
     /**
      * Return the shared access mode
      *
      * @return SharingMode
      */
-    public final SharingMode getSharedAccess() { return m_sharedAccess; }
+    public final SharingMode getSharedAccess() {
+
+        // If the file is marked for delete on close do not allow file sharing so any subsequent file opens
+        // will fail with a sharing violation
+        if ( hasDeleteOnClose())
+            return SharingMode.NOSHARING;
+
+        // If there is an entry in the access list then use the shared access from the first entry, which will be
+        // the first client to open the file, or most recent
+        if (m_accessList != null && !m_accessList.isEmpty()) {
+
+            // Return the shared access from the first file open
+            FileAccessToken token = m_accessList.get(0);
+            if (token != null)
+                return token.getSharedAccess();
+        }
+
+        // No current file open, return the default shared access mode
+        return SharingMode.ALL;
+    }
 
     /**
-     * Return the PID of the first process to open the file, or -1 if the file is not open
+     * Return the owner id of the first process to open the file, or null if the file is not open
      *
-     * @return long
+     * @return String
      */
-    public final long getProcessId() {
-        return m_pid;
+    public final String getProcessId() {
+        if ( m_accessList != null && !m_accessList.isEmpty()) {
+            FileAccessToken token = m_accessList.get( 0);
+            if ( token != null)
+                return token.getOwnerId();
+        }
+
+        return null;
     }
 
     /**
@@ -268,7 +307,7 @@ public abstract class FileState implements Serializable {
      * @return boolean
      */
     public final boolean isPermanentState() {
-        return m_tmo == NoTimeout ? true : false;
+        return m_tmo == NoTimeout;
     }
 
     /**
@@ -279,7 +318,7 @@ public abstract class FileState implements Serializable {
     public final boolean hasActiveRetentionPeriod() {
         if (m_retainUntil == -1L)
             return false;
-        return System.currentTimeMillis() < m_retainUntil ? true : false;
+        return System.currentTimeMillis() < m_retainUntil;
     }
 
     /**
@@ -330,25 +369,36 @@ public abstract class FileState implements Serializable {
     }
 
     /**
-     * Increment the file open count
+     * Add an access token for this file/folder, during file open
      *
+     * @param token FileAccessToken
      * @return int
      */
-    public synchronized int incrementOpenCount() {
-        return ++m_openCount;
+    public synchronized int addAccessToken(FileAccessToken token) {
+        if ( !token.isAttributesOnly()) {
+            if (m_accessList == null)
+                m_accessList = new ArrayList<>();
+
+            m_accessList.add(token);
+        }
+
+        return getOpenCount();
     }
 
     /**
-     * Decrement the file open count
+     * Remove an access token for this file/folder, during file close
      *
+     * @param token FileAccessToken
      * @return int
      */
-    public synchronized int decrementOpenCount() {
+    public synchronized int removeAccessToken(FileAccessToken token) {
 
-        if (m_openCount > 0)
-            m_openCount--;
+        if (m_accessList != null && !token.isAttributesOnly()) {
+            if ( !m_accessList.remove(token))
+                Debug.println("*** Failed to remove access token=" + token + ", list=" + m_accessList);
+        }
 
-        return m_openCount;
+        return getOpenCount();
     }
 
     /**
@@ -426,21 +476,23 @@ public abstract class FileState implements Serializable {
      *
      * @param accMask int
      */
+/*
     public void setAccessMask(int accMask) {
         if ( getOpenCount() == 0)
             m_accessMask = accMask;
     }
-
+*/
     /**
      * Set the shared access mode, from the first file open
      *
      * @param mode SharingMode
      */
+/*
     public void setSharedAccess(SharingMode mode) {
         if (getOpenCount() == 0)
             m_sharedAccess = mode;
     }
-
+*/
     /**
      * Set the file data status
      *
@@ -542,26 +594,6 @@ public abstract class FileState implements Serializable {
      */
     public final void setPathInternal(String path) {
         m_path = path;
-    }
-
-    /**
-     * Set the PID of the process opening the file
-     *
-     * @param pid int
-     */
-    public void setProcessId(int pid) {
-        if (getOpenCount() == 0)
-            m_pid = pid;
-    }
-
-    /**
-     * Set the PID of the process opening the file
-     *
-     * @param pid long
-     */
-    public void setProcessId(long pid) {
-        if (getOpenCount() == 0)
-            m_pid = pid;
     }
 
     /**
@@ -691,7 +723,7 @@ public abstract class FileState implements Serializable {
      * @return boolean
      */
     public boolean hasOpLock() {
-        return m_oplock != null ? true : false;
+        return m_oplock != null;
     }
 
     /**
@@ -764,12 +796,19 @@ public abstract class FileState implements Serializable {
     }
 
     /**
+     * Check if the file has a delete on close pending
+     *
+     * @return boolean
+     */
+    public final boolean hasDeleteOnClose() { return m_deleteOnClose; }
+
+    /**
      * Check if the access date/time has been set
      *
      * @return boolean
      */
     public final boolean hasAccessDateTime() {
-        return m_accessDate != 0L ? true : false;
+        return m_accessDate != 0L;
     }
 
     /**
@@ -794,7 +833,7 @@ public abstract class FileState implements Serializable {
      * @return boolean
      */
     public final boolean hasChangeDateTime() {
-        return m_changeDate != 0L ? true : false;
+        return m_changeDate != 0L;
     }
 
     /**
@@ -828,7 +867,7 @@ public abstract class FileState implements Serializable {
      * @return boolean
      */
     public final boolean hasModifyDateTime() {
-        return m_modifyDate != 0L ? true : false;
+        return m_modifyDate != 0L;
     }
 
     /**
@@ -864,7 +903,7 @@ public abstract class FileState implements Serializable {
      * @return boolean
      */
     public final boolean hasFilesystemObject() {
-        return getFilesystemObject() != null ? true : false;
+        return getFilesystemObject() != null;
     }
 
     /**
@@ -894,7 +933,7 @@ public abstract class FileState implements Serializable {
      * @return boolean
      */
     public final boolean hasFileSize() {
-        return m_fileSize != -1L ? true : false;
+        return m_fileSize != -1L;
     }
 
     /**
@@ -921,7 +960,7 @@ public abstract class FileState implements Serializable {
      * @return boolean
      */
     public final boolean hasAllocationSize() {
-        return m_allocSize > 0 ? true : false;
+        return m_allocSize > 0;
     }
 
     /**
@@ -943,15 +982,6 @@ public abstract class FileState implements Serializable {
     }
 
     /**
-     * Set the file open count
-     *
-     * @param count int
-     */
-    public void setOpenCount(int count) {
-        m_openCount = count;
-    }
-
-    /**
      * Check if there is a data update in progress for this file
      *
      * @return boolean
@@ -968,8 +998,10 @@ public abstract class FileState implements Serializable {
      * @return boolean
      */
     public final boolean isReadOnlyAccess() {
-        if ((m_accessMask & AccessMode.NTReadWrite) == AccessMode.NTRead ||
-                (m_accessMask & AccessMode.NTGenericReadWrite) == AccessMode.NTGenericRead)
+        int accessMask = getAccessMask();
+
+        if ((accessMask & AccessMode.NTReadWrite) == AccessMode.NTRead ||
+                (accessMask & AccessMode.NTGenericReadWrite) == AccessMode.NTGenericRead)
             return true;
         return false;
     }
@@ -980,8 +1012,10 @@ public abstract class FileState implements Serializable {
      * @return boolean
      */
     public final boolean isWriteOnlyAccess() {
-        if ((m_accessMask & AccessMode.NTReadWrite) == AccessMode.NTWrite ||
-                (m_accessMask & AccessMode.NTGenericReadWrite) == AccessMode.NTGenericWrite)
+        int accessMask = getAccessMask();
+
+        if ((accessMask & AccessMode.NTReadWrite) == AccessMode.NTWrite ||
+                (accessMask & AccessMode.NTGenericReadWrite) == AccessMode.NTGenericWrite)
             return true;
         return false;
     }
@@ -992,9 +1026,11 @@ public abstract class FileState implements Serializable {
      * @return boolean
      */
     public final boolean isReadWriteAccess() {
-        if ((m_accessMask & AccessMode.NTReadWrite) == AccessMode.NTReadWrite ||
-                (m_accessMask & AccessMode.NTGenericReadWrite) == AccessMode.NTGenericReadWrite ||
-                m_accessMask == AccessMode.NTGenericAll)
+        int accessMask = getAccessMask();
+
+        if ((accessMask & AccessMode.NTReadWrite) == AccessMode.NTReadWrite ||
+                (accessMask & AccessMode.NTGenericReadWrite) == AccessMode.NTGenericReadWrite ||
+                accessMask == AccessMode.NTGenericAll)
             return true;
         return false;
     }
@@ -1005,7 +1041,9 @@ public abstract class FileState implements Serializable {
      * @return boolean
      */
     public final boolean isDeleteAccess() {
-        return (m_accessMask & AccessMode.NTDelete) != 0;
+        int accessMask = getAccessMask();
+
+        return (accessMask & AccessMode.NTDelete) != 0;
     }
 
     /**
@@ -1014,14 +1052,20 @@ public abstract class FileState implements Serializable {
      * @return boolean
      */
     public final boolean isExecuteAccess() {
-        return (m_accessMask & AccessMode.NTExecute) != 0;
+        int accessMask = getAccessMask();
+
+        return (accessMask & AccessMode.NTExecute) != 0;
     }
 
     /**
-     * File has been marked for delete on close, change the sharing mode to none so that
-     * any further file open attempts will fail with a sharing violation error
+     * Open file has been marked for delete on close
      */
-    public final void setDeleteOnClose() { m_sharedAccess = SharingMode.NOSHARING; }
+    public final void setDeleteOnClose() { m_deleteOnClose = true; }
+
+    /**
+     * Clear the delete on close flag
+     */
+    public final void clearDeleteOnClose() { m_deleteOnClose = false; }
 
     /**
      * Determine if the file open is to access the file attributes/metadata only
@@ -1029,9 +1073,11 @@ public abstract class FileState implements Serializable {
      * @return boolean
      */
     public final boolean isAttributesOnlyAccess() {
-        if ((m_accessMask & (AccessMode.NTReadWrite + AccessMode.NTAppend)) == 0 &&
-                (m_accessMask & AccessMode.NTGenericReadWrite) == 0 &&
-                (m_accessMask & (AccessMode.NTReadAttrib + AccessMode.NTWriteAttrib)) != 0)
+        int accessMask = getAccessMask();
+
+        if ((accessMask & (AccessMode.NTReadWrite + AccessMode.NTAppend)) == 0 &&
+                (accessMask & AccessMode.NTGenericReadWrite) == 0 &&
+                (accessMask & (AccessMode.NTReadAttrib + AccessMode.NTWriteAttrib)) != 0)
             return true;
         return false;
     }
@@ -1154,11 +1200,16 @@ public abstract class FileState implements Serializable {
             str.append("(access=0x");
             str.append( Integer.toHexString( getAccessMask()));
             str.append(",shr=");
-            str.append(getSharedAccess().name());
-            str.append(",pid=0x");
-            str.append(Long.toHexString(getProcessId()));
+            str.append( getSharedAccess().name());
+            str.append(",owner=");
+            str.append( getProcessId());
             str.append(")");
+
+            str.append(",[");
+            str.append( m_accessList);
+            str.append("]");
         }
+
         str.append(",Fid=");
         str.append(getFileId());
 
@@ -1175,6 +1226,9 @@ public abstract class FileState implements Serializable {
             str.append(",OpLock=");
             str.append(getOpLock());
         }
+
+        if ( hasDeleteOnClose())
+            str.append(",DelOnClose");
 
         str.append("]");
 

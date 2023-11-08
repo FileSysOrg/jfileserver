@@ -222,6 +222,10 @@ public class StandaloneFileStateCache extends FileStateCache {
      */
     public final void renameFileState(String newPath, FileState state, boolean isDir) {
 
+        // DEBUG
+        if (Debug.EnableInfo && hasDebug())
+            Debug.println("++ Rename state path from= " + state.getPath() + " to=" + newPath);
+
         // Synchronize the cache update
         String oldPath = state.getPath();
 

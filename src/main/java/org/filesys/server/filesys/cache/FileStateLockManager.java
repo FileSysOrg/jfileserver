@@ -28,10 +28,7 @@ import org.filesys.locking.FileLock;
 import org.filesys.locking.LockConflictException;
 import org.filesys.locking.NotLockedException;
 import org.filesys.server.SrvSession;
-import org.filesys.server.filesys.DeferFailedException;
-import org.filesys.server.filesys.ExistingOpLockException;
-import org.filesys.server.filesys.NetworkFile;
-import org.filesys.server.filesys.TreeConnection;
+import org.filesys.server.filesys.*;
 import org.filesys.server.locking.*;
 import org.filesys.server.thread.ThreadRequestPool;
 import org.filesys.server.thread.TimedThreadRequest;
@@ -50,14 +47,14 @@ import org.filesys.smb.server.SMBSrvSession;
 public class FileStateLockManager implements LockManager, OpLockManager, Runnable {
 
     // Oplock break timeout
-    private static final long OpLockBreakTimeout        = 5000L;    // 5 seconds
+    private static final long OpLockBreakTimeout        = 15000L;    // 15 seconds
     private static final long OpLockBreakTimeoutSecs    = OpLockBreakTimeout / 1000L;
 
     // File state cache used for byte range locks/oplocks
-    private FileStateCache m_stateCache;
+    private final FileStateCache m_stateCache;
 
     // Oplock breaks in progress
-    private Hashtable<String, OpLockDetails> m_oplockQueue;
+    private final Hashtable<String, OpLockDetails> m_oplockQueue;
 
     // Oplock break timeout thread
     private Thread m_expiryThread;
@@ -91,12 +88,12 @@ public class FileStateLockManager implements LockManager, OpLockManager, Runnabl
             checkExpiredOplockBreaks();
 
             // If the shutdown flag is set then clear the repeat interval so the timed request
-            // does not get requeued
-            if (m_shutdown == true) {
+            // does not get re-queued
+            if ( m_shutdown) {
 
-                // Clear the repeat interval so the request does not get requeued
+                // Clear the repeat interval so the request does not get re-queued
                 setRepeatInterval(0L);
-            } else if (m_oplockQueue.size() == 0) {
+            } else if ( m_oplockQueue.isEmpty()) {
 
                 // Pause the timed checker request
                 setRunAtTime(TimedRequestPaused);
@@ -132,7 +129,7 @@ public class FileStateLockManager implements LockManager, OpLockManager, Runnabl
             throws LockConflictException, IOException {
 
         //	Make sure the file implements the file state interface
-        if ((file instanceof NetworkFileStateInterface) == false)
+        if ( !(file instanceof NetworkFileStateInterface))
             throw new IllegalArgumentException("NetworkFile does not implement NetworkFileStateInterface, path=" + file.getFullName());
 
         //	Get the file state associated with the file
@@ -163,7 +160,7 @@ public class FileStateLockManager implements LockManager, OpLockManager, Runnabl
             throws NotLockedException, IOException {
 
         //	Make sure the file implements the file state interface
-        if ((file instanceof NetworkFileStateInterface) == false)
+        if ( !(file instanceof NetworkFileStateInterface))
             throw new IllegalArgumentException("NetworkFile does not implement NetworkFileStateInterface");
 
         //	Get the file state associated with the file
@@ -207,7 +204,7 @@ public class FileStateLockManager implements LockManager, OpLockManager, Runnabl
     public void releaseLocksForFile(SrvSession sess, TreeConnection tree, NetworkFile file) {
 
         //	Check if the file has active locks
-        if (file.hasLocks()) {
+        if (file != null && file.hasLocks()) {
 
             synchronized (file) {
 
@@ -281,9 +278,10 @@ public class FileStateLockManager implements LockManager, OpLockManager, Runnabl
      * @param netFile NetworkFile
      * @return boolean
      * @throws ExistingOpLockException If the file already has an oplock
+     * @throws InvalidOplockStateException Invalid oplock state, usually due to an existing batch oplock
      */
     public boolean grantOpLock(String path, OpLockDetails oplock, NetworkFile netFile)
-            throws ExistingOpLockException {
+            throws ExistingOpLockException, InvalidOplockStateException {
 
         // Get, or create, a file state
         FileState fstate = m_stateCache.findFileState(path, true);
@@ -308,15 +306,17 @@ public class FileStateLockManager implements LockManager, OpLockManager, Runnabl
         // Request an oplock break
         m_stateCache.requestOplockBreak(path, oplock, sess, pkt);
 
-        // Add the oplock to the break in progress queue
-        synchronized (m_oplockQueue) {
-            m_oplockQueue.put(path, oplock);
+        // For a batch oplock add the oplock to the break in progress queue
+        if ( oplock.getLockType() == OpLockType.LEVEL_BATCH) {
+            synchronized (m_oplockQueue) {
+                m_oplockQueue.put(path, oplock);
 
-            // Inform the checker thread or restart the timed request
-            if (m_threadPool == null)
-                m_oplockQueue.notify();
-            else
-                m_threadReq.restartRequest();
+                // Inform the checker thread or restart the timed request
+                if (m_threadPool == null)
+                    m_oplockQueue.notify();
+                else
+                    m_threadReq.restartRequest();
+            }
         }
     }
 
@@ -328,32 +328,18 @@ public class FileStateLockManager implements LockManager, OpLockManager, Runnabl
      */
     public void releaseOpLock(String path, OplockOwner owner) {
 
-        // Get the file state
+        // Get the file state and oplock type
         FileState fstate = m_stateCache.findFileState(path);
-        if (fstate != null && fstate.getOpLock() != null) {
+        OpLockType opType = OpLockType.INVALID;
 
-            // Get the oplock details
-            OpLockDetails oplock = fstate.getOpLock();
+        if ( fstate != null)
+            opType = fstate.getOpLock().getLockType();
 
-            // For a shared level II oplock we remove the owner, there may be multiple owners
-            if ( oplock.getLockType() == OpLockType.LEVEL_II) {
+        // Remove the oplock owner
+        if ( m_stateCache.removeOplockOwner( fstate, owner)) {
 
-                try {
-
-                    // Remove the oplock owner
-                    OplockOwner remOwner = oplock.removeOplockOwner(owner);
-
-                    // TODO: If there is only one oplock owner left then send an oplock break notification to the remaining owner
-                    // TODO: Clear the oplock
-                }
-                catch ( InvalidOplockStateException ex)  {
-
-                }
-            }
-            else {
-
-                // Remove the oplock from the file state
-                fstate.clearOpLock();
+            // For a batch oplock clear any pending oplock break requests
+            if  (opType == OpLockType.LEVEL_BATCH) {
 
                 // Remove from the pending oplock break queue
                 synchronized (m_oplockQueue) {
@@ -373,12 +359,63 @@ public class FileStateLockManager implements LockManager, OpLockManager, Runnabl
     }
 
     /**
+     * Add a new owner to an oplock
+     *
+     * @param path String
+     * @param oplock OplockDetails
+     * @param owner OplockOwner
+     * @throws InvalidOplockStateException If there is an existing owner on a batch oplock
+     */
+    public void addOplockOwner(String path, OpLockDetails oplock, OplockOwner owner)
+        throws InvalidOplockStateException {
+
+        // Get the file state and oplock type
+        FileState fstate = m_stateCache.findFileState(path);
+        OpLockType opType = OpLockType.INVALID;
+
+        // Add the new oplock owner
+        if ( fstate != null && fstate.hasOpLock())
+            m_stateCache.addOplockOwner( fstate, owner);
+    }
+
+    /**
+     * Remove an oplock owner
+     *
+     * @param path String
+     * @param oplock OplockDetails
+     * @param owner OplockOwner
+     * @return int Remaining number of oplock owners
+     */
+    public int removeOplockOwner(String path, OpLockDetails oplock, OplockOwner owner) {
+
+        // Get the file state and oplock type
+        FileState fstate = m_stateCache.findFileState(path);
+
+        // Remove the oplock owner
+        int numOwners = 0;
+
+        if ( fstate != null && fstate.hasOpLock()) {
+
+            // Remove the oplock owner
+            m_stateCache.removeOplockOwner(fstate, owner);
+
+            // Get the remaining count of oplock owners
+            numOwners = fstate.getOpLock().numberOfOwners();
+        }
+
+        // Return the remaining number of oplock owners
+        return numOwners;
+    }
+
+
+    /**
      * Change an oplock type
      *
      * @param oplock OpLockDetails
      * @param newTyp OpLockType
+     * @param requeue boolean
      */
-    public void changeOpLockType(OpLockDetails oplock, OpLockType newTyp) {
+    public void changeOpLockType(OpLockDetails oplock, OpLockType newTyp, boolean requeue) {
 
         // Change the oplock type via the state cache
         m_stateCache.changeOpLockType(oplock, newTyp);
@@ -389,11 +426,15 @@ public class FileStateLockManager implements LockManager, OpLockManager, Runnabl
             // Remove any active oplock break from the queue
             if (m_oplockQueue.remove(oplock.getPath()) != null) {
 
-                // Check if there are deferred CIFS request(s) pending for this oplock
-                if (oplock.hasDeferredSessions()) {
+                // Check if deferred requests should be re-queued for processing
+                if ( requeue) {
 
-                    // Requeue the deferred request(s) to the thread pool for processing
-                    oplock.requeueDeferredRequests();
+                    // Check if there are deferred CIFS request(s) pending for this oplock
+                    if (oplock.hasDeferredSessions()) {
+
+                        // Requeue the deferred request(s) to the thread pool for processing
+                        oplock.requeueDeferredRequests();
+                    }
                 }
             }
         }
@@ -430,7 +471,7 @@ public class FileStateLockManager implements LockManager, OpLockManager, Runnabl
         synchronized (m_oplockQueue) {
 
             // Check if there are any oplock breaks in progress
-            if (m_oplockQueue.size() == 0)
+            if ( m_oplockQueue.isEmpty())
                 return 0;
 
             // Check for oplock break requests that have expired
@@ -476,6 +517,36 @@ public class FileStateLockManager implements LockManager, OpLockManager, Runnabl
     }
 
     /**
+     * Check access to a path, the file open parameters may not allow the path to be opened
+     *
+     * @param path String
+     * @param params FileOpenParams
+     * @return boolean
+     */
+    public boolean checkAccess(String path, FileOpenParams params) {
+
+        // Get the file state
+        FileState fstate = m_stateCache.findFileState(path);
+
+        if ( fstate == null)
+            return true;
+
+        // Check if the caller wants write access, check the sharing mode
+        boolean accessAllowed = true;
+
+        if ((params.isReadWriteAccess() || params.isWriteOnlyAccess()) && !fstate.getSharedAccess().hasWrite()) {
+            accessAllowed = false;
+        }
+
+        // Check if the caller wants delete access, check the sharing mode
+        else if (params.isDeleteAccess() && !fstate.getSharedAccess().hasDelete()) {
+            accessAllowed = false;
+        }
+
+        return accessAllowed;
+    }
+
+    /**
      * Run the oplock break expiry
      */
     public void run() {
@@ -483,23 +554,23 @@ public class FileStateLockManager implements LockManager, OpLockManager, Runnabl
         // Loop forever
         m_shutdown = false;
 
-        while (m_shutdown == false) {
+        while ( !m_shutdown) {
             // Wait for an oplock break or sleep for a while if there are active oplock break requests
             try {
                 synchronized (m_oplockQueue) {
-                    if (m_oplockQueue.size() == 0)
+                    if ( m_oplockQueue.isEmpty())
                         m_oplockQueue.wait();
                 }
 
                 // Oplock break added to the queue, wait a while before checking the queue
-                if (m_oplockQueue.size() > 0)
+                if ( !m_oplockQueue.isEmpty())
                     Thread.sleep(OpLockBreakTimeout);
             }
             catch (InterruptedException ex) {
             }
 
             //	Check for shutdown
-            if (m_shutdown == true)
+            if ( m_shutdown)
                 return;
 
             // Check for expired oplock break requests
