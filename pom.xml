@@ -9,7 +9,7 @@
 
     <name>${project.groupId}:${project.artifactId}</name>
     <description>Java file server with SMB, FTP/FTPS and NFS support, virtual filesystems, database filesystems</description>
-    <url>http://www.filesys.org</url>
+    <url>https://www.filesys.org</url>
 
     <licenses>
         <license>
@@ -20,8 +20,8 @@
 
     <properties>
         <!-- Compile with Java 8, default is 5 -->
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
     </properties>
 
     <dependencies>
@@ -29,27 +29,27 @@
         <dependency>
             <groupId>com.hazelcast</groupId>
             <artifactId>hazelcast</artifactId>
-            <version>5.2.2</version>
+            <version>5.3.5</version>
         </dependency>
 
         <!-- Java Native Access -->
         <dependency>
             <groupId>net.java.dev.jna</groupId>
             <artifactId>jna</artifactId>
-            <version>5.1.0</version>
+            <version>5.13.0</version>
         </dependency>
 
         <dependency>
             <groupId>net.java.dev.jna</groupId>
             <artifactId>jna-platform</artifactId>
-            <version>5.1.0</version>
+            <version>5.13.0</version>
         </dependency>
 
         <!-- BouncyCastle crypto library -->
         <dependency>
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcprov-jdk15on</artifactId>
-            <version>1.69</version>
+            <version>1.70</version>
         </dependency>
     </dependencies>
 
@@ -230,7 +230,7 @@
             <name>Gary K. Spencer</name>
             <email>gk.spencer@filesys.org</email>
             <organization>FileSys.Org</organization>
-            <organizationUrl>http://www.filesys.org</organizationUrl>
+            <organizationUrl>https://www.filesys.org</organizationUrl>
         </developer>
     </developers>
 
