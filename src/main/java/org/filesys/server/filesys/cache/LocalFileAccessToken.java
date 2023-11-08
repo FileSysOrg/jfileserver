@@ -21,105 +21,21 @@ package org.filesys.server.filesys.cache;
 
 import org.filesys.debug.Debug;
 import org.filesys.server.filesys.FileAccessToken;
+import org.filesys.server.filesys.FileOpenParams;
 
 /**
  * Local File Access Token Class
  *
  * @author gkspencer
  */
-public class LocalFileAccessToken implements FileAccessToken {
-
-    // Use the request process id or session id/virtual circuit id
-    private long m_pid;
-
-    // Attributes only file access
-    private boolean m_attribOnly;
-
-    // Access token has been released
-    private transient boolean m_released = false;
+public class LocalFileAccessToken extends FileAccessToken {
 
     /**
      * Class constructor
      *
-     * @param pid long
+     * @param params FileOpenParams
      */
-    public LocalFileAccessToken(long pid) {
-        m_pid = pid;
-    }
-
-    /**
-     * Return the process id
-     *
-     * @return long
-     */
-    public final long getProcessId() {
-        return m_pid;
-    }
-
-    /**
-     * Check if the access token has been released
-     *
-     * @return boolean
-     */
-    public final boolean isReleased() {
-        return m_released;
-    }
-
-    /**
-     * Set the released state of the access token
-     *
-     * @param released boolean
-     */
-    public final void setReleased(boolean released) {
-        m_released = released;
-    }
-
-    /**
-     * Check if the access token is on attributes only file open
-     *
-     * @return boolean
-     */
-    public final boolean isAttributesOnly() {
-        return m_attribOnly;
-    }
-
-    /**
-     * Set/clear the attributes only flag
-     *
-     * @param attrOnly boolean
-     */
-    public final void setAttributesOnly(boolean attrOnly) {
-        m_attribOnly = attrOnly;
-    }
-
-    /**
-     * Return the access token as a string
-     *
-     * @return String
-     */
-    public String toString() {
-        StringBuilder str = new StringBuilder();
-
-        str.append("[Token pid=0x");
-        str.append(Long.toHexString( getProcessId()));
-
-        if (isAttributesOnly())
-            str.append(",AttribOnly");
-
-        if (isReleased())
-            str.append(",Released");
-        str.append("]");
-
-        return str.toString();
-    }
-
-    /**
-     * Finalize
-     */
-    public void finalize() {
-
-        // Check if the access token was released
-        if (isReleased() == false)
-            Debug.println("** Access token finalized, not released, " + toString() + " **");
+    public LocalFileAccessToken( FileOpenParams params) {
+        super( params);
     }
 }
