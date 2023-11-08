@@ -75,7 +75,7 @@ public class CheckFileByteLockTask extends RemoteStateTask<Boolean> {
      * @return Boolean
      * @throws Exception Error running remote task
      */
-    protected Boolean runRemoteTaskAgainstState(IMap<String, ClusterFileState> stateCache, ClusterFileState fState)
+    protected Boolean runRemoteTaskAgainstState(IMap<String, HazelCastClusterFileState> stateCache, HazelCastClusterFileState fState)
             throws Exception {
 
         // DEBUG
@@ -85,10 +85,10 @@ public class CheckFileByteLockTask extends RemoteStateTask<Boolean> {
         // Check if there are any locks on the file
         boolean accessOK = true;
 
-        if (fState.hasActiveLocks() == true) {
+        if ( fState.hasActiveLocks()) {
 
             // Check if the area is readable/writeable by this user
-            if (m_writeCheck == true) {
+            if ( m_writeCheck) {
 
                 // Check if the file area is writeable
                 accessOK = fState.getLockList().canWriteFile(m_lockCheck);

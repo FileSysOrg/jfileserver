@@ -55,9 +55,7 @@ import org.filesys.server.filesys.cache.cluster.ClusterInterface;
 import org.filesys.server.filesys.cache.cluster.ClusterNode;
 import org.filesys.server.filesys.cache.cluster.ClusterNodeList;
 import org.filesys.server.filesys.cache.cluster.PerNodeState;
-import org.filesys.server.locking.LocalOpLockDetails;
-import org.filesys.server.locking.OpLockDetails;
-import org.filesys.server.locking.OpLockManager;
+import org.filesys.server.locking.*;
 import org.filesys.server.thread.ThreadRequestPool;
 import org.filesys.smb.OpLockType;
 import org.filesys.smb.SharingMode;
@@ -105,7 +103,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
     public static final long MaximumNearCacheTimeout = 120000L;    // 2 minutes
 
     // Update mask to disable the state update post processor
-    private final int DisableAllStateUpdates = -1;
+    private final EnumSet<ClusterFileState.UpdateFlag> DisableAllStateUpdates = EnumSet.allOf(ClusterFileState.UpdateFlag.class);
 
     // Cluster name, distributed map name, and messaging topic name
     private String m_clusterName;
@@ -186,7 +184,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
             m_clusterName = elem.getValue();
 
             // Validate the cluster name
-            if (m_clusterName == null || m_clusterName.length() == 0)
+            if (m_clusterName == null || m_clusterName.isEmpty())
                 throw new InvalidConfigurationException("Empty cluster name");
         } else if ( m_clusterConfig.hasClusterName()) {
 
@@ -204,7 +202,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
             m_mapName = elem.getValue();
 
             // Validate the map name
-            if (m_mapName == null || m_mapName.length() == 0)
+            if (m_mapName == null || m_mapName.isEmpty())
                 throw new InvalidConfigurationException("Empty cluster map name");
         } else
             throw new InvalidConfigurationException("Cluster map name not specified");
@@ -217,7 +215,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
             m_topicName = elem.getValue();
 
             // Validate the topic name
-            if (m_topicName == null || m_topicName.length() == 0)
+            if (m_topicName == null || m_topicName.isEmpty())
                 throw new InvalidConfigurationException("Empty cluster topic name");
         } else
             throw new InvalidConfigurationException("Cluster topic name not specified");
@@ -231,7 +229,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
             // Check if the near cache has been disabled
             String disableNear = elem.getAttribute("disable");
 
-            if (Boolean.parseBoolean(disableNear) == true)
+            if (Boolean.parseBoolean(disableNear))
                 useNearCache = false;
 
             // Check if the cache timeout value has been specified
@@ -250,7 +248,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
         }
 
         // Create the near cache
-        if (useNearCache == true)
+        if (useNearCache)
             m_nearCache = new ConcurrentHashMap<String, HazelCastClusterFileState>();
 
         // Get the global thread pool
@@ -319,17 +317,17 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
     public void dumpCache(boolean dumpAttribs) {
 
         // Dump the file state cache entries to the specified stream
-        if (m_stateCache.size() > 0)
+        if (!m_stateCache.isEmpty())
             Debug.println("++ HazelCastFileStateCache Entries:");
 
         // Dump the local keys only
         Set<String> localKeys = m_stateCache.localKeySet();
 
         // Check if there are any items in the cache
-        if (localKeys.size() == 0)
+        if (localKeys.isEmpty())
             return;
 
-        // Enumerate the file state cache and remove expired file state objects
+        // Enumerate the file state cache
         Iterator<String> keysIter = localKeys.iterator();
         long curTime = System.currentTimeMillis();
 
@@ -340,8 +338,26 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
             Debug.println("++  " + fname + "(" + state.getSecondsToExpire(curTime) + ") : " + state.toString());
 
             // Check if the state attributes should be output
-            if (dumpAttribs == true)
+            if (dumpAttribs)
                 state.DumpAttributes();
+        }
+
+        // Dump the per node cache
+        if ( m_perNodeCache != null) {
+
+            // Dump the per node cache keys/values
+            Iterator<String> perNodeIter = m_perNodeCache.keySet().iterator();
+
+            Debug.println("++ Per Node Cache Entries:");
+
+            while (perNodeIter.hasNext()) {
+
+                // Get the current per node cache entry
+                String key = perNodeIter.next();
+                PerNodeState perNode = m_perNodeCache.get( key);
+
+                Debug.println("++  " + key + ": " + perNode);
+            }
         }
     }
 
@@ -363,7 +379,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
      * @return boolean
      */
     public final boolean hasNearCache() {
-        return m_nearCache != null ? true : false;
+        return m_nearCache != null;
     }
 
     /**
@@ -420,7 +436,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
             Debug.println("findFileState path=" + path + ", create=" + create + ", sts=" + status.name() + ", state=" + state);
 
         // Check if we should create a new file state
-        if (state == null && create == true) {
+        if (state == null && create) {
 
             // Create a new file state
             state = new HazelCastClusterFileState(path, isCaseSensitive());
@@ -530,7 +546,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
         try {
 
             // Wait for the remote task to complete, check status
-            if ( executeRenameFileState(state.getPath(), newPathNorm, isDir) == true) {
+            if (executeRenameFileState(state.getPath(), newPathNorm, isDir)) {
 
                 // Normalize the new path
                 String newNormPath = FileState.normalizePath(newPath, isCaseSensitive());
@@ -558,6 +574,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
                         hcState.removeAllAttributes();
 
                         // Add the entry back using the new path
+                        hcState.setStateValid( true);
                         m_nearCache.put(hcState.getPath(), hcState);
 
                         // DEBUG
@@ -574,6 +591,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
                             hcState.setPathInternal(newNormPath);
 
                             // Add to the near-cache
+                            hcState.setStateValid( true);
                             m_nearCache.put(newNormPath, hcState);
 
                             // DEBUG
@@ -596,7 +614,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
                 throw new RuntimeException("Rename state task failed, state=" + state);
             }
         }
-        catch (ExecutionException ex) {
+        catch (ExecutionException | InterruptedException ex) {
 
             // DEBUG
             if (hasDebugLevel(Dbg.RENAME)) {
@@ -606,17 +624,6 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
 
             // Problem executing the remote task
             throw new RuntimeException("Failed to rename state " + state.getPath(), ex);
-        }
-        catch (InterruptedException ex2) {
-
-            // DEBUG
-            if (hasDebugLevel(Dbg.RENAME)) {
-                Debug.println("Error renaming state, fstate=" + state + ", newPath=" + newPath);
-                Debug.println(ex2);
-            }
-
-            // Problem executing the remote task
-            throw new RuntimeException("Failed to rename state " + state.getPath(), ex2);
         }
     }
 
@@ -652,7 +659,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
         // Check if there are any items in the cache
         int expiredCnt = 0;
 
-        if (localKeys.size() > 0) {
+        if (!localKeys.isEmpty()) {
 
             // DEBUG
             if (hasDebugLevel(Dbg.EXPIRE))
@@ -669,7 +676,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
                 // Get the file state
                 ClusterFileState state = m_stateCache.get(keysIter.next());
 
-                if (state != null && state.isPermanentState() == false) {
+                if (state != null && !state.isPermanentState()) {
 
                     synchronized (state) {
 
@@ -678,7 +685,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
                         if (state.hasExpired(curTime) && state.getOpenCount() == 0) {
 
                             // Check if there is a state listener
-                            if (hasStateListener() && getStateListener().fileStateExpired(state) == true) {
+                            if (hasStateListener() && getStateListener().fileStateExpired(state)) {
 
                                 // Remove the expired file state
                                 HazelCastClusterFileState hcState = m_stateCache.remove(state.getPath());
@@ -711,7 +718,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
         long checkTime = System.currentTimeMillis() - m_nearCacheTimeout;
         int nearExpireCnt = 0;
 
-        if (hasNearCache() && m_nearCache.size() > 0) {
+        if (hasNearCache() && !m_nearCache.isEmpty()) {
 
             // Iterate the near-cache
             Enumeration<String> nearEnum = m_nearCache.keys();
@@ -773,7 +780,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
                     RemoteOpLockDetails remoteOplock = (RemoteOpLockDetails) oplock;
                     ClusterNode clNode = m_nodes.findNode(remoteOplock.getOwnerName());
 
-                    if (clNode.isLocalNode()) {
+                    if (clNode != null && clNode.isLocalNode()) {
                         oplock = null;
 
                         // Cleanup the near cache oplock
@@ -801,56 +808,75 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
      * @param netFile NetworkFile
      * @return boolean
      * @throws ExistingOpLockException Oplock already exists
+     * @throws InvalidOplockStateException Invalid oplock state, usually due to an existing batch oplock
      */
     public boolean addOpLock(FileState fstate, OpLockDetails oplock, NetworkFile netFile)
-            throws ExistingOpLockException {
+            throws ExistingOpLockException, InvalidOplockStateException {
 
         // Make sure the oplock is a local oplock
-        if (oplock instanceof LocalOpLockDetails == false)
+        if ( !(oplock instanceof LocalOpLockDetails))
             throw new RuntimeException("Attempt to add non-local oplock to file state " + fstate.getPath());
 
         // DEBUG
         if (hasDebugLevel(Dbg.OPLOCK))
             Debug.println("Add oplock for state=" + fstate + ", oplock=" + oplock);
 
-        // Check if the oplock has already been granted by the file access check when the file was opened/created
+        // Check if there is an existing oplock on the file
         ClusterFileState clState = (ClusterFileState) fstate;
 
         if (clState.hasLocalOpLock()) {
 
-            // Check if the granted oplock matches the requested oplock details
-            LocalOpLockDetails grantedOplock = clState.getLocalOpLock();
-            LocalOpLockDetails reqOplock = (LocalOpLockDetails) oplock;
+            // Check if the oplock is the same type, should be LevelII
+            if ( oplock.isLevelIIOplock() && clState.getLocalOpLock().isLevelIIOplock()) {
 
-            if (reqOplock.getPath().equalsIgnoreCase(grantedOplock.getPath()) &&
-                    reqOplock.getLockType() == grantedOplock.getLockType() &&
-                    reqOplock.hasOplockOwner() && reqOplock.getOplockOwner().equals( grantedOplock.getOplockOwner())) {
+                // Existing oplock is a shared LevelII oplock, we can add another oplock owner to the existing oplock
+                LocalOpLockDetails curOplock = (LocalOpLockDetails) clState.getLocalOpLock();
+                LocalOpLockDetails newOplock = (LocalOpLockDetails) oplock;
 
-                try {
+                // Add the oplock owner to the cluster file state via a remote task
+                m_oplockManager.addOplockOwner( fstate.getPath(), curOplock, newOplock.getOplockOwner());
 
-                    // Switch to the new oplock, it contains the full details, the file id will be set later
-                    // once the file open completes in the protocol layer
-                    clState.clearLocalOpLock();
-                    clState.setLocalOpLock(reqOplock);
+                // Add the new owner to the locally cached oplock details
+                curOplock.addOplockOwner(newOplock.getOplockOwner());
+
+                // Update the near-cache
+                if (hasNearCache()) {
+
+                    // Check if the file state is in the near-cache
+                    HazelCastClusterFileState hcState = getStateFromNearCache(fstate.getPath());
+
+                    if (hcState != null) {
+
+                        // Invalidate the new cache entry
+                        hcState.setStateValid( false);
+
+                        // DEBUG
+                        if (hasDebugLevel(Dbg.NEARCACHE))
+                            Debug.println("Oplock updated, invalidate near-cache state=" + hcState);
+                    }
                 }
-                catch (ExistingOpLockException ex) {
-                    Debug.println(ex);
-                }
 
-                // DEBUG
-                if (hasDebugLevel(Dbg.OPLOCK))
-                    Debug.println("Oplock already granted via file access check, oplock=" + grantedOplock);
-
-                // Return a success status, oplock already granted, no need to make a remote call
-                return true;
+                // Inform cluster nodes that an oplock has been updated
+                OpLockMessage oplockMsg = new OpLockMessage(ClusterMessage.AllNodes, ClusterMessageType.OplockOwnerAdd, clState.getPath(), newOplock.getOplockOwner());
+                m_clusterTopic.publish(oplockMsg);
             }
-        } else if (netFile.hasAccessToken()) {
+            else {
+
+                // Incompatible existing oplock
+                throw new ExistingOpLockException( "Incompatible existing oplock for " + fstate.getPath() + ", add=" + oplock.getLockType());
+            }
+
+            // Return a success status, existing oplock updated
+            return true;
+        }
+        else if (netFile.hasAccessToken()) {
 
             // Access token may indicate that the oplock is not available, no need to make a remote call
             FileAccessToken token = netFile.getAccessToken();
-            if (token != null && token instanceof HazelCastAccessToken) {
+
+            if ( token instanceof HazelCastAccessToken) {
                 HazelCastAccessToken hcToken = (HazelCastAccessToken) token;
-                if (hcToken.isOplockAvailable() == false) {
+                if ( hcToken.getAvailableOpLockType() == OpLockType.INVALID) {
 
                     // DEBUG
                     if (hasDebugLevel(Dbg.OPLOCK))
@@ -863,7 +889,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
         }
 
         // Create remote oplock details that can be stored in the cluster cache
-        RemoteOpLockDetails remoteOpLock = new RemoteOpLockDetails(getLocalNode(), oplock, this);
+        RemoteOpLockDetails remoteOpLock = new RemoteOpLockDetails(getLocalNode(), (LocalOpLockDetails) oplock, this);
 
         // DEBUG
         if (hasDebugLevel(Dbg.OPLOCK))
@@ -875,7 +901,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
         try {
 
             // Wait for the remote task to complete, check status
-            if ( executeAddOpLock(fstate.getPath(), remoteOpLock) == true) {
+            if ( executeAddOpLock(fstate.getPath(), remoteOpLock)) {
 
                 // Oplock added successfully, save the local oplock details in the per node data
                 clState.setLocalOpLock((LocalOpLockDetails) oplock);
@@ -885,6 +911,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
 
                     // Check if the file state is in the near-cache
                     HazelCastClusterFileState hcState = getStateFromNearCache(fstate.getPath());
+
                     if (hcState != null) {
 
                         // Add the remote oplock
@@ -900,7 +927,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
                 sts = true;
             }
         }
-        catch (ExecutionException ex) {
+        catch (ExecutionException | InterruptedException ex) {
 
             // DEBUG
             if (hasDebugLevel(Dbg.OPLOCK)) {
@@ -910,17 +937,6 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
 
             // Problem executing the remote task
             throw new ExistingOpLockException("Failed to execute remote oplock add on " + fstate.getPath(), ex);
-        }
-        catch (InterruptedException ex2) {
-
-            // DEBUG
-            if (hasDebugLevel(Dbg.OPLOCK)) {
-                Debug.println("Error adding oplock, fstate=" + fstate + ", oplock=" + oplock);
-                Debug.println(ex2);
-            }
-
-            // Problem executing the remote task
-            throw new ExistingOpLockException("Failed to execute remote oplock add on " + fstate.getPath(), ex2);
         }
 
         // Return the add oplock status
@@ -979,10 +995,11 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
                 Debug.println(ex, Debug.Error);
             }
 
-            // Inform cluster nodes that an oplock has been released
-            OpLockMessage oplockMsg = new OpLockMessage(ClusterMessage.AllNodes, ClusterMessageType.OpLockBreakNotify, clState.getPath());
+            // Inform cluster nodes that an oplock has been removed
+            OpLockMessage oplockMsg = new OpLockMessage(ClusterMessage.AllNodes, ClusterMessageType.OplockRemove, clState.getPath());
             m_clusterTopic.publish(oplockMsg);
-        } else if (hasDebugLevel(Dbg.OPLOCK))
+        }
+        else if (hasDebugLevel(Dbg.OPLOCK))
             Debug.println("No local oplock found for " + fstate);
     }
 
@@ -1002,16 +1019,6 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
     }
 
     /**
-     * Check if there are active locks on this file
-     *
-     * @param fstate FileState
-     * @return boolean
-     */
-    public boolean hasActiveLocks(FileState fstate) {
-        return fstate.hasActiveLocks();
-    }
-
-    /**
      * Add a lock to this file
      *
      * @param fstate FileState
@@ -1022,7 +1029,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
             throws LockConflictException {
 
         // Make sure the lock is a cluster lock
-        if (lock instanceof ClusterFileLock == false)
+        if ( !(lock instanceof ClusterFileLock))
             throw new RuntimeException("Attempt to add non-cluster byte lock to file state " + fstate.getPath());
 
         // DEBUG
@@ -1038,7 +1045,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
             // Update the near-cache with the new state
             updateNearCacheState(clState);
         }
-        catch (ExecutionException ex) {
+        catch (ExecutionException | InterruptedException ex) {
 
             // DEBUG
             if (hasDebugLevel(Dbg.BYTELOCK)) {
@@ -1048,17 +1055,6 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
 
             // Problem executing the remote task
             throw new LockConflictException("Failed to execute remote lock add on " + fstate.getPath(), ex);
-        }
-        catch (InterruptedException ex2) {
-
-            // DEBUG
-            if (hasDebugLevel(Dbg.BYTELOCK)) {
-                Debug.println("Error adding byte lock, fstate=" + fstate + ", lock=" + lock);
-                Debug.println(ex2);
-            }
-
-            // Problem executing the remote task
-            throw new LockConflictException("Failed to execute remote lock add on " + fstate.getPath(), ex2);
         }
     }
 
@@ -1073,7 +1069,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
             throws NotLockedException {
 
         // Make sure the lock is a cluster lock
-        if (lock instanceof ClusterFileLock == false)
+        if ( !(lock instanceof ClusterFileLock))
             throw new RuntimeException("Attempt to remove non-cluster byte lock from file state " + fstate.getPath());
 
         // DEBUG
@@ -1089,7 +1085,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
             // Update the near-cache with the new state
             updateNearCacheState(clState);
         }
-        catch (ExecutionException ex) {
+        catch (ExecutionException | InterruptedException ex) {
 
             // DEBUG
             if (hasDebugLevel(Dbg.BYTELOCK)) {
@@ -1100,17 +1096,80 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
             // Problem executing the remote task
             throw new NotLockedException("Failed to execute remote unlock add on " + fstate.getPath(), ex);
         }
-        catch (InterruptedException ex2) {
+    }
+
+    /**
+     * Remove an oplock owner, and cleanup the oplock is there are no remaining owners
+     *
+     * @param fstate FileState
+     * @param owner OplockOwner
+     * @return boolean
+     */
+    public boolean removeOplockOwner( FileState fstate, OplockOwner owner) {
+
+        // DEBUG
+        if (hasDebugLevel(Dbg.OPLOCK))
+            Debug.println("Remove oplock owner for state=" + fstate + ", owner=" + owner);
+
+        // Remove the oplock owner via a remote call to the node that owns the file state
+        boolean remSts = true;
+
+        try {
+
+            // Wait for the remote task to complete
+            ClusterFileState clState = executeRemoveOplockOwner(fstate.getPath(), owner);
+
+            // Update the near-cache with the new state
+            updateNearCacheState(clState);
+
+            // Check if there is cached data in the per-node cache
+            PerNodeState perNode = m_perNodeCache.get(fstate.getPath());
+
+            if (perNode != null && perNode.hasOpLock()) {
+
+                try {
+                    // Get the oplock details and remove the owner or oplock
+                    LocalOpLockDetails oplock = perNode.getOpLock();
+
+                    if ( clState.hasOpLock())
+                        oplock.removeOplockOwner( owner);
+                    else
+                        perNode.clearOpLock();
+                }
+                catch ( InvalidOplockStateException ex) {
+
+                    // DEBUG
+                    if ( hasDebugLevel(Dbg.OPLOCK))
+                        Debug.println("Error removing oplock owner=" + owner + " for path=" + fstate.getPath() + " (PerNode)");
+
+                    if ( Debug.hasDumpStackTraces())
+                        Debug.println( ex);
+                }
+            }
+
+            // Inform all nodes of the oplock change
+            OpLockMessage oplockMsg = null;
+
+            if ( clState.hasOpLock())
+                oplockMsg = new OpLockMessage(ClusterMessage.AllNodes, ClusterMessageType.OplockOwnerRemove, fstate.getPath(), owner);
+            else
+                oplockMsg = new OpLockMessage(ClusterMessage.AllNodes, ClusterMessageType.OplockRemove, fstate.getPath());
+            m_clusterTopic.publish(oplockMsg);
+        }
+        catch (ExecutionException | InterruptedException ex) {
 
             // DEBUG
-            if (hasDebugLevel(Dbg.BYTELOCK)) {
-                Debug.println("Error removing byte lock, fstate=" + fstate + ", lock=" + lock);
-                Debug.println(ex2);
+            if (hasDebugLevel(Dbg.OPLOCK)) {
+                Debug.println("Error removing oplock owner, fstate=" + fstate + ", owner=" + owner);
+                Debug.println(ex);
             }
 
             // Problem executing the remote task
-            throw new NotLockedException("Failed to execute remote unlock add on " + fstate.getPath(), ex2);
+            remSts = false;
         }
+
+        // Return the remove status
+        return remSts;
     }
 
     /**
@@ -1227,7 +1286,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
             remoteOplock.addDeferredSession(sess, pkt);
 
             // Send an oplock break request to the cluster
-            OpLockMessage oplockMsg = new OpLockMessage(clNode.getName(), ClusterMessageType.OpLockBreakRequest, normPath);
+            OpLockMessage oplockMsg = new OpLockMessage(clNode.getName(), ClusterMessageType.OplockBreakRequest, normPath);
             m_clusterTopic.publish(oplockMsg);
         }
         else if (hasDebugLevel(Dbg.OPLOCK))
@@ -1300,6 +1359,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
                 // Inform all nodes of the oplock type change
                 OpLockMessage oplockMsg = new OpLockMessage(ClusterMessage.AllNodes, ClusterMessageType.OplockTypeChange, normPath);
                 m_clusterTopic.publish(oplockMsg);
+
             } else {
 
                 // DEBUG
@@ -1446,7 +1506,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
         Set<String> localKeys = m_stateCache.localKeySet();
 
         // Check if there are any items in the cache
-        if (localKeys.size() == 0)
+        if ( localKeys.isEmpty())
             return 0;
 
         // DEBUG
@@ -1466,26 +1526,28 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
             HazelCastClusterFileState state = m_stateCache.get(keysIter.next());
 
             // Check if the node had the file open as the primary owner
-            String primaryOwner = (String) state.getPrimaryOwner();
+            String primaryOwner = null; // (String) state.getPrimaryOwner();
 
             if (primaryOwner != null && primaryOwner.equals(memberName)) {
 
+                // TODO: Fix this, can no longer set the open count
+                // TODO: Will need to remove file opens from the file state access list
+                // TODO: Will need to remove oplocks owned by the node
+
                 // Reduce the file open count
-                if (state.getOpenCount() > 0) {
+//                if (state.getOpenCount() > 0) {
                  //   state.decrementOpenCount();
-                    state.setOpenCount(0); // since open count should be 0 for setting primary owner
-                }
+//                    state.setOpenCount(0); // since open count should be 0 for setting primary owner
+//                }
 
                 // Reset the shared access mode, and clear the primary owner
-                state.setSharedAccess(SharingMode.ALL);
-                state.setPrimaryOwner(null);
+//                state.setPrimaryOwner(null);
 
-                m_stateCache.lock(state.getPath());
                 // Update the state in the cache, and unlock
+                m_stateCache.lock(state.getPath());
                 m_stateCache.put(state.getPath(), state);
                 m_stateCache.unlock(state.getPath());
                 updateNearCacheState(state);
-
 
                 // DEBUG
                 if (hasDebugLevel(Dbg.CLEANUP))
@@ -1502,7 +1564,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
 
                 for (int idx = 0; idx < lockList.numberOfLocks(); idx++) {
                     ClusterFileLock curLock = (ClusterFileLock) lockList.getLockAt(idx);
-                    if (curLock.getOwnerNode().equalsIgnoreCase(memberName))
+                    if ( curLock != null && curLock.getOwnerNode().equalsIgnoreCase(memberName))
                         lockCnt++;
                 }
 
@@ -1523,7 +1585,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
 
                     // Get the current lock, if is owned by the member then remove it
                     ClusterFileLock curLock = (ClusterFileLock) lockList.getLockAt(idx);
-                    if (curLock.getOwnerNode().equalsIgnoreCase(memberName))
+                    if (curLock != null && curLock.getOwnerNode().equalsIgnoreCase(memberName))
                         lockList.removeLockAt(idx);
                     else
                         idx++;
@@ -1594,7 +1656,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
      */
     public PerNodeState getPerNodeState(ClusterFileState fState, boolean createState) {
         PerNodeState perNode = m_perNodeCache.get(fState.getPath());
-        if (perNode == null && createState == true) {
+        if (perNode == null && createState) {
             perNode = new PerNodeState();
             m_perNodeCache.put(fState.getPath(), perNode);
         }
@@ -1612,7 +1674,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
     public PerNodeState getPerNodeState(String path, boolean createState) {
         String normPath = FileState.normalizePath(path, isCaseSensitive());
         PerNodeState perNode = m_perNodeCache.get(normPath);
-        if (perNode == null && createState == true) {
+        if (perNode == null && createState) {
             perNode = new PerNodeState();
             m_perNodeCache.put(normPath, perNode);
         }
@@ -1642,74 +1704,28 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
         GrantAccessParams grantParams = new GrantAccessParams(getLocalNode(), params, fileSts);
 
         // Run the file access checks via the node that owns the file state
+        GrantAccessResponse response = null;
         HazelCastAccessToken accessToken = null;
 
         try {
 
             // Wait for the remote task to complete, get the returned access token
-            accessToken = executeGrantFileAccess(fstate.getPath(), grantParams);
+            response = executeGrantFileAccess(fstate.getPath(), grantParams);
+            accessToken = response.getAccessToken();
 
             // Set the associated path for the access token, and mark as not released
             accessToken.setNetworkFilePath(params.getPath());
             accessToken.setReleased(false);
 
-            // Check if an oplock was also granted during the file access check
-            if (accessToken.getOpLockType() != OpLockType.LEVEL_NONE) {
+            // Update the near cache with the updated file state
+            if (hasNearCache()) {
 
-                // Create the local oplock details
-                LocalOpLockDetails localOplock = new LocalOpLockDetails(accessToken.getOpLockType(), params.getFullPath(), (SMBSrvSession) params.getSession(),
-                        params.getOplockOwner(), fileSts == FileStatus.DirectoryExists ? true : false);
-
-                // Save the local oplock, in the per node data
-                ClusterFileState clState = (ClusterFileState) fstate;
-                clState.setLocalOpLock(localOplock);
-
-                // Update the near-cache
-                if (hasNearCache()) {
-
-                    // Check if the file state is in the near-cache
-                    HazelCastClusterFileState hcState = getStateFromNearCache(fstate.getPath());
-                    if (hcState != null) {
-
-                        // Create a remote oplock
-                        RemoteOpLockDetails remoteOpLock = new RemoteOpLockDetails(getLocalNode(), localOplock, this);
-
-                        // Add the remote oplock, set the file open count, must be one as oplock was granted
-                        hcState.setOpLock(remoteOpLock);
-                        hcState.setOpenCount(1);
-
-                        // DEBUG
-                        if (hasDebugLevel(Dbg.NEARCACHE))
-                            Debug.println("Added oplock to near-cache (via grant access) state=" + hcState);
-                    }
-                }
-            } else if (hasNearCache()) {
-
-                // Check if the file state is in the near-cache
-                HazelCastClusterFileState hcState = getStateFromNearCache(fstate.getPath());
-                if (hcState != null) {
-
-                    // Update the file open count
-                    hcState.incrementOpenCount();
-
-                    // DEBUG
-                    if (hasDebugLevel(Dbg.NEARCACHE))
-                        Debug.println("Update near-cache open count state=" + hcState);
-                }
+                // Update the near-cache with the new state
+                updateNearCacheState( response.getFileState());
             }
 
             // Clear any state update post-processor that may be queued
             clearLowPriorityStateUpdates(DisableAllStateUpdates);
-        }
-        catch (ExistingOpLockException ex) {
-
-            // Should not get this error as the remote task verified and granted the oplock
-
-            // DEBUG
-            if (hasDebugLevel(Dbg.FILEACCESS)) {
-                Debug.println("Error saving oplock, fstate=" + fstate + ", params=" + params);
-                Debug.println(ex);
-            }
         }
         catch (ExecutionException ex) {
 
@@ -1758,7 +1774,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
             return fstate.getOpenCount();
 
         // Make sure the token is from the cluster
-        if (token instanceof HazelCastAccessToken == false)
+        if ( !(token instanceof HazelCastAccessToken))
             throw new RuntimeException("Attempt to release Invalid access token type=" + token.getClass().getCanonicalName() + ", file state " + fstate.getPath());
 
         // DEBUG
@@ -1777,65 +1793,12 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
             // Wait for the remote task to complete, get the updated file open count
             openCnt = executeReleaseFileAccess( fstate.getPath(), (HazelCastAccessToken) token);
 
-            // Clear the local oplock if the token indicates an oplock on the file
-            HazelCastAccessToken hcToken = (HazelCastAccessToken) token;
-            hcToken.setReleased(true);
+            // Mark the access token as released
+            token.setReleased( true);
 
-            PerNodeState perNode = m_perNodeCache.get(fstate.getPath());
-
-            if (perNode != null && perNode.hasOpLock()) {
-
-                // Check if the file token indicates an oplock was granted, or the file open count is now zero
-                if (openCnt == 0 || hcToken.getOpLockType() != OpLockType.LEVEL_NONE) {
-
-                    // Check if the oplock has a break in progress, the client may be closing the file to release the oplock
-                    // rather than acknowledging the oplock break
-                    if (perNode.getOpLock().hasBreakInProgress()) {
-
-                        // Inform cluster nodes that an oplock has been released
-                        OpLockMessage oplockMsg = new OpLockMessage(ClusterMessage.AllNodes, ClusterMessageType.OpLockBreakNotify, fstate.getPath());
-                        m_clusterTopic.publish(oplockMsg);
-
-                        // DEBUG
-                        if (hasDebugLevelOr(Dbg.FILEACCESS, Dbg.OPLOCK))
-                            Debug.println("Sent oplock break notify for in-progress break, file closed to release oplock, state=" + fstate);
-                    }
-
-                    // Clear the local oplock
-                    perNode.clearOpLock();
-
-                    // DEBUG
-                    if (hasDebugLevelOr(Dbg.FILEACCESS, Dbg.OPLOCK))
-                        Debug.println("Cleared local oplock during token release, token=" + token);
-                }
-            }
-
-            // Update the near-cache
-            if (hasNearCache()) {
-
-                // Check if the file state is in the near-cache
-                HazelCastClusterFileState hcState = getStateFromNearCache(fstate.getPath());
-                if (hcState != null) {
-
-                    // Set the open count
-                    hcState.setOpenCount(openCnt);
-
-                    // DEBUG
-                    if (hasDebugLevel(Dbg.NEARCACHE))
-                        Debug.println("Update near-cache open count state=" + hcState);
-
-                    // Check if the token indicates an oplock was granted, or the file count is zero
-                    if (openCnt == 0 || hcToken.getOpLockType() != OpLockType.LEVEL_NONE) {
-
-                        // Clear the oplock details
-                        hcState.clearOpLock();
-
-                        // DEBUG
-                        if (hasDebugLevel(Dbg.NEARCACHE))
-                            Debug.println("Cleared oplock from near-cache (release token) state=" + hcState);
-                    }
-                }
-            }
+            // DEBUG
+            if (hasDebugLevel(Dbg.FILEACCESS))
+                Debug.println("Released file access for path=" + fstate.getPath() + ", openCnt=" + openCnt);
         }
         catch (Exception ex) {
 
@@ -1945,17 +1908,17 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
      * Update a file state using a remote task call
      *
      * @param clState    ClusterFileState
-     * @param updateMask int
+     * @param updateMask EnumSet&lt;UpdateFlag&gt;
      * @return boolean
      */
-    protected boolean remoteUpdateState(ClusterFileState clState, int updateMask) {
+    protected boolean remoteUpdateState(ClusterFileState clState, EnumSet<ClusterFileState.UpdateFlag> updateMask) {
 
         // DEBUG
         if (hasDebugLevelOr(Dbg.REMOTETASK, Dbg.FILESTATUS))
             Debug.println("Remote state update state=" + clState + ", updateMask=" + ClusterFileState.getUpdateMaskAsString(updateMask));
 
         // Only support file status update for now
-        if (updateMask != ClusterFileState.UpdateFileStatus)
+        if ( !updateMask.contains( ClusterFileState.UpdateFlag.FileStatus))
             throw new RuntimeException("Remote state update for " + ClusterFileState.getUpdateMaskAsString(updateMask) + " not supported");
 
         // Update the file status via a remote call to the node that owns the file state
@@ -1967,7 +1930,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
             stateUpdated = executeRemoteUpdateState( clState.getPath(), clState.getFileStatus());
 
             // If the state was updated then inform cluster members of the change
-            if (stateUpdated == true) {
+            if ( stateUpdated) {
 
                 // Inform cluster members of the state update
                 updateFileState(clState, updateMask);
@@ -2016,9 +1979,9 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
      * Update a file state, notify the cluster of the updates
      *
      * @param clState    ClusterFileState
-     * @param updateMask int
+     * @param updateMask EnumSet&lt;UpdateFlag&gt;
      */
-    public void updateFileState(ClusterFileState clState, int updateMask) {
+    public void updateFileState(ClusterFileState clState, EnumSet<ClusterFileState.UpdateFlag> updateMask) {
 
         // Create a file status update message and broadcast to the cluster
         StateUpdateMessage stateUpdMsg = new StateUpdateMessage(ClusterMessage.AllNodes, m_localNode, clState, updateMask);
@@ -2110,7 +2073,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
      * @return boolean
      */
     public boolean hasNotifyChangeHandler() {
-        return m_notifyHandler != null ? true : false;
+        return m_notifyHandler != null;
     }
 
     /**
@@ -2314,32 +2277,47 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
             switch (msg.isType()) {
 
                 // Oplock break request
-                case ClusterMessageType.OpLockBreakRequest:
+                case OplockBreakRequest:
                     procOpLockBreakRequest((OpLockMessage) msg);
                     break;
 
                 // Oplock break notify
-                case ClusterMessageType.OpLockBreakNotify:
+                case OplockBreakNotify:
                     procOpLockBreakNotify((OpLockMessage) msg);
                     break;
 
                 // Oplock type changed
-                case ClusterMessageType.OplockTypeChange:
+                case OplockTypeChange:
                     procOpLockTypeChange((OpLockMessage) msg);
                     break;
 
+                // Oplock owner added
+                case OplockOwnerAdd:
+                    procOpLockOwnerAdd((OpLockMessage) msg);
+                    break;
+
+                // Oplock owner removed
+                case OplockOwnerRemove:
+                    procOpLockOwnerRemove((OpLockMessage) msg);
+                    break;
+
+                // Oplock removed
+                case OplockRemove:
+                    procOpLockRemove((OpLockMessage) msg);
+                    break;
+
                 // File state update
-                case ClusterMessageType.FileStateUpdate:
+                case FileStateUpdate:
                     procFileStateUpdate((StateUpdateMessage) msg);
                     break;
 
                 // File state rename
-                case ClusterMessageType.RenameState:
+                case RenameState:
                     procFileStateRename((StateRenameMessage) msg);
                     break;
 
                 // File data update in progress/completed
-                case ClusterMessageType.DataUpdate:
+                case DataUpdate:
                     procDataUpdate((DataUpdateMessage) msg);
                     break;
 
@@ -2391,7 +2369,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
         } else if (hasDebugLevelOr(Dbg.CLUSTERMESSAGE, Dbg.OPLOCK)) {
 
             // Send back an oplock break response to the requestor, oplock already released
-            OpLockMessage oplockMsg = new OpLockMessage(msg.getFromNode(), ClusterMessageType.OpLockBreakNotify, msg.getPath());
+            OpLockMessage oplockMsg = new OpLockMessage(msg.getFromNode(), ClusterMessageType.OplockBreakNotify, msg.getPath());
             m_clusterTopic.publish(oplockMsg);
 
             // DEBUG
@@ -2447,7 +2425,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
             Debug.println("Process oplock change type msg=" + msg);
 
         // Check if the update came from the local node
-        if (msg.isFromLocalNode(m_localNode) == false) {
+        if ( !msg.isFromLocalNode(m_localNode)) {
 
             // Check if the path has a state in the near cache, invalidate it
             if (hasNearCache()) {
@@ -2472,7 +2450,141 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
                 // Requeue the deferred request(s) to the thread pool, oplock released
                 perNode.requeueDeferredRequests();
             }
+        }
+    }
 
+    /**
+     * Process a remote oplock owner add message
+     *
+     * @param msg OpLockMessage
+     */
+    protected void procOpLockOwnerAdd(OpLockMessage msg) {
+
+        // DEBUG
+        if (hasDebugLevelOr(Dbg.CLUSTERMESSAGE, Dbg.OPLOCK))
+            Debug.println("Process oplock owner add msg=" + msg);
+
+        // Check if the update came from the local node
+        if ( !msg.isFromLocalNode(m_localNode)) {
+
+            // Check if the path has a state in the near cache, invalidate it
+            if (hasNearCache()) {
+
+                // Check if we have the state cached in the near-cache
+                HazelCastClusterFileState hcState = getStateFromNearCache(msg.getPath());
+                if (hcState != null) {
+
+                    // Invalidate the near-cache entry
+                    hcState.setStateValid(false);
+                }
+            }
+
+            // Check if there is an entry in the per node cache
+            PerNodeState perNode = m_perNodeCache.get(msg.getPath());
+
+            if (perNode != null && perNode.hasOpLock()) {
+
+                try {
+                    // Get the oplock details and add the new owner
+                    LocalOpLockDetails oplock = perNode.getOpLock();
+                    oplock.addOplockOwner(msg.getOwner());
+                }
+                catch ( InvalidOplockStateException ex) {
+
+                    // DEBUG
+                    if ( hasDebugLevelOr(Dbg.CLUSTERMESSAGE, Dbg.OPLOCK))
+                        Debug.println("Error adding oplock owner=" + msg.getOwner() + " for path=" + msg.getPath() + " (PerNode)");
+
+                    if ( Debug.hasDumpStackTraces())
+                        Debug.println( ex);
+                }
+            }
+        }
+    }
+
+    /**
+     * Process a remote oplock owner remove message
+     *
+     * @param msg OpLockMessage
+     */
+    protected void procOpLockOwnerRemove(OpLockMessage msg) {
+
+        // DEBUG
+        if (hasDebugLevelOr(Dbg.CLUSTERMESSAGE, Dbg.OPLOCK))
+            Debug.println("Process oplock owner remove msg=" + msg);
+
+        // Check if the update came from the local node
+        if ( !msg.isFromLocalNode(m_localNode)) {
+
+            // Check if the path has a state in the near cache, invalidate it
+            if (hasNearCache()) {
+
+                // Check if we have the state cached in the near-cache
+                HazelCastClusterFileState hcState = getStateFromNearCache(msg.getPath());
+                if (hcState != null) {
+
+                    // Invalidate the near-cache entry
+                    hcState.setStateValid(false);
+                }
+            }
+
+            // Check if there is an entry in the per node cache
+            PerNodeState perNode = m_perNodeCache.get(msg.getPath());
+
+            if (perNode != null && perNode.hasOpLock()) {
+
+                try {
+                    // Get the oplock details and remove the owner
+                    LocalOpLockDetails oplock = perNode.getOpLock();
+                    oplock.removeOplockOwner(msg.getOwner());
+                }
+                catch ( InvalidOplockStateException ex) {
+
+                    // DEBUG
+                    if ( hasDebugLevelOr(Dbg.CLUSTERMESSAGE, Dbg.OPLOCK))
+                        Debug.println("Error removing oplock owner=" + msg.getOwner() + " for path=" + msg.getPath() + " (PerNode)");
+
+                    if ( Debug.hasDumpStackTraces())
+                        Debug.println( ex);
+                }
+            }
+        }
+    }
+
+    /**
+     * Process a remote oplock remove message
+     *
+     * @param msg OpLockMessage
+     */
+    protected void procOpLockRemove(OpLockMessage msg) {
+
+        // DEBUG
+        if (hasDebugLevelOr(Dbg.CLUSTERMESSAGE, Dbg.OPLOCK))
+            Debug.println("Process oplock remove msg=" + msg);
+
+        // Check if the update came from the local node
+        if ( !msg.isFromLocalNode(m_localNode)) {
+
+            // Check if the path has a state in the near cache, invalidate it
+            if (hasNearCache()) {
+
+                // Check if we have the state cached in the near-cache
+                HazelCastClusterFileState hcState = getStateFromNearCache(msg.getPath());
+                if (hcState != null) {
+
+                    // Invalidate the near-cache entry
+                    hcState.setStateValid(false);
+                }
+            }
+
+            // Check if there is an entry in the per node cache
+            PerNodeState perNode = m_perNodeCache.get(msg.getPath());
+
+            if (perNode != null && perNode.hasOpLock()) {
+
+                // Remove the oplock
+                perNode.clearOpLock();
+            }
         }
     }
 
@@ -2492,7 +2604,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
         // Note: File status updates are done via a remote task
         HazelCastClusterFileState clState = null;
 
-        if (isLocalKey(msg.getPath()) && msg.getUpdateMask() != ClusterFileState.UpdateFileStatus) {
+        if (isLocalKey(msg.getPath()) && !msg.getUpdateMask().contains( ClusterFileState.UpdateFlag.FileStatus)) {
 
             // Update the file status in the cache, need to lock/get/put/unlock
             m_stateCache.lock(msg.getPath());
@@ -2517,7 +2629,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
         }
 
         // Check if the update came from the local node
-        if (msg.isFromLocalNode(m_localNode) == false) {
+        if ( !msg.isFromLocalNode(m_localNode)) {
 
             // Update the near-cache
             FileState.ChangeReason reason = msg.getStatusChangeReason();
@@ -2532,7 +2644,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
                     hcState.updateState(msg);
 
                     // Change a NotExist file status to Unknown, so the local node will reinitialize any per node details if required
-                    if (msg.hasUpdate(ClusterFileState.UpdateFileStatus) && hcState.getFileStatus() == FileStatus.NotExist)
+                    if (msg.hasUpdate(ClusterFileState.UpdateFlag.FileStatus) && hcState.getFileStatus() == FileStatus.NotExist)
                         hcState.setFileStatusInternal(FileStatus.Unknown, FileState.ChangeReason.None);
 
                     // If a file has been deleted or a new version created then clear the file id and cached details
@@ -2575,7 +2687,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
             if (hasNotifyChangeHandler()) {
 
                 // Check for a file status update
-                if (msg.hasUpdate(ClusterFileState.UpdateFileStatus) && msg.getStatusChangeReason() != FileState.ChangeReason.None) {
+                if (msg.hasUpdate(ClusterFileState.UpdateFlag.FileStatus) && msg.getStatusChangeReason() != FileState.ChangeReason.None) {
 
                     // Get the file status reason
                     FileState.ChangeReason reasonCode = msg.getStatusChangeReason();
@@ -2616,7 +2728,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
             Debug.println("Process file state rename msg=" + msg);
 
         // Check if the message is from another node
-        if (msg.isFromLocalNode(m_localNode) == false) {
+        if ( !msg.isFromLocalNode(m_localNode)) {
 
             // Update the per node data to the new path
             PerNodeState perNode = m_perNodeCache.remove(msg.getOldPath());
@@ -2663,12 +2775,12 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
 
             // Get the old and new paths, make sure they are terminated correctly, and normalized
             String oldPathPrefix = msg.getOldPath();
-            if (oldPathPrefix.endsWith(FileName.DOS_SEPERATOR_STR) == false)
+            if ( !oldPathPrefix.endsWith(FileName.DOS_SEPERATOR_STR))
                 oldPathPrefix = oldPathPrefix + FileName.DOS_SEPERATOR_STR;
             oldPathPrefix = FileState.normalizePath(oldPathPrefix, isCaseSensitive());
 
             String newPathPrefix = msg.getNewPath();
-            if (newPathPrefix.endsWith(FileName.DOS_SEPERATOR_STR) == false)
+            if ( !newPathPrefix.endsWith(FileName.DOS_SEPERATOR_STR))
                 newPathPrefix = newPathPrefix + FileName.DOS_SEPERATOR_STR;
             newPathPrefix = FileState.normalizePath(newPathPrefix, isCaseSensitive());
 
@@ -2680,7 +2792,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
             StringBuilder newStatePath = new StringBuilder(newPathPrefix.length() + 64);
             newStatePath.append(newPathPrefix);
 
-            if (localKeys.size() > 0) {
+            if ( !localKeys.isEmpty()) {
 
                 // DEBUG
                 if (hasDebugLevel(Dbg.RENAME))
@@ -2764,7 +2876,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
             Debug.println("Process file data update msg=" + msg);
 
         // Check if the message is from another node
-        if (msg.isFromLocalNode(m_localNode) == false) {
+        if ( !msg.isFromLocalNode(m_localNode)) {
 
             // Check if there is a near-cache entry
             if (hasNearCache()) {
@@ -2810,9 +2922,9 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
     /**
      * Clear some, or all, low priority state updates that may be queued
      *
-     * @param updateMask int
+     * @param updateMask EnumSet&lt;UpdateFlag&gt;
      */
-    protected final void clearLowPriorityStateUpdates(int updateMask) {
+    protected final void clearLowPriorityStateUpdates(EnumSet<ClusterFileState.UpdateFlag> updateMask) {
 
         // Check if there is a state update post processor queued for this thread
         StateUpdatePostProcessor updatePostProc = (StateUpdatePostProcessor) RequestPostProcessor.findPostProcessor(StateUpdatePostProcessor.class);
@@ -2912,7 +3024,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
         try {
 
             // Wait for the remote task to complete
-            if( executeUpdateFileDataStatus( fState.getPath(), startUpdate) == true) {
+            if( executeUpdateFileDataStatus(fState.getPath(), startUpdate)) {
 
                 // Update the locally cached copy of the file state
                 if (hasNearCache() && fState instanceof HazelCastClusterFileState) {
@@ -2968,7 +3080,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
             if (hcState != null) {
 
                 // If the locally cached state is valid then update the hit counter
-                if (hcState.isStateValid() && hcState.hasExpired(System.currentTimeMillis()) == false) {
+                if (hcState.isStateValid() && !hcState.hasExpired(System.currentTimeMillis())) {
 
                     // Update the cache hit counter
                     hcState.incrementNearCacheHitCount();
@@ -2979,12 +3091,14 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
                 } else {
 
                     // Do not use the near cache state, remove it from the cache
-                    hcState = null;
                     m_nearCache.remove(path);
 
                     // DEBUG
                     if (hasDebugLevel(Dbg.NEARCACHE))
-                        Debug.println("Removed invalid state from near-cache state=" + hcState);
+                        Debug.println("Removed invalid state from near-cache path=" + path + ", state=" + hcState);
+
+                    // Clear the state
+                    hcState = null;
                 }
             }
         }
@@ -3000,7 +3114,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
      * @param newPath String
      * @param isDir boolean
      * @return boolean
-     * @exception InterruptedException Exceution interrupted
+     * @exception InterruptedException Execution interrupted
      * @exception ExecutionException Execution error
      */
     public abstract boolean executeRenameFileState( String oldPath, String newPath, boolean isDir)
@@ -3012,19 +3126,31 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
      * @param path String
      * @param remoteOplock RemoteOpLockDetails
      * @return boolean
-     * @exception InterruptedException Exceution interrupted
+     * @exception InterruptedException Execution interrupted
      * @exception ExecutionException Execution error
      */
     public abstract boolean executeAddOpLock( String path, RemoteOpLockDetails remoteOplock)
         throws InterruptedException, ExecutionException;
 
     /**
-     * Execute clear oplock
+     * Execute removing an oplock owner
      *
      * @param path String
-     * @exception InterruptedException Exceution interrupted
+     * @param owner OplockOwner
+     * @return ClusterFileState
+     * @exception InterruptedException Execution interrupted
      * @exception ExecutionException Execution error
      */
+    public abstract ClusterFileState executeRemoveOplockOwner( String path, OplockOwner owner)
+            throws InterruptedException, ExecutionException;
+
+        /**
+         * Execute clear oplock
+         *
+         * @param path String
+         * @exception InterruptedException Execution interrupted
+         * @exception ExecutionException Execution error
+         */
     public abstract void executeClearOpLock( String path)
         throws InterruptedException, ExecutionException;
 
@@ -3034,7 +3160,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
      * @param path String
      * @param lock ClusterFileLock
      * @return ClusterFileState
-     * @exception InterruptedException Exceution interrupted
+     * @exception InterruptedException Execution interrupted
      * @exception ExecutionException Execution error
      */
     public abstract ClusterFileState executeAddLock( String path, ClusterFileLock lock)
@@ -3046,7 +3172,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
      * @param path String
      * @param lock ClusterFileLock
      * @return ClusterFileState
-     * @exception InterruptedException Exceution interrupted
+     * @exception InterruptedException Execution interrupted
      * @exception ExecutionException Execution error
      */
     public abstract ClusterFileState executeRemoveLock( String path, ClusterFileLock lock)
@@ -3058,7 +3184,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
      * @param path String
      * @param newTyp OpLockType
      * @return OpLockType
-     * @exception InterruptedException Exceution interrupted
+     * @exception InterruptedException Execution interrupted
      * @exception ExecutionException Execution error
      */
     public abstract OpLockType executeChangeOpLockType( String path, OpLockType newTyp)
@@ -3069,11 +3195,11 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
      *
      * @param path String
      * @param params GrantAccessParams
-     * @return HazelCastAccessToken
-     * @exception InterruptedException Exceution interrupted
+     * @return GrantAccessResponse
+     * @exception InterruptedException Execution interrupted
      * @exception ExecutionException Execution error
      */
-    public abstract HazelCastAccessToken executeGrantFileAccess( String path, GrantAccessParams params)
+    public abstract GrantAccessResponse executeGrantFileAccess( String path, GrantAccessParams params)
         throws InterruptedException, ExecutionException;
 
     /**
@@ -3082,7 +3208,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
      * @param path String
      * @param token HazelCastAccessToken
      * @return int
-     * @exception InterruptedException Exceution interrupted
+     * @exception InterruptedException Execution interrupted
      * @exception ExecutionException Execution error
      */
     public abstract int executeReleaseFileAccess( String path, HazelCastAccessToken token)
@@ -3095,7 +3221,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
      * @param chkLock ClusterFileLock
      * @param writeChk boolean
      * @return boolean
-     * @exception InterruptedException Exceution interrupted
+     * @exception InterruptedException Execution interrupted
      * @exception ExecutionException Execution error
      */
     public abstract boolean executeCheckFileAccess( String path, ClusterFileLock chkLock, boolean writeChk)
@@ -3107,7 +3233,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
      * @param path String
      * @param fileSts FileStatus
      * @return boolean
-     * @exception InterruptedException Exceution interrupted
+     * @exception InterruptedException Execution interrupted
      * @exception ExecutionException Execution error
      */
     public abstract boolean executeRemoteUpdateState( String path, FileStatus fileSts)
@@ -3119,7 +3245,7 @@ public abstract class HazelCastClusterFileStateCache extends ClusterFileStateCac
      * @param path String
      * @param startUpdate boolean
      * @return boolean
-     * @exception InterruptedException Exceution interrupted
+     * @exception InterruptedException Execution interrupted
      * @exception ExecutionException Execution error
      */
     public abstract boolean executeUpdateFileDataStatus( String path, boolean startUpdate)

@@ -24,6 +24,7 @@ import java.io.Serializable;
 
 import org.filesys.server.filesys.*;
 import org.filesys.server.filesys.cache.cluster.ClusterNode;
+import org.filesys.server.locking.OplockOwner;
 import org.filesys.smb.ImpersonationLevel;
 import org.filesys.smb.OpLockType;
 import org.filesys.smb.SharingMode;
@@ -40,7 +41,7 @@ import org.filesys.smb.WinNT;
 public class GrantAccessParams implements Serializable {
 
     // Serialization id
-    private static final long serialVersionUID = 2L;
+    private static final long serialVersionUID = 3L;
 
     //	Cluster node that owns the token
     private String m_ownerName;
@@ -58,8 +59,9 @@ public class GrantAccessParams implements Serializable {
     private int m_createOptions;
     private CreateDisposition m_openAction;
 
-    // Oplock requested/type
+    // Oplock requested/type and owner details
     private OpLockType m_oplock = OpLockType.LEVEL_NONE;
+    private OplockOwner m_oplockOwner;
 
     /**
      * Default constructor
@@ -87,6 +89,8 @@ public class GrantAccessParams implements Serializable {
         m_secLevel = openParams.getSecurityLevel();
         m_createOptions = openParams.getCreateOptions();
         m_openAction = openParams.getOpenAction();
+
+        m_oplockOwner = openParams.getOplockOwner();
 
         // Check if an oplock has been requested
         if (openParams.requestBatchOpLock())
@@ -146,7 +150,7 @@ public class GrantAccessParams implements Serializable {
      * @return boolean
      */
     public final boolean hasSecurityLevel() {
-        return m_secLevel != ImpersonationLevel.INVALID ? true : false;
+        return m_secLevel != ImpersonationLevel.INVALID;
     }
 
     /**
@@ -164,10 +168,7 @@ public class GrantAccessParams implements Serializable {
      * @return boolean
      */
     public final boolean isReadOnlyAccess() {
-        if ((m_accessMode & AccessMode.NTReadWrite) == AccessMode.NTRead ||
-                (m_accessMode & AccessMode.NTGenericReadWrite) == AccessMode.NTGenericRead)
-            return true;
-        return false;
+        return AccessMode.hasReadAccess( m_accessMode);
     }
 
     /**
@@ -176,10 +177,7 @@ public class GrantAccessParams implements Serializable {
      * @return boolean
      */
     public final boolean isWriteOnlyAccess() {
-        if ((m_accessMode & AccessMode.NTReadWrite) == AccessMode.NTWrite ||
-                (m_accessMode & AccessMode.NTGenericReadWrite) == AccessMode.NTGenericWrite)
-            return true;
-        return false;
+        return AccessMode.hasWriteAccess( m_accessMode);
     }
 
     /**
@@ -188,11 +186,7 @@ public class GrantAccessParams implements Serializable {
      * @return boolean
      */
     public final boolean isReadWriteAccess() {
-        if ((m_accessMode & AccessMode.NTReadWrite) == AccessMode.NTReadWrite ||
-                (m_accessMode & AccessMode.NTGenericReadWrite) == AccessMode.NTGenericReadWrite ||
-                m_accessMode == AccessMode.NTGenericAll)
-            return true;
-        return false;
+        return AccessMode.hasReadAccess( m_accessMode) && AccessMode.hasWriteAccess( m_accessMode);
     }
 
     /**
@@ -223,7 +217,7 @@ public class GrantAccessParams implements Serializable {
      * @return boolean
      */
     public final boolean hasOpLockRequest() {
-        return m_oplock != OpLockType.LEVEL_NONE ? true : false;
+        return m_oplock != OpLockType.LEVEL_NONE;
     }
 
     /**
@@ -234,6 +228,13 @@ public class GrantAccessParams implements Serializable {
     public final OpLockType getOpLockType() {
         return m_oplock;
     }
+
+    /**
+     * Return the oplock owner details
+     *
+     * @return OplockOwner
+     */
+    public final OplockOwner getOplockOwner() { return m_oplockOwner; }
 
     /**
      * Check if the file being creasted/opened must be a directory
@@ -251,7 +252,16 @@ public class GrantAccessParams implements Serializable {
      * @return boolean
      */
     protected final boolean hasCreateOption(int flag) {
-        return (m_createOptions & flag) != 0 ? true : false;
+        return (m_createOptions & flag) != 0;
+    }
+
+    /**
+     * Return the grant access parameters as a file open parameters instance
+     *
+     * @return FileOpenParams
+     */
+    public final FileOpenParams asFileOpenParams() {
+        return new FileOpenParams( "", m_openAction, m_accessMode, 0, m_sharedAccess, m_createOptions, m_secLevel, m_pid);
     }
 
     /**
@@ -280,6 +290,8 @@ public class GrantAccessParams implements Serializable {
         str.append(getSecurityLevel());
         str.append(",oplock=");
         str.append(getOpLockType().name());
+        str.append(",opOwner=");
+        str.append( getOplockOwner());
 
         if (isDirectory())
             str.append(" DIR");

@@ -20,6 +20,7 @@
 package org.filesys.server.filesys.cache.hazelcast;
 
 import java.io.Serializable;
+import java.util.EnumSet;
 import java.util.concurrent.Callable;
 
 import org.filesys.debug.Debug;
@@ -41,9 +42,11 @@ public abstract class RemoteCacheTask<T> implements Callable<T>, HazelcastInstan
     // Serialization id
     private static final long serialVersionUID = 1L;
 
-    // Task option flags
-    public static final int TaskDebug = 0x0001;
-    public static final int TaskTiming = 0x0002;
+    // Task options
+    public enum TaskOption {
+        Debug,
+        Timing
+    };
 
     // Clustered map name
     private String m_mapName;
@@ -53,7 +56,7 @@ public abstract class RemoteCacheTask<T> implements Callable<T>, HazelcastInstan
     private transient HazelcastInstance m_hcInstance;
 
     // Task options
-    private short m_taskOptions;
+    private EnumSet<TaskOption> m_taskOptions;
 
     // Task name
     private transient String m_taskName;
@@ -69,13 +72,13 @@ public abstract class RemoteCacheTask<T> implements Callable<T>, HazelcastInstan
      *
      * @param mapName String
      * @param key     String
-     * @param options int
+     * @param options EnumSet&lt;TaskOption&gt;
      */
-    public RemoteCacheTask(String mapName, String key, int options) {
+    public RemoteCacheTask(String mapName, String key, EnumSet<TaskOption> options) {
         m_mapName = mapName;
         m_keyName = key;
 
-        m_taskOptions = (short) options;
+        m_taskOptions = options;
     }
 
     /**
@@ -90,11 +93,13 @@ public abstract class RemoteCacheTask<T> implements Callable<T>, HazelcastInstan
         m_mapName = mapName;
         m_keyName = key;
 
+        m_taskOptions = EnumSet.noneOf( TaskOption.class);
+
         if (debug)
-            m_taskOptions += TaskDebug;
+            m_taskOptions.add( TaskOption.Debug);
 
         if (timingDebug)
-            m_taskOptions += TaskTiming;
+            m_taskOptions.add( TaskOption.Timing);
     }
 
     /**
@@ -136,12 +141,10 @@ public abstract class RemoteCacheTask<T> implements Callable<T>, HazelcastInstan
     /**
      * Check if the specifed task option is enabled
      *
-     * @param option int
+     * @param option TaskOption
      * @return boolean
      */
-    public final boolean hasOption(int option) {
-        return (m_taskOptions & option) != 0 ? true : false;
-    }
+    public final boolean hasOption(TaskOption option) { return m_taskOptions.contains( option); }
 
     /**
      * Check if debug output is enabled for this remote task
@@ -149,7 +152,7 @@ public abstract class RemoteCacheTask<T> implements Callable<T>, HazelcastInstan
      * @return boolean
      */
     public final boolean hasDebug() {
-        return hasOption(TaskDebug);
+        return hasOption(TaskOption.Debug);
     }
 
     /**
@@ -158,7 +161,7 @@ public abstract class RemoteCacheTask<T> implements Callable<T>, HazelcastInstan
      * @return boolean
      */
     public final boolean hasTimingDebug() {
-        return hasOption(TaskTiming);
+        return hasOption(TaskOption.Timing);
     }
 
     /**

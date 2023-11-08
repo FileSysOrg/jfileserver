@@ -71,7 +71,7 @@ public class ChangeOpLockTypeTask extends RemoteStateTask<Integer> {
      * @return Integer
      * @throws Exception Error running remote task
      */
-    protected Integer runRemoteTaskAgainstState(IMap<String, ClusterFileState> stateCache, ClusterFileState fState)
+    protected Integer runRemoteTaskAgainstState(IMap<String, HazelCastClusterFileState> stateCache, HazelCastClusterFileState fState)
             throws Exception {
 
         // DEBUG
@@ -95,6 +95,6 @@ public class ChangeOpLockTypeTask extends RemoteStateTask<Integer> {
         }
 
         // Return the new oplock type, or -1 if no oplock to update
-        return new Integer(newType.intValue());
+        return newType.intValue();
     }
 }

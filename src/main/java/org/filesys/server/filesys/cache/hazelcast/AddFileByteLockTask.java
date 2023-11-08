@@ -35,7 +35,7 @@ import com.hazelcast.map.IMap;
  *
  * @author gkspencer
  */
-public class AddFileByteLockTask extends RemoteStateTask<ClusterFileState> {
+public class AddFileByteLockTask extends RemoteStateTask<HazelCastClusterFileState> {
 
     // Serialization id
     private static final long serialVersionUID = 1L;
@@ -72,7 +72,7 @@ public class AddFileByteLockTask extends RemoteStateTask<ClusterFileState> {
      * @return ClusterFileState
      * @throws Exception Error running remote task
      */
-    protected ClusterFileState runRemoteTaskAgainstState(IMap<String, ClusterFileState> stateCache, ClusterFileState fState)
+    protected HazelCastClusterFileState runRemoteTaskAgainstState(IMap<String, HazelCastClusterFileState> stateCache, HazelCastClusterFileState fState)
             throws Exception {
 
         // DEBUG
@@ -80,7 +80,7 @@ public class AddFileByteLockTask extends RemoteStateTask<ClusterFileState> {
             Debug.println("AddFileByteLockTask: Add lock=" + m_lock + " to " + fState);
 
         // Check if there are any locks on the file
-        if (fState.hasActiveLocks() == false) {
+        if ( !fState.hasActiveLocks()) {
 
             // Add the lock
             fState.addLock(m_lock);
@@ -97,11 +97,11 @@ public class AddFileByteLockTask extends RemoteStateTask<ClusterFileState> {
                 ClusterFileLock curLock = (ClusterFileLock) lockList.getLockAt(idx++);
 
                 // Check if the lock overlaps with the new lock
-                if (curLock.hasOverlap(m_lock)) {
+                if (curLock != null && curLock.hasOverlap(m_lock)) {
 
                     // Check the if the lock owner is the same
                     if (curLock.getProcessId() != m_lock.getProcessId() ||
-                            curLock.getOwnerNode().equalsIgnoreCase(m_lock.getOwnerNode()) == false) {
+                            !curLock.getOwnerNode().equalsIgnoreCase(m_lock.getOwnerNode())) {
 
                         // DEBUG
                         if (hasDebug())

@@ -20,6 +20,7 @@
 package org.filesys.server.filesys.cache.hazelcast;
 
 import java.io.Serializable;
+import java.util.EnumSet;
 import java.util.concurrent.Callable;
 
 import org.filesys.debug.Debug;
@@ -42,10 +43,12 @@ public abstract class RemoteStateTask<T> implements Callable<T>, HazelcastInstan
     private static final long serialVersionUID = 1L;
 
     // Task option flags
-    public static final int TaskDebug = 0x0001;
-    public static final int TaskLockState = 0x0002;
-    public static final int TaskNoUpdate = 0x0004;
-    public static final int TaskTiming = 0x0008;
+    public enum TaskOption {
+        Debug,
+        LockState,
+        NoUpdate,
+        Timing
+    };
 
     // Clustered map name and key
     private String m_mapName;
@@ -55,7 +58,7 @@ public abstract class RemoteStateTask<T> implements Callable<T>, HazelcastInstan
     private transient HazelcastInstance m_hcInstance;
 
     // Task options
-    private short m_taskOptions;
+    private EnumSet<TaskOption> m_taskOptions;
 
     // Task name
     private transient String m_taskName;
@@ -71,13 +74,13 @@ public abstract class RemoteStateTask<T> implements Callable<T>, HazelcastInstan
      *
      * @param mapName String
      * @param key     String
-     * @param options int
+     * @param options EnumSet&lt;TaskOption&gt;
      */
-    public RemoteStateTask(String mapName, String key, int options) {
+    public RemoteStateTask(String mapName, String key, EnumSet<TaskOption> options) {
         m_mapName = mapName;
         m_keyName = key;
 
-        m_taskOptions = (short) options;
+        m_taskOptions = options;
     }
 
     /**
@@ -94,17 +97,19 @@ public abstract class RemoteStateTask<T> implements Callable<T>, HazelcastInstan
         m_mapName = mapName;
         m_keyName = key;
 
+        m_taskOptions = EnumSet.noneOf( TaskOption.class);
+
         if (lockState)
-            m_taskOptions += TaskLockState;
+            m_taskOptions.add( TaskOption.LockState);
 
         if (noUpdate)
-            m_taskOptions += TaskNoUpdate;
+            m_taskOptions.add( TaskOption.NoUpdate);
 
         if (debug)
-            m_taskOptions += TaskDebug;
+            m_taskOptions.add( TaskOption.Debug);
 
         if (timingDebug)
-            m_taskOptions += TaskTiming;
+            m_taskOptions.add( TaskOption.Timing);
     }
 
     /**
@@ -144,14 +149,12 @@ public abstract class RemoteStateTask<T> implements Callable<T>, HazelcastInstan
     }
 
     /**
-     * Check if the specifed task option is enabled
+     * Check if the specified task option is enabled
      *
-     * @param option int
+     * @param option TaskOption
      * @return boolean
      */
-    public final boolean hasOption(int option) {
-        return (m_taskOptions & option) != 0 ? true : false;
-    }
+    public final boolean hasOption(TaskOption option) { return m_taskOptions.contains( option); }
 
     /**
      * Check if debug output is enabled for this remote task
@@ -159,7 +162,7 @@ public abstract class RemoteStateTask<T> implements Callable<T>, HazelcastInstan
      * @return boolean
      */
     public final boolean hasDebug() {
-        return hasOption(TaskDebug);
+        return hasOption(TaskOption.Debug);
     }
 
     /**
@@ -168,7 +171,7 @@ public abstract class RemoteStateTask<T> implements Callable<T>, HazelcastInstan
      * @return boolean
      */
     public final boolean hasTimingDebug() {
-        return hasOption(TaskTiming);
+        return hasOption(TaskOption.Timing);
     }
 
     /**
@@ -197,12 +200,12 @@ public abstract class RemoteStateTask<T> implements Callable<T>, HazelcastInstan
             startTime = System.currentTimeMillis();
 
         // Get the clustered cache
-        IMap<String, ClusterFileState> cache = getHazelcastInstance().getMap(getMapName());
+        IMap<String, HazelCastClusterFileState> cache = getHazelcastInstance().getMap(getMapName());
         if (cache == null)
             throw new Exception("Failed to find clustered map " + getMapName());
 
         // Lock the file state if required, and load the current state
-        if (hasOption(TaskLockState)) {
+        if (hasOption(TaskOption.LockState)) {
 
             // DEBUG
             long lockStart = 0L;
@@ -217,12 +220,12 @@ public abstract class RemoteStateTask<T> implements Callable<T>, HazelcastInstan
                 lockTime = System.currentTimeMillis() - lockStart;
         }
 
-        ClusterFileState fState = cache.get(getKey());
+        HazelCastClusterFileState fState = cache.get(getKey());
 
         if (fState == null) {
 
             // Unlock the file state key and return an error
-            if (hasOption(TaskLockState))
+            if (hasOption(TaskOption.LockState))
                 cache.unlock(getKey());
 
             throw new Exception("Failed to find file state for " + getKey());
@@ -237,7 +240,8 @@ public abstract class RemoteStateTask<T> implements Callable<T>, HazelcastInstan
             retVal = runRemoteTaskAgainstState(cache, fState);
 
             // Update the file state
-            if (hasOption(TaskNoUpdate) == false) {
+            if ( !hasOption(TaskOption.NoUpdate)) {
+                fState.setStateValid( true);
                 cache.put(getKey(), fState);
 
                 // DEBUG
@@ -248,7 +252,7 @@ public abstract class RemoteStateTask<T> implements Callable<T>, HazelcastInstan
         finally {
 
             // Make sure the key is unlocked
-            if (hasOption(TaskLockState)) {
+            if (hasOption(TaskOption.LockState)) {
 
                 // DEBUG
                 long lockEnd = 0L;
@@ -281,6 +285,6 @@ public abstract class RemoteStateTask<T> implements Callable<T>, HazelcastInstan
      * @return T
      * @throws Exception Error running remote task
      */
-    protected abstract T runRemoteTaskAgainstState(IMap<String, ClusterFileState> stateCache, ClusterFileState fState)
+    protected abstract T runRemoteTaskAgainstState(IMap<String, HazelCastClusterFileState> stateCache, HazelCastClusterFileState fState)
             throws Exception;
 }

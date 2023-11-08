@@ -19,6 +19,8 @@
 
 package org.filesys.server.filesys.cache.hazelcast;
 
+import org.filesys.server.locking.OplockOwner;
+
 /**
  * OpLock Message Class
  *
@@ -34,6 +36,9 @@ public class OpLockMessage extends ClusterMessage {
     // Oplock path
     private String m_path;
 
+    // Oplock owner to be added/removed
+    private OplockOwner m_owner;
+
     /**
      * Default constructor
      */
@@ -44,12 +49,26 @@ public class OpLockMessage extends ClusterMessage {
      * Class constructor
      *
      * @param targetNode String
-     * @param msgType    int
+     * @param msgType    ClusterMessageType
      * @param path       String
      */
-    public OpLockMessage(String targetNode, int msgType, String path) {
+    public OpLockMessage(String targetNode, ClusterMessageType msgType, String path) {
         super(targetNode, msgType);
         m_path = path;
+    }
+
+    /**
+     * Class constructor
+     *
+     * @param targetNode String
+     * @param msgType    ClusterMessageType
+     * @param path       String
+     * @param owner      OplockOwner
+     */
+    public OpLockMessage(String targetNode, ClusterMessageType msgType, String path, OplockOwner owner) {
+        super(targetNode, msgType);
+        m_path = path;
+        m_owner = owner;
     }
 
     /**
@@ -60,6 +79,20 @@ public class OpLockMessage extends ClusterMessage {
     public final String getPath() {
         return m_path;
     }
+
+    /**
+     * Check if the oplock owner has been specified
+     *
+     * @return boolean
+     */
+    public final boolean hasOwner() { return m_owner != null; }
+
+    /**
+     * Return the oplock owner details
+     *
+     * @return OplockOwner
+     */
+    public final OplockOwner getOwner() { return m_owner; }
 
     /**
      * Return the oplock message as a string
@@ -73,6 +106,8 @@ public class OpLockMessage extends ClusterMessage {
         str.append(super.toString());
         str.append(",path=");
         str.append(getPath());
+        str.append(",owner=");
+        str.append( getOwner());
         str.append("]");
 
         return str.toString();

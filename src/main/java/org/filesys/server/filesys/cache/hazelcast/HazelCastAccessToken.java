@@ -34,29 +34,19 @@ import org.filesys.smb.OpLockType;
  *
  * @author gkspencer
  */
-public class HazelCastAccessToken implements Serializable, FileAccessToken {
+public class HazelCastAccessToken extends FileAccessToken implements Serializable {
 
     // Serialization id
-    private static final long serialVersionUID = 5L;
+    private static final long serialVersionUID = 6L;
 
     //	Cluster node that owns the token
     private String m_ownerName;
 
-    // Process id that owns the file
-    private long m_pid;
-
-    // Granted oplock type, if requested, and flag to indicate if the oplock is not available
+    // Available oplock type, OpLockType.INVALID indicates an oplock is not available
     private OpLockType m_oplock;
-    private boolean m_oplockNotAvailable;
 
     // Associated network file path
     private String m_path;
-
-    // Attributes only file access
-    private boolean m_attribOnly;
-
-    // Access token has been released
-    private transient boolean m_released = false;
 
     /**
      * Default constructor
@@ -68,38 +58,15 @@ public class HazelCastAccessToken implements Serializable, FileAccessToken {
     /**
      * Class constructor
      *
-     * @param clName String
-     * @param pid    long
-     */
-    protected HazelCastAccessToken(String clName, long pid) {
-        m_ownerName = clName;
-        m_pid = pid;
-    }
-
-    /**
-     * Class constructor
-     *
-     * @param clNode ClusterNode
-     * @param pid    long
-     */
-    protected HazelCastAccessToken(ClusterNode clNode, long pid) {
-        m_ownerName = clNode.getName();
-        m_pid = pid;
-    }
-
-    /**
-     * Class constructor
-     *
      * @param clName         String
-     * @param pid            long
+     * @param params         GrantAccessParams
      * @param oplock         OpLockType
-     * @param oplockNotAvail boolean
      */
-    protected HazelCastAccessToken(String clName, long pid, OpLockType oplock, boolean oplockNotAvail) {
+    protected HazelCastAccessToken(String clName, GrantAccessParams params, OpLockType oplock) {
+        super( params.getProcessId(), params.getAccessMode(), params.getSharedAccess(), params.isAttributesOnlyAccess());
+
         m_ownerName = clName;
-        m_pid = pid;
         m_oplock = oplock;
-        m_oplockNotAvailable = oplockNotAvail;
     }
 
     /**
@@ -112,29 +79,11 @@ public class HazelCastAccessToken implements Serializable, FileAccessToken {
     }
 
     /**
-     * Return the process id
-     *
-     * @return long
-     */
-    public final long getProcessId() {
-        return m_pid;
-    }
-
-    /**
-     * Check if the oplock was available
-     *
-     * @return boolean
-     */
-    public final boolean isOplockAvailable() {
-        return m_oplockNotAvailable ? false : true;
-    }
-
-    /**
-     * Return the oplock type
+     * Return the available oplock type
      *
      * @return OpLockType
      */
-    public final OpLockType getOpLockType() {
+    public final OpLockType getAvailableOpLockType() {
         return m_oplock;
     }
 
@@ -145,24 +94,6 @@ public class HazelCastAccessToken implements Serializable, FileAccessToken {
      */
     public final void setOpLockType(OpLockType oplock) {
         m_oplock = oplock;
-    }
-
-    /**
-     * Check if the access token has been released
-     *
-     * @return boolean
-     */
-    public final boolean isReleased() {
-        return m_released;
-    }
-
-    /**
-     * Set the released state of the access token
-     *
-     * @param released boolean
-     */
-    public final void setReleased(boolean released) {
-        m_released = released;
     }
 
     /**
@@ -184,22 +115,27 @@ public class HazelCastAccessToken implements Serializable, FileAccessToken {
     }
 
     /**
-     * Check if the access token is on attributes only file open
+     * Check for equality
      *
      * @return boolean
      */
-    public final boolean isAttributesOnly() {
-        return m_attribOnly;
+    public boolean equals(Object obj) {
+
+        boolean eq = false;
+
+        if ( super.equals( obj)) {
+            if (obj instanceof HazelCastAccessToken) {
+                HazelCastAccessToken token = (HazelCastAccessToken) obj;
+
+                // Need to check the cluster node id
+                if ( token.getOwnerName().equals( getOwnerName()))
+                    eq = true;
+            }
+        }
+
+        return eq;
     }
 
-    /**
-     * Set/clear the attributes only flag
-     *
-     * @param attrOnly boolean
-     */
-    public final void setAttributesOnly(boolean attrOnly) {
-        m_attribOnly = attrOnly;
-    }
 
     /**
      * Return the access token as a string
@@ -211,15 +147,16 @@ public class HazelCastAccessToken implements Serializable, FileAccessToken {
 
         str.append("[Token owner=");
         str.append(getOwnerName());
-        str.append(",pid=0x");
-        str.append(Long.toHexString(getProcessId()));
-        if (getOpLockType() != OpLockType.LEVEL_NONE) {
-            str.append(",oplock=");
-            str.append(getOpLockType().name());
-        } else {
-            str.append(",opavail=");
-            str.append(isOplockAvailable());
-        }
+        str.append(",owner=");
+        str.append( getOwnerId());
+
+        str.append(",access=0x");
+        str.append( Integer.toHexString( getAccessMode()));
+        str.append(",sharing=");
+        str.append( getSharedAccess());
+
+        str.append(",oplock=");
+        str.append(getAvailableOpLockType());
 
         if (isAttributesOnly())
             str.append(",AttribOnly");
@@ -241,7 +178,7 @@ public class HazelCastAccessToken implements Serializable, FileAccessToken {
     public void finalize() {
 
         // Check if hte access token was released
-        if (isReleased() == false)
+        if ( !isReleased())
             Debug.println("** Access token finalized, not released, " + toString() + " **");
     }
 }

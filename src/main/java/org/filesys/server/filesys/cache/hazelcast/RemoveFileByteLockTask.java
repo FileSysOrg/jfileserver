@@ -35,7 +35,7 @@ import com.hazelcast.map.IMap;
  *
  * @author gkspencer
  */
-public class RemoveFileByteLockTask extends RemoteStateTask<ClusterFileState> {
+public class RemoveFileByteLockTask extends RemoteStateTask<HazelCastClusterFileState> {
 
     // Serialization id
     private static final long serialVersionUID = 1L;
@@ -72,7 +72,7 @@ public class RemoveFileByteLockTask extends RemoteStateTask<ClusterFileState> {
      * @return ClusterFileState
      * @throws Exception Error running remote task
      */
-    protected ClusterFileState runRemoteTaskAgainstState(IMap<String, ClusterFileState> stateCache, ClusterFileState fState)
+    protected HazelCastClusterFileState runRemoteTaskAgainstState(IMap<String, HazelCastClusterFileState> stateCache, HazelCastClusterFileState fState)
             throws Exception {
 
         // DEBUG
@@ -83,7 +83,7 @@ public class RemoveFileByteLockTask extends RemoteStateTask<ClusterFileState> {
         FileLockList lockList = fState.getLockList();
         ClusterFileLock clLock = (ClusterFileLock) lockList.findLock(m_lock);
 
-        if (clLock != null && clLock.getOwnerNode().equalsIgnoreCase(m_lock.getOwnerNode()) == true) {
+        if (clLock != null && clLock.getOwnerNode().equalsIgnoreCase(m_lock.getOwnerNode())) {
 
             // Remove the lock
             lockList.removeLock(clLock);

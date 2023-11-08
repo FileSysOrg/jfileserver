@@ -22,6 +22,9 @@ package org.filesys.server.filesys.cache.hazelcast;
 import org.filesys.debug.Debug;
 import org.filesys.server.filesys.FileAccessToken;
 import org.filesys.server.filesys.cache.cluster.ClusterFileState;
+import org.filesys.server.locking.InvalidOplockStateException;
+import org.filesys.server.locking.OpLockDetails;
+import org.filesys.server.locking.OplockOwner;
 import org.filesys.smb.OpLockType;
 import org.filesys.smb.SharingMode;
 
@@ -77,7 +80,7 @@ public class ReleaseFileAccessTask extends RemoteStateTask<Integer> {
      * @return Integer
      * @throws Exception Error running remote task
      */
-    protected Integer runRemoteTaskAgainstState(IMap<String, ClusterFileState> stateCache, ClusterFileState fState)
+    protected Integer runRemoteTaskAgainstState(IMap<String, HazelCastClusterFileState> stateCache, HazelCastClusterFileState fState)
             throws Exception {
 
         // DEBUG
@@ -92,34 +95,15 @@ public class ReleaseFileAccessTask extends RemoteStateTask<Integer> {
 
             HazelCastAccessToken hcToken = (HazelCastAccessToken) m_token;
 
-            // Decrement the file open count, unless the token is from an attributes only file open
-            if (hcToken.isAttributesOnly() == false) {
+            // Remove the access token and get the new file open count, unless the token is from an attributes only file open
+            if ( !hcToken.isAttributesOnly()) {
 
-                // Decrement the file open count
-                openCount = fState.decrementOpenCount();
-
-                if (openCount == 0) {
-
-                    // Reset the sharing mode and clear the primary owner, no current file opens
-                    fState.setSharedAccess(SharingMode.ALL);
-                    fState.setPrimaryOwner(null);
-                }
-            }
-
-            // Check if the token indicates an oplock was granted during the file open
-            if (fState.hasOpLock() && hcToken.getOpLockType() != OpLockType.LEVEL_NONE) {
-
-                // Release the remote oplock
-                fState.clearOpLock();
-
-                // Inform cluster nodes that an oplock has been released
-                ITopic<ClusterMessage> clusterTopic = getHazelcastInstance().getTopic(m_clusterTopic);
-                OpLockMessage oplockMsg = new OpLockMessage(ClusterMessage.AllNodes, ClusterMessageType.OpLockBreakNotify, fState.getPath());
-                clusterTopic.publish(oplockMsg);
+                // Remove the access token
+                openCount = fState.removeAccessToken( hcToken);
 
                 // DEBUG
                 if (hasDebug())
-                    Debug.println("Cleared remote oplock during token release");
+                    Debug.println("ReleaseFileAccessTask: After release token, state=" + fState + ", openCnt=" + openCount);
             }
 
             // This is a copy of the access token, mark it as released
@@ -127,6 +111,6 @@ public class ReleaseFileAccessTask extends RemoteStateTask<Integer> {
         }
 
         // Return the new file open count
-        return new Integer(openCount);
+        return openCount;
     }
 }

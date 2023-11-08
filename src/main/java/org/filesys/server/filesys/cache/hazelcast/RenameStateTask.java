@@ -73,7 +73,7 @@ public class RenameStateTask extends RemoteStateTask<Boolean> {
      * @return Boolean
      * @throws Exception Error running remote task
      */
-    protected Boolean runRemoteTaskAgainstState(IMap<String, ClusterFileState> stateCache, ClusterFileState fState)
+    protected Boolean runRemoteTaskAgainstState(IMap<String, HazelCastClusterFileState> stateCache, HazelCastClusterFileState fState)
             throws Exception {
 
         // DEBUG
@@ -81,7 +81,7 @@ public class RenameStateTask extends RemoteStateTask<Boolean> {
             Debug.println("RenameStateTask: Rename from " + getKey() + " to " + m_newKey);
 
         // Remove the existing file state from the cache, using the original name
-        ClusterFileState state = stateCache.remove(getKey());
+        HazelCastClusterFileState state = stateCache.remove(getKey());
 
         // Set the file status
         state.setFileStatusInternal(m_folder ? FileStatus.DirectoryExists : FileStatus.FileExists, FileState.ChangeReason.None);
@@ -98,6 +98,6 @@ public class RenameStateTask extends RemoteStateTask<Boolean> {
             Debug.println("Rename to " + m_newKey + " successful, state=" + state);
 
         // Return the rename status
-        return new Boolean(true);
+        return Boolean.TRUE;
     }
 }

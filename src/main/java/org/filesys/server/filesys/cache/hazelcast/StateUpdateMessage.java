@@ -24,6 +24,8 @@ import org.filesys.server.filesys.cache.FileState;
 import org.filesys.server.filesys.cache.cluster.ClusterFileState;
 import org.filesys.server.filesys.cache.cluster.ClusterNode;
 
+import java.util.EnumSet;
+
 /**
  * File State Update Message Class
  *
@@ -40,7 +42,7 @@ public class StateUpdateMessage extends ClusterMessage {
     private String m_path;
 
     // Update mask
-    private int m_updateMask;
+    private EnumSet<ClusterFileState.UpdateFlag> m_updateMask;
 
     // Update values
     private FileStatus m_fileStatus;
@@ -57,6 +59,7 @@ public class StateUpdateMessage extends ClusterMessage {
      * Default constructor
      */
     public StateUpdateMessage() {
+        m_updateMask = EnumSet.noneOf( ClusterFileState.UpdateFlag.class);
     }
 
     /**
@@ -65,9 +68,9 @@ public class StateUpdateMessage extends ClusterMessage {
      * @param targetNode String
      * @param fromNode   ClusterNode
      * @param clState    ClusterFileState
-     * @param updateMask int
+     * @param updateMask EnumSet&lt;UpdateFlag&gt;
      */
-    public StateUpdateMessage(String targetNode, ClusterNode fromNode, ClusterFileState clState, int updateMask) {
+    public StateUpdateMessage(String targetNode, ClusterNode fromNode, ClusterFileState clState, EnumSet<ClusterFileState.UpdateFlag> updateMask) {
         super(targetNode, fromNode, ClusterMessageType.FileStateUpdate);
 
         // Set the update mask and path
@@ -75,41 +78,39 @@ public class StateUpdateMessage extends ClusterMessage {
         m_path = clState.getPath();
 
         // Set the updated values
-        if (hasUpdate(ClusterFileState.UpdateFileStatus)) {
+        if (hasUpdate(ClusterFileState.UpdateFlag.FileStatus)) {
             m_fileStatus = clState.getFileStatus();
             m_fileStsReason = clState.getStatusChangeReason();
         }
 
-        if (hasUpdate(ClusterFileState.UpdateFileSize))
+        if (hasUpdate(ClusterFileState.UpdateFlag.FileSize))
             m_fileSize = clState.getFileSize();
-        if (hasUpdate(ClusterFileState.UpdateAllocSize))
+        if (hasUpdate(ClusterFileState.UpdateFlag.AllocSize))
             m_allocSize = clState.getAllocationSize();
 
-        if (hasUpdate(ClusterFileState.UpdateChangeDate))
+        if (hasUpdate(ClusterFileState.UpdateFlag.ChangeDate))
             m_changeDate = clState.getChangeDateTime();
-        if (hasUpdate(ClusterFileState.UpdateModifyDate))
+        if (hasUpdate(ClusterFileState.UpdateFlag.ModifyDate))
             m_modifyDate = clState.getModifyDateTime();
 
-        if (hasUpdate(ClusterFileState.UpdateRetentionExpire))
+        if (hasUpdate(ClusterFileState.UpdateFlag.RetentionExpire))
             m_retentionDate = clState.getRetentionExpiryDateTime();
     }
 
     /**
-     * Check if the spceified value has an update
+     * Check if the specified value has an update
      *
-     * @param upd int
+     * @param upd UpdateFlag
      * @return boolean
      */
-    public boolean hasUpdate(int upd) {
-        return (m_updateMask & upd) != 0 ? true : false;
-    }
+    public boolean hasUpdate(ClusterFileState.UpdateFlag upd) { return m_updateMask.contains( upd); }
 
     /**
      * Return the update mask
      *
-     * @return int
+     * @return EnumSet&lt;UpdateFlag&gt;
      */
-    public final int getUpdateMask() {
+    public final EnumSet<ClusterFileState.UpdateFlag> getUpdateMask() {
         return m_updateMask;
     }
 
@@ -200,7 +201,7 @@ public class StateUpdateMessage extends ClusterMessage {
         str.append(",updates=");
         str.append(ClusterFileState.getUpdateMaskAsString(getUpdateMask()));
 
-        if (hasUpdate(ClusterFileState.UpdateFileStatus)) {
+        if (hasUpdate(ClusterFileState.UpdateFlag.FileStatus)) {
             str.append(",fileSts=");
             str.append(getFileStatus().name());
 
@@ -210,25 +211,25 @@ public class StateUpdateMessage extends ClusterMessage {
             }
         }
 
-        if (hasUpdate(ClusterFileState.UpdateFileSize)) {
+        if (hasUpdate(ClusterFileState.UpdateFlag.FileSize)) {
             str.append(",fsize=");
             str.append(getFileSize());
         }
-        if (hasUpdate(ClusterFileState.UpdateAllocSize)) {
+        if (hasUpdate(ClusterFileState.UpdateFlag.AllocSize)) {
             str.append(",alloc=");
             str.append(getAllocationSize());
         }
 
-        if (hasUpdate(ClusterFileState.UpdateChangeDate)) {
+        if (hasUpdate(ClusterFileState.UpdateFlag.ChangeDate)) {
             str.append(",change=");
             str.append(getChangeDateTime());
         }
-        if (hasUpdate(ClusterFileState.UpdateModifyDate)) {
+        if (hasUpdate(ClusterFileState.UpdateFlag.ModifyDate)) {
             str.append(",modify=");
             str.append(getModificationDateTime());
         }
 
-        if (hasUpdate(ClusterFileState.UpdateRetentionExpire)) {
+        if (hasUpdate(ClusterFileState.UpdateFlag.RetentionExpire)) {
             str.append(",retain=");
             str.append(getRetentionDateTime());
         }

@@ -25,6 +25,7 @@ import com.hazelcast.map.listener.EntryUpdatedListener;
 import com.hazelcast.topic.MessageListener;
 import org.filesys.server.filesys.*;
 import org.filesys.server.filesys.cache.cluster.*;
+import org.filesys.server.locking.OplockOwner;
 import org.filesys.smb.OpLockType;
 
 import java.util.concurrent.Callable;
@@ -79,7 +80,7 @@ public class HazelCastClusterFileStateCacheV5 extends HazelCastClusterFileStateC
      * @param newPath String
      * @param isDir boolean
      * @return boolean
-     * @exception InterruptedException Exceution interrupted
+     * @exception InterruptedException Execution interrupted
      * @exception ExecutionException Execution error
      */
     public boolean executeRenameFileState( String oldPath, String newPath, boolean isDir)
@@ -91,7 +92,7 @@ public class HazelCastClusterFileStateCacheV5 extends HazelCastClusterFileStateC
 
         Future<Boolean> renameStateTask = execService.submitToKeyOwner( callable, oldPath);
 
-        return renameStateTask.get().booleanValue();
+        return renameStateTask.get();
     }
 
     /**
@@ -100,7 +101,7 @@ public class HazelCastClusterFileStateCacheV5 extends HazelCastClusterFileStateC
      * @param path String
      * @param remoteOpLock RemoteOpLockDetails
      * @return boolean
-     * @exception InterruptedException Exceution interrupted
+     * @exception InterruptedException Execution interrupted
      * @exception ExecutionException Execution error
      */
     public boolean executeAddOpLock( String path, RemoteOpLockDetails remoteOpLock)
@@ -112,14 +113,35 @@ public class HazelCastClusterFileStateCacheV5 extends HazelCastClusterFileStateC
 
         Future<Boolean> addOpLockTask = execService.submitToKeyOwner( callable, path);
 
-        return addOpLockTask.get().booleanValue();
+        return addOpLockTask.get();
+    }
+
+    /**
+     * Execute removing an oplock owner
+     * 
+     * @param path String
+     * @param owner OplockOwner
+     * @return ClusterFileState
+     * @exception InterruptedException Execution interrupted
+     * @exception ExecutionException Execution error
+     */
+    public ClusterFileState executeRemoveOplockOwner( String path, OplockOwner owner)
+        throws InterruptedException, ExecutionException {
+
+        // Remove the oplock owner using a remote call to the node that owns the file state
+        IExecutorService execService = m_hazelCastInstance.getExecutorService( ExecutorName);
+        Callable<HazelCastClusterFileState> callable = new RemoveOplockOwnerTask(getMapName(), path, owner, hasTaskDebug(), hasTaskTiming());
+
+        Future<HazelCastClusterFileState> removeOpLockOwnerTask = execService.submitToKeyOwner( callable, path);
+
+        return removeOpLockOwnerTask.get();
     }
 
     /**
      * Execute clear oplock
      *
      * @param path String
-     * @exception InterruptedException Exceution interrupted
+     * @exception InterruptedException Execution interrupted
      * @exception ExecutionException Execution error
      */
     public void executeClearOpLock( String path)
@@ -140,7 +162,7 @@ public class HazelCastClusterFileStateCacheV5 extends HazelCastClusterFileStateC
      * @param path String
      * @param lock ClusterFileLock
      * @return ClusterFileState
-     * @exception InterruptedException Exceution interrupted
+     * @exception InterruptedException Execution interrupted
      * @exception ExecutionException Execution error
      */
     public ClusterFileState executeAddLock( String path, ClusterFileLock lock)
@@ -148,10 +170,10 @@ public class HazelCastClusterFileStateCacheV5 extends HazelCastClusterFileStateC
 
         // Add the oplock via a remote call to the node that owns the file state
         IExecutorService execService = m_hazelCastInstance.getExecutorService( ExecutorName);
-        Callable<ClusterFileState> callable = new AddFileByteLockTask(getMapName(), path, lock,
+        Callable<HazelCastClusterFileState> callable = new AddFileByteLockTask(getMapName(), path, lock,
                 hasDebugLevel(Dbg.BYTELOCK), hasTaskTiming());
 
-        Future<ClusterFileState> addLockTask = execService.submitToKeyOwner( callable, path);
+        Future<HazelCastClusterFileState> addLockTask = execService.submitToKeyOwner( callable, path);
 
         return addLockTask.get();
     }
@@ -162,7 +184,7 @@ public class HazelCastClusterFileStateCacheV5 extends HazelCastClusterFileStateC
      * @param path String
      * @param lock ClusterFileLock
      * @return ClusterFileState
-     * @exception InterruptedException Exceution interrupted
+     * @exception InterruptedException Execution interrupted
      * @exception ExecutionException Execution error
      */
     public ClusterFileState executeRemoveLock( String path, ClusterFileLock lock)
@@ -170,10 +192,10 @@ public class HazelCastClusterFileStateCacheV5 extends HazelCastClusterFileStateC
 
         // Remove the oplock via a remote call to the node that owns the file state
         IExecutorService execService = m_hazelCastInstance.getExecutorService( ExecutorName);
-        Callable<ClusterFileState> callable = new RemoveFileByteLockTask(getMapName(), path, lock,
+        Callable<HazelCastClusterFileState> callable = new RemoveFileByteLockTask(getMapName(), path, lock,
                 hasDebugLevel(Dbg.BYTELOCK), hasTaskTiming());
 
-        Future<ClusterFileState> removeLockTask = execService.submitToKeyOwner( callable, path);
+        Future<HazelCastClusterFileState> removeLockTask = execService.submitToKeyOwner( callable, path);
 
         return removeLockTask.get();
     }
@@ -184,7 +206,7 @@ public class HazelCastClusterFileStateCacheV5 extends HazelCastClusterFileStateC
      * @param path String
      * @param newTyp OpLockType
      * @return OpLockType
-     * @exception InterruptedException Exceution interrupted
+     * @exception InterruptedException Execution interrupted
      * @exception ExecutionException Execution error
      */
     public OpLockType executeChangeOpLockType( String path, OpLockType newTyp)
@@ -196,7 +218,7 @@ public class HazelCastClusterFileStateCacheV5 extends HazelCastClusterFileStateC
 
         Future<Integer> changeOpLockTask = execService.submitToKeyOwner( callable, path);
 
-        return OpLockType.fromInt( changeOpLockTask.get().intValue());
+        return OpLockType.fromInt(changeOpLockTask.get());
     }
 
     /**
@@ -204,20 +226,20 @@ public class HazelCastClusterFileStateCacheV5 extends HazelCastClusterFileStateC
      *
      * @param path String
      * @param params GrantAccessParams
-     * @return HazelCastAccessToken
-     * @exception InterruptedException Exceution interrupted
+     * @return GrantAccessResponse
+     * @exception InterruptedException Execution interrupted
      * @exception ExecutionException Execution error
      */
-    public HazelCastAccessToken executeGrantFileAccess( String path, GrantAccessParams params)
+    public GrantAccessResponse executeGrantFileAccess( String path, GrantAccessParams params)
         throws InterruptedException, ExecutionException {
 
         // Run the file access checks via the node that owns the file state
         IExecutorService execService = m_hazelCastInstance.getExecutorService( ExecutorName);
-        Callable<FileAccessToken> callable = new GrantFileAccessTask(getMapName(), path, params, hasTaskDebug(), hasTaskTiming());
+        Callable<GrantAccessResponse> callable = new GrantFileAccessTask(getMapName(), path, params, hasTaskDebug(), hasTaskTiming());
 
-        Future<FileAccessToken> grantAccessTask = execService.submitToKeyOwner( callable, path);
+        Future<GrantAccessResponse> grantAccessTask = execService.submitToKeyOwner( callable, path);
 
-        return (HazelCastAccessToken) grantAccessTask.get();
+        return (GrantAccessResponse) grantAccessTask.get();
     }
 
     /**
@@ -226,7 +248,7 @@ public class HazelCastClusterFileStateCacheV5 extends HazelCastClusterFileStateC
      * @param path String
      * @param token HazelCastAccessToken
      * @return int
-     * @exception InterruptedException Exceution interrupted
+     * @exception InterruptedException Execution interrupted
      * @exception ExecutionException Execution error
      */
     public int executeReleaseFileAccess( String path, HazelCastAccessToken token)
@@ -239,7 +261,7 @@ public class HazelCastClusterFileStateCacheV5 extends HazelCastClusterFileStateC
 
         Future<Integer> releaseAccessTask = execService.submitToKeyOwner( callable, path);
 
-        return releaseAccessTask.get().intValue();
+        return releaseAccessTask.get();
     }
 
     /**
@@ -249,7 +271,7 @@ public class HazelCastClusterFileStateCacheV5 extends HazelCastClusterFileStateC
      * @param chkLock ClusterFileLock
      * @param writeChk boolean
      * @return boolean
-     * @exception InterruptedException Exceution interrupted
+     * @exception InterruptedException Execution interrupted
      * @exception ExecutionException Execution error
      */
     public boolean executeCheckFileAccess( String path, ClusterFileLock chkLock, boolean writeChk)
@@ -262,7 +284,7 @@ public class HazelCastClusterFileStateCacheV5 extends HazelCastClusterFileStateC
 
         Future<Boolean> checkLockTask = execService.submitToKeyOwner( callable, path);
 
-        return checkLockTask.get().booleanValue();
+        return checkLockTask.get();
     }
 
     /**
@@ -282,7 +304,7 @@ public class HazelCastClusterFileStateCacheV5 extends HazelCastClusterFileStateC
 
         Future<Boolean> updateStateTask = execService.submitToKeyOwner( callable, path);
 
-        return updateStateTask.get().booleanValue();
+        return updateStateTask.get();
     }
 
     /**
@@ -302,6 +324,6 @@ public class HazelCastClusterFileStateCacheV5 extends HazelCastClusterFileStateC
 
         Future<Boolean> fileDataUpdateTask = execService.submitToKeyOwner( callable, path);
 
-        return fileDataUpdateTask.get().booleanValue();
+        return fileDataUpdateTask.get();
     }
 }

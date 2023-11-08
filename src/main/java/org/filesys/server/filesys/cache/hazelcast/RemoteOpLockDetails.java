@@ -21,13 +21,13 @@ package org.filesys.server.filesys.cache.hazelcast;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.List;
 
 import org.filesys.server.filesys.DeferFailedException;
 import org.filesys.server.filesys.cache.cluster.ClusterFileStateCache;
 import org.filesys.server.filesys.cache.cluster.ClusterNode;
 import org.filesys.server.filesys.cache.cluster.PerNodeState;
-import org.filesys.server.locking.OpLockDetails;
-import org.filesys.server.locking.OpLockDetailsAdapter;
+import org.filesys.server.locking.*;
 import org.filesys.smb.OpLockType;
 import org.filesys.smb.server.SMBSrvPacket;
 import org.filesys.smb.server.SMBSrvSession;
@@ -51,7 +51,7 @@ public class RemoteOpLockDetails extends OpLockDetailsAdapter implements Seriali
     // Owner node name
     private String m_ownerName;
 
-    // Oplocked path
+    // Path of locked file
     private String m_path;
 
     // State cache that this oplock belongs to
@@ -83,13 +83,14 @@ public class RemoteOpLockDetails extends OpLockDetailsAdapter implements Seriali
      * Class constructor
      *
      * @param clNode      ClusterNode
-     * @param localOpLock OpLockDetails
+     * @param localOpLock LocalOpLockDetails
      * @param stateCache  ClusterFileStateCache
      */
-    protected RemoteOpLockDetails(ClusterNode clNode, OpLockDetails localOpLock, ClusterFileStateCache stateCache) {
+    protected RemoteOpLockDetails(ClusterNode clNode, LocalOpLockDetails localOpLock, ClusterFileStateCache stateCache) {
         m_ownerName = clNode.getName();
         m_lockType = localOpLock.getLockType();
         m_path = localOpLock.getPath();
+        setOwnerList( localOpLock.getOwnerList());
 
         m_stateCache = stateCache;
     }
@@ -268,22 +269,6 @@ public class RemoteOpLockDetails extends OpLockDetailsAdapter implements Seriali
     }
 
     /**
-     * Check if this oplock is still valid, or an oplock break has failed
-     *
-     * @return boolean
-     */
-    public boolean hasOplockBreakFailed() {
-        return false;
-    }
-
-    /**
-     * Set the failed oplock break flag, to indicate the client did not respond to the oplock break
-     * request within a reasonable time.
-     */
-    public void setOplockBreakFailed() {
-    }
-
-    /**
      * Update the oplock path when the file is renamed
      *
      * @param path String
@@ -325,10 +310,43 @@ public class RemoteOpLockDetails extends OpLockDetailsAdapter implements Seriali
     public String toString() {
         StringBuilder str = new StringBuilder();
 
-        str.append("[Remote Owner=");
-        str.append(getOwnerName());
-        str.append(",type=");
+        str.append("[Remote Type=");
         str.append(getLockType().name());
+        str.append(", Node=");
+        str.append( getOwnerName());
+
+        if ( getLockType() != OpLockType.LEVEL_II) {
+            str.append(", OpLkOwner=");
+            if (hasOplockOwner())
+                str.append(getOplockOwner());
+            else
+                str.append("NULL");
+
+            if (hasDeferredSessions()) {
+                str.append(",DeferList=");
+                str.append(numberOfDeferredSessions());
+            }
+
+            if (hasOplockBreakFailed())
+                str.append(" BreakFailed");
+            else if (hasBreakInProgress())
+                str.append(" BreakInProgress");
+        }
+        else {
+            str.append(", OpLkOwners=");
+            str.append( numberOfOwners());
+            str.append(", SessIds=");
+
+            for( OplockOwner owner: getOwnerList()) {
+                if ( owner instanceof OplockOwnerAdapter) {
+                    OplockOwnerAdapter opOwner = (OplockOwnerAdapter) owner;
+
+                    str.append("0x");
+                    str.append(Long.toHexString(opOwner.getSessionId()));
+                    str.append(",");
+                }
+            }
+        }
 
         if (getStateCache() == null)
             str.append(",stateCache=null");

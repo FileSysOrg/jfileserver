@@ -26,50 +26,16 @@ package org.filesys.server.filesys.cache.hazelcast;
  *
  * @author gkspencer
  */
-public class ClusterMessageType {
-
-    // Cluster message types
-    public final static int EchoString          = 0;
-    public final static int OpLockBreakRequest  = 1;
-    public final static int OpLockBreakNotify   = 2;
-    public final static int FileStateUpdate     = 3;
-    public final static int RenameState         = 4;
-    public final static int DataUpdate          = 5;
-    public final static int OplockTypeChange    = 6;
-
-    /**
-     * Return a message type as a string
-     *
-     * @param typ int
-     * @return String
-     */
-    public static String getTypeAsString(int typ) {
-        String typStr = "";
-
-        switch (typ) {
-            case EchoString:
-                typStr = "EchoTest";
-                break;
-            case OpLockBreakRequest:
-                typStr = "OpLockBreakRequest";
-                break;
-            case OpLockBreakNotify:
-                typStr = "OpLockBreakNotify";
-                break;
-            case FileStateUpdate:
-                typStr = "FileStateUpdate";
-                break;
-            case RenameState:
-                typStr = "RenameState";
-                break;
-            case DataUpdate:
-                typStr = "DataUpdate";
-                break;
-            case OplockTypeChange:
-                typStr = "OplockTypeChange";
-                break;
-        }
-
-        return typStr;
-    }
+public enum ClusterMessageType {
+    EchoString,
+    OplockBreakRequest,
+    OplockBreakNotify,
+    FileStateUpdate,
+    RenameState,
+    DataUpdate,
+    OplockTypeChange,
+    OplockOwnerAdd,
+    OplockOwnerRemove,
+    OplockRemove,
+    DebugLog
 }
