@@ -339,6 +339,8 @@ public class FileServer implements ServerListener {
 						dumpSessions( false);
 					else if ( inChar == 'v' || inChar == 'V')
 						dumpSessions( true);
+					else if ( inChar == 'f' || inChar == 'F')
+						dumpFiles( true);
 					else if ( inChar == 'g' || inChar == 'G') {
 						Debug.println( "Running garbage collection ...");
 						System.gc();
@@ -577,6 +579,8 @@ public class FileServer implements ServerListener {
 						dumpSessions( false);
 					else if ( inChar == 'v' || inChar == 'V')
 						dumpSessions( true);
+					else if ( inChar == 'f' || inChar == 'F')
+						dumpFiles( true);
 					else if ( inChar == 'g' || inChar == 'G') {
 						Debug.println( "Running garbage collection ...");
 						System.gc();
@@ -992,6 +996,25 @@ public class FileServer implements ServerListener {
 
 			if ( curServer != null && curServer.isActive())
 				curServer.dumpSessionLists( verbose);
+		}
+	}
+
+	/**
+	 * Dump the open file lists for the active servers
+	 *
+	 * @param verbose boolean
+	 */
+	protected void dumpFiles(boolean verbose) {
+
+		Debug.println("Dump the active server open file lists:");
+
+		for ( int idx = 0; idx < m_srvConfig.numberOfServers(); idx++) {
+
+			// Get the current server
+			NetworkServer curServer = m_srvConfig.getServer( idx);
+
+			if ( curServer != null && curServer.isActive())
+				curServer.dumpFileLists( verbose);
 		}
 	}
 }
