@@ -436,6 +436,13 @@ public abstract class NetworkServer {
     public void dumpSessionLists( boolean verbose) {}
 
     /**
+     * Dump the open file list(s) for this server to the debug device
+     *
+     * @param verbose boolean
+     */
+    public void dumpFileLists( boolean verbose) {}
+
+    /**
      * Trigger a closed session event to all registered session listeners.
      *
      * @param sess SrvSession
