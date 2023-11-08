@@ -115,6 +115,9 @@ public class FileOpenParams {
     // Timestamp of a previous version
     private long m_prevVersion;
 
+    // Request id
+    private long m_requestId;
+
     /**
      * Class constructor for Core SMB dialect Open SMB requests
      *
@@ -590,6 +593,13 @@ public class FileOpenParams {
     }
 
     /**
+     * Return the request id
+     *
+     * @return long
+     */
+    public final long getRequestId() { return m_requestId; }
+
+    /**
      * Return the requested oplock type
      *
      * @return OplockType
@@ -810,6 +820,13 @@ public class FileOpenParams {
     protected final void setFileAttributes(int attr) { m_attr = attr; }
 
     /**
+     * Set the request id
+     *
+     * @param id long
+     */
+    public final void setRequestId(long id) { m_requestId = id; }
+
+    /**
      * Convert a Core/LanMan access mode to an NT access mode
      *
      * @param accessMode int
@@ -985,6 +1002,12 @@ public class FileOpenParams {
         if ( isPreviousVersion()) {
             str.append(",PrevVer=");
             str.append( getPreviousVersionDateTime());
+        }
+
+        // Request id
+        if ( getRequestId() != 0) {
+            str.append(",ReqId=");
+            str.append( getRequestId());
         }
 
         // Add additional information to the details string
