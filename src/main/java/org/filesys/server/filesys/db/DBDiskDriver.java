@@ -32,6 +32,7 @@ import org.filesys.server.core.DeviceContextException;
 import org.filesys.server.filesys.*;
 import org.filesys.server.filesys.cache.FileState;
 import org.filesys.server.filesys.cache.FileStateCache;
+import org.filesys.server.filesys.cache.NetworkFileStateInterface;
 import org.filesys.server.filesys.loader.NamedFileLoader;
 import org.filesys.server.filesys.postprocess.PostCloseProcessor;
 import org.filesys.server.filesys.quota.QuotaManager;
@@ -163,7 +164,8 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
                 //  DEBUG
                 if (Debug.EnableInfo && hasDebug())
                     Debug.println("** Last file close, no file state for " + file.getFullName());
-            } else {
+            }
+            else if ( !jdbcFile.isDirectory()) {
 
                 // If the file open count is now zero then reset the stored sharing mode
                 if (dbCtx.getStateCache().releaseFileAccess(fstate, file.getAccessToken()) == 0) {
@@ -250,8 +252,8 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
             Debug.println("closeFile() Not DBNetworkFile file=" + file);
 
         //  Check if the file was opened for write access, if so then update the file size and modify date/time
-        if (file.getGrantedAccess() != NetworkFile.Access.READ_ONLY && file.isDirectory() == false &&
-                file.getWriteCount() > 0 && file.hasDeleteOnClose() == false) {
+        if (file.getGrantedAccess() != NetworkFile.Access.READ_ONLY && !file.isDirectory() &&
+                file.getWriteCount() > 0 && !file.hasDeleteOnClose()) {
 
             //  DEBUG
             if (Debug.EnableInfo && hasDebug())
@@ -1088,7 +1090,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
         // Check if the current file open allows the required shared access
         FileAccessToken accessToken = null;
 
-        if (params.getPath().equals("\\") == false) {
+        if ( !params.getPath().equals("\\")) {
 
             // Check if the file can be opened in the requested mode
             accessToken = dbCtx.getStateCache().grantFileAccess(params, fstate, finfo.isDirectory() ? FileStatus.DirectoryExists : FileStatus.FileExists);
@@ -1132,6 +1134,10 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
             // Set the full path of the file, if not already set
             if ( jdbcFile.getFullName() == null)
                 jdbcFile.setFullName( params.getPath());
+
+            // Update the access date/time
+            if ( finfo != null)
+                finfo.setAccessDateTime( System.currentTimeMillis());
         }
         finally {
 
@@ -1307,6 +1313,19 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
 
             //  Update the file state with the new file name/path
             dbCtx.getStateCache().renameFileState(newName, fstate, curInfo.isDirectory());
+
+            // Update the network file fle state
+            if ( netFile instanceof DBNetworkFile) {
+                DBNetworkFile dbFile = (DBNetworkFile) netFile;
+
+                // Update the file path/name
+                dbFile.setName( fname);
+                dbFile.setFullName( newName);
+
+                // Update teh file state
+                fstate = getFileState(newName, dbCtx, false);
+                dbFile.setFileState( dbCtx.getStateCache().getFileStateProxy(fstate));
+            }
 
             // Update the cached file information name
             if ( curInfo != null) {
@@ -1806,10 +1825,14 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
                 //  Write to the file
                 jfile.writeFile(buf, siz, bufoff, fileoff);
 
-                //  Update the cached file size
+                //  Update the cached file size, set the Archive attribute, update the last access time
                 DBFileInfo finfo = getFileDetails(jfile.getFullName(), dbCtx, jfile.getFileState());
-                if (finfo != null)
-                    finfo.setFileSize( jfile.getFileSize());
+                if (finfo != null) {
+                    finfo.setFileSize(jfile.getFileSize());
+                    if ( !finfo.isArchived())
+                        finfo.setFileAttributes( finfo.getFileAttributes() + FileAttribute.Archive);
+                    finfo.setAccessDateTime( System.currentTimeMillis());
+                }
             }
         }
 
@@ -2408,11 +2431,12 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
 
         if ( fstate != null) {
 
-            // Update the cached last write and change timestamps for the folder
+            // Update the cached last write, access and change timestamps for the folder
             long updTime = System.currentTimeMillis();
 
             fstate.updateModifyDateTime( updTime);
             fstate.updateChangeDateTime( updTime);
+            fstate.updateAccessDateTime();
 
             // Update the cached file information, if available
             DBFileInfo finfo = (DBFileInfo) fstate.findAttribute(FileState.FileInformation);
@@ -2421,6 +2445,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
                 // Update the file information timestamps
                 finfo.setModifyDateTime( updTime);
                 finfo.setChangeDateTime( updTime);
+                finfo.setAccessDateTime( updTime);
             }
 
             // DEBUG
@@ -2741,8 +2766,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
             accessToken = dbCtx.getStateCache().grantFileAccess(params, fstate, FileStatus.FileExists);
 
             //  Check if the file shared access indicates exclusive file access
-            if (params.getSharedAccess() == SharingMode.NOSHARING && fstate.getOpenCount() > 0 &&
-                    params.getProcessId() != fstate.getProcessId())
+            if (params.getSharedAccess() == SharingMode.NOSHARING && fstate.getOpenCount() > 0)
                 throw new FileSharingException("File already open, " + params.getPath());
 
             //  Set the file information for the stream, using the stream information
@@ -3084,7 +3108,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
         }
 
         //  Check if the creation date is valid
-        if (volInfo.hasCreationDateTime() == false) {
+        if ( !volInfo.hasCreationDateTime()) {
 
             //  Set the creation date to now
             volInfo.setCreationDateTime(new java.util.Date());

@@ -54,6 +54,7 @@ public class LocalDataNetworkFile extends DBNetworkFile {
 
         //	Set the file details
         m_file = file;
+        setClosed( false);
 
         //  Set the file size
         setFileSize(m_file.length());
