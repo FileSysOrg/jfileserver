@@ -238,8 +238,6 @@ public abstract class DBNetworkFile extends NetworkFile implements NetworkFileSt
         StringBuilder str = new StringBuilder();
 
         str.append("[");
-        str.append(getName());
-        str.append("/");
         str.append(getFullName());
 
         str.append(" ");
@@ -259,8 +257,16 @@ public abstract class DBNetworkFile extends NetworkFile implements NetworkFileSt
         if ( isPreviousVersion())
             str.append( " Ver");
 
+        if ( hasAccessToken()) {
+            str.append(",Token=");
+            str.append( getAccessToken());
+        }
+
+        if ( isClosed())
+            str.append(",Closed");
+
         if ( m_stateProxy != null) {
-            str.append(" fstate=");
+            str.append(" FState=");
             str.append( getFileState());
         }
         str.append("]");

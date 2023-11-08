@@ -44,6 +44,7 @@ public class DirectoryNetworkFile extends DBNetworkFile {
     public DirectoryNetworkFile(String name, int fid, int did) {
         super(name, fid, 0, did);
         setAttributes(FileAttribute.Directory);
+        setClosed( false);
     }
 
     /**
@@ -58,6 +59,7 @@ public class DirectoryNetworkFile extends DBNetworkFile {
         super(name, fid, 0, did);
         setFileState(stateProxy);
         setAttributes(FileAttribute.Directory);
+        setClosed( false);
     }
 
     /**

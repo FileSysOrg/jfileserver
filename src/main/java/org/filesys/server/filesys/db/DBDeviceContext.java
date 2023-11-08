@@ -183,7 +183,7 @@ public class DBDeviceContext extends DiskDeviceContext implements FileStateCache
             m_loaderConfig = ldrParams;
             ConfigElement ldrClass = m_loaderConfig.getChild("class");
 
-            if (ldrClass == null || ldrClass.getValue().length() == 0)
+            if (ldrClass == null || ldrClass.getValue().isEmpty())
                 throw new DeviceContextException("Invalid File Loader configuration");
 
             // Set the file loader class
@@ -261,7 +261,7 @@ public class DBDeviceContext extends DiskDeviceContext implements FileStateCache
         if (args.getChild("QuotaManagement") != null) {
 
             // Check if quota manager debug output is enabled
-            boolean quotaDebug = args.getChild("QuotaDebug") != null ? true : false;
+            boolean quotaDebug = args.getChild("QuotaDebug") != null;
 
             // Create the default quota manager
             setQuotaManager(new DBQuotaManager(this, quotaDebug));
@@ -289,7 +289,7 @@ public class DBDeviceContext extends DiskDeviceContext implements FileStateCache
         }
 
         // Check if the database interface supports retention, if retention has been enabled
-        if (hasRetentionPeriod() && getDBInterface().supportsFeature(DBInterface.Feature.Retention) == false)
+        if (hasRetentionPeriod() && !getDBInterface().supportsFeature(DBInterface.Feature.Retention))
             throw new DeviceContextException("Database interface does not support retention");
 
         // Create the file loader instance and get the database features required by the loader
@@ -337,7 +337,7 @@ public class DBDeviceContext extends DiskDeviceContext implements FileStateCache
         m_rootInfo.setChangeDateTime(timeNow);
 
         // Set the enabled database features
-        if (hasNTFSStreamsEnabled() == true && m_loader.supportsStreams() == true)
+        if ( hasNTFSStreamsEnabled() && m_loader.supportsStreams())
             dbFeatures.add( DBInterface.Feature.NTFS);
         else {
 
@@ -345,7 +345,7 @@ public class DBDeviceContext extends DiskDeviceContext implements FileStateCache
             m_ntfsStreams = false;
         }
 
-        if (hasRetentionPeriod() == true)
+        if ( hasRetentionPeriod())
             dbFeatures.add( DBInterface.Feature.Retention);
 
         if (getDBInterface().supportsFeature(DBInterface.Feature.SymLinks))
@@ -370,7 +370,7 @@ public class DBDeviceContext extends DiskDeviceContext implements FileStateCache
             throw new DeviceContextException("Database interface initialization failure, " + ex.toString(), ex);
         }
 
-        // Initialize the file loader, if it is a seperate class from the database interface
+        // Initialize the file loader, if it is a separate class from the database interface
         if (m_loaderClass != null) {
 
             try {
@@ -408,6 +408,11 @@ public class DBDeviceContext extends DiskDeviceContext implements FileStateCache
 
         // Mark the filesystem as unavailable until the file state cache has finished initializing
         setAvailable(false);
+    }
+
+    @Override
+    public String getFilesystemType() {
+        return FileSystem.TypeNTFS;
     }
 
     /**
