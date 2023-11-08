@@ -42,4 +42,25 @@ public interface OplockOwner {
      * @return SMBSrvSession
      */
     public SMBSrvSession getSession();
+
+    /**
+     * Return a short unique id string for the oplock owner
+     *
+     * @return String
+     */
+    public String getUniqueId();
+
+    /**
+     * Return the owner node id, for cluster environment
+     *
+     * @return String
+     */
+    public String getOwnerNode();
+
+    /**
+     * Set the owner node id, for cluster environment
+     *
+     * @param nodeId String
+     */
+    public void setOwnerNode(String nodeId);
 }
