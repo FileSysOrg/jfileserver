@@ -41,7 +41,9 @@ import org.filesys.server.core.InvalidDeviceInterfaceException;
 import org.filesys.server.core.ShareType;
 import org.filesys.server.core.SharedDevice;
 import org.filesys.server.filesys.DiskInterface;
+import org.filesys.server.filesys.NetworkFile;
 import org.filesys.server.filesys.NetworkFileServer;
+import org.filesys.server.filesys.TreeConnection;
 import org.filesys.server.thread.ThreadRequestPool;
 import org.filesys.server.thread.TimedThreadRequest;
 import org.filesys.smb.Dialect;
@@ -693,7 +695,7 @@ public class SMBServer extends NetworkFileServer implements Runnable, Configurat
      */
     public void startServer() {
 
-        // Create a seperate thread to run the SMB server
+        // Create a separate thread to run the SMB server
         m_srvThread = new Thread(this);
         m_srvThread.setName("SMB Server");
 
@@ -740,6 +742,59 @@ public class SMBServer extends NetworkFileServer implements Runnable, Configurat
 
                     if ( curSess != null)
                         Debug.println("[SMB]  Disconnected session: " + curSess.toString());
+                }
+            }
+        }
+    }
+
+    /**
+     * Dump the open file list(s) for this server to the debug device
+     *
+     * @param verbose boolean
+     */
+    public void dumpFileLists( boolean verbose) {
+
+        // Dump the active sessions
+        Debug.println("[SMB] Open files: sessions=" + m_sessions.numberOfSessions());
+
+        if ( m_sessions.numberOfSessions() > 0) {
+            Enumeration<SrvSession> sessEnum = m_sessions.enumerateSessions();
+
+            while ( sessEnum.hasMoreElements()) {
+                SrvSession curSess = sessEnum.nextElement();
+
+                if ( curSess != null && curSess instanceof SMBSrvSession) {
+                    SMBSrvSession smbSess = (SMBSrvSession) curSess;
+
+                    // Iterate the virtual circuit list for open files
+                    if ( smbSess.getVirtualCircuitList() != null) {
+                        Iterator<VirtualCircuit> vcIter = smbSess.getVirtualCircuitList().iterator();
+
+                        while (vcIter.hasNext()) {
+                            VirtualCircuit vc = vcIter.next();
+
+                            if ( vc.getConnectionCount() > 0) {
+
+                                // Iterate the tree connections on the current virtual circuit
+                                Iterator<Integer> treeIdIter = vc.iterateConnections();
+
+                                while ( treeIdIter != null && treeIdIter.hasNext()) {
+                                    TreeConnection tree = vc.findConnection( treeIdIter.next());
+                                    if ( tree != null && tree.openFileCount() > 0) {
+                                        Debug.println("  Sess id=" + curSess.getUniqueId() + ", vc=" + vc.getId() + ":");
+
+                                        Iterator<Integer> fileIdIter = tree.iterateOpenFileHandles();
+
+                                        while( fileIdIter != null && fileIdIter.hasNext()) {
+                                            Integer fileId = fileIdIter.next();
+                                            NetworkFile curFile = tree.findFile( fileId);
+                                            Debug.println("    " + fileId + "/0x" + Integer.toHexString( fileId) + ": " + curFile);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }

@@ -50,6 +50,17 @@ public class NegotiateContext {
     }
 
     /**
+     * Find the highest available SMB dialect that the server supports that the client
+     * is requesting
+     *
+     * @param diaSelector DialectSelector
+     * @return int
+     */
+    public int findHighestDialect( DialectSelector diaSelector) {
+        return diaSelector.findHighestDialect(getDialects());
+    }
+
+    /**
      * Get the list of requested dialects
      *
      * @return DialectSelector

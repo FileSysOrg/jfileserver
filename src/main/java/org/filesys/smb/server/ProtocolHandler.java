@@ -163,9 +163,10 @@ public abstract class ProtocolHandler {
      * Build an oplock break asynchronous response, sent from the server to the client
      *
      * @param oplock LocalOpLockDetails
+     * @param owner OplockOwner
      * @return SMBSrvPacket
      */
-    public SMBSrvPacket buildOpLockBreakResponse(LocalOpLockDetails oplock) {
+    public SMBSrvPacket buildOpLockBreakResponse(LocalOpLockDetails oplock, OplockOwner owner) {
         return null;
     }
 

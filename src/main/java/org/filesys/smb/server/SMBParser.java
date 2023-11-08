@@ -320,7 +320,7 @@ public abstract class SMBParser {
      * @return int
      */
     public final int unpackByte() {
-        return (int) m_smbbuf[m_reqOffset + m_pos++];
+        return (int) m_smbbuf[m_reqOffset + m_pos++] & 0xFF;
     }
 
     /**

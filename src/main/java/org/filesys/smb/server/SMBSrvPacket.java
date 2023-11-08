@@ -81,7 +81,7 @@ public class SMBSrvPacket {
 
 	// Count of how many times the processing of this packet has been deferred
 	private int m_deferredCount;
-	
+
 	// Packet lease time, when allocated from the memory pool
 	private long m_leaseTime;
 
@@ -603,7 +603,7 @@ public class SMBSrvPacket {
 	public final void incrementDeferredCount() {
 		m_deferredCount++;
 	}
-	
+
 	/**
 	 * Check if the packet has a lease
 	 * 
@@ -650,7 +650,7 @@ public class SMBSrvPacket {
 	/**
 	 * Return the associated request post processor
 	 *
-	 * @return PostRequetProcesser
+	 * @return PostRequestProcessor
 	 */
 	public final PostRequestProcessor getPostProcessor() {
 		return m_postProcess;

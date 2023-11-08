@@ -58,6 +58,18 @@ public class QueryInfoPacker {
     private static final int NTBothDirectoryLen     = 90;
     private static final int NTIdBothDirectoryLen   = 98;
 
+    // Default access modes for files/folders
+    private static final int AccessFileReadOnly     = AccessMode.NTRead + AccessMode.NTReadEA + AccessMode.NTReadAttrib + AccessMode.NTReadControl +
+            AccessMode.NTExecute + AccessMode.NTSynchronize;
+    private static final int AccessFileReadWrite    = AccessMode.NTRead + AccessMode.NTWrite + AccessMode.NTAppend + AccessMode.NTReadEA + AccessMode.NTWriteEA +
+            AccessMode.NTReadAttrib + AccessMode.NTWriteAttrib + AccessMode.NTDelete + AccessMode.NTReadControl + AccessMode.NTWriteDAC + AccessMode.NTWriteOwner +
+            AccessMode.NTExecute + AccessMode.NTDeleteChild + AccessMode.NTSynchronize;
+    private static final int AccessFolderReadOnly   = AccessMode.NTRead + AccessMode.NTReadEA + AccessMode.NTReadAttrib + AccessMode.NTReadControl +
+            AccessMode.NTTraverse + AccessMode.NTSynchronize;
+    private static final int AccessFolderReadWrite  = AccessMode.NTRead + AccessMode.NTWrite + AccessMode.NTAddSubDir + AccessMode.NTReadEA + AccessMode.NTWriteEA +
+            AccessMode.NTReadAttrib + AccessMode.NTWriteAttrib + AccessMode.NTDelete + AccessMode.NTReadControl + AccessMode.NTWriteDAC + AccessMode.NTWriteOwner +
+            AccessMode.NTDeleteChild + AccessMode.NTTraverse + AccessMode.NTDeleteChild + AccessMode.NTSynchronize;
+
     /**
      * Pack a file information object into the specified buffer, using the specified information
      * level.
@@ -177,6 +189,26 @@ public class QueryInfoPacker {
             // Id both directory information
             case FileInfoLevel.NTIdBothDirectoryInfo:
                 packIdBothDirectoryInfo(info, buf, uni);
+                break;
+
+            // File alignment
+            case FileInfoLevel.NTFileAlignmentInfo:
+                packFileAlignmentInfo(buf);
+                break;
+
+            // File access
+            case FileInfoLevel.NTFileAccessInfo:
+                packFileAccessInfo(info, buf);
+                break;
+
+            // Mode
+            case FileInfoLevel.NTFileModeInfo:
+                packModeInfo( info, buf);
+                break;
+
+            // Quota
+            case FileInfoLevel.NTFileQuotaInfo:
+                packQuotaInfo( info, buf);
                 break;
 
             // Unsupported information level
@@ -485,12 +517,20 @@ public class QueryInfoPacker {
     }
 
     /**
-     * Pack the alternate name information (level 0x108)
+     * Pack the alternate name information (level 0x108), 8.3 format name
      *
      * @param info File information
      * @param buf  Buffer to pack data into
      */
     private static void packAlternateNameFileInfo(FileInfo info, DataBuffer buf) {
+
+        // Information format :-
+        // UINT FileNameLength
+        // WCHAR FileName[]
+
+        // Pack the file name length and name string as Unicode
+        // Pack a zero length, 8.3 names not supported
+        buf.putInt( 0);
     }
 
     /**
@@ -904,6 +944,81 @@ public class QueryInfoPacker {
         // Pack the file name
         if ( nameLen > 0)
             buf.putString(info.getFileName(), uni, false);
+    }
+
+    /**
+     * Pack the file alignment information (level 1017)
+     *
+     * @param buf  Buffer to pack data into
+     */
+    private static void packFileAlignmentInfo(DataBuffer buf) {
+
+        // Information format :-
+        //   UINT FileAlignment
+        buf.putInt( FileAlignment.Long.intValue());
+    }
+
+    /**
+     * Pack the file access information (level 1008)
+     *
+     * @param info File information
+     * @param buf  Buffer to pack data into
+     */
+    private static void packFileAccessInfo(FileInfo info, DataBuffer buf) {
+
+        // Information format :-
+        //  UINT AccessFlags
+
+        if ( info.isDirectory()) {
+
+            // Directory access masks
+            if (info.isReadOnly())
+                buf.putInt( AccessFolderReadOnly);
+            else
+                buf.putInt( AccessFolderReadWrite);
+        }
+        else {
+
+            // File access masks
+            if (info.isReadOnly())
+                buf.putInt( AccessFileReadOnly);
+            else
+                buf.putInt( AccessFileReadWrite);
+        }
+    }
+
+    /**
+     * Pack the mode information (level 1016)
+     *
+     * @param info File information
+     * @param buf  Buffer to pack data into
+     */
+    private static void packModeInfo(FileInfo info, DataBuffer buf) {
+
+        // Information format :-
+        //  UINT Mode
+
+        buf.putInt( 0);
+    }
+
+    /**
+     * Pack the quota information (level 1032)
+     *
+     * @param info File information
+     * @param buf  Buffer to pack data into
+     */
+    private static void packQuotaInfo(FileInfo info, DataBuffer buf) {
+
+        // Information format :-
+        //  UINT NextEntryOffset
+        //  UINT SIDLength
+        //  LARGE_INTEGER ChangeTime
+        //  LARGE_INTEGER QuotaUsed
+        //  LARGE_INTEGER QuotaThreshold
+        //  LARGE_INTEGER QuotaLimit
+        //  BYTE[] SID
+
+        buf.putInt( 0);
     }
 
     /**

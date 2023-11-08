@@ -18,7 +18,10 @@
 package org.filesys.smb.server;
 
 import org.filesys.server.locking.OplockOwner;
+import org.filesys.server.locking.OplockOwnerAdapter;
 import org.filesys.smb.OpLockType;
+
+import java.io.Serializable;
 
 /**
  * SMB V1 Oplock Owner Class
@@ -27,16 +30,13 @@ import org.filesys.smb.OpLockType;
  *
  * @author gkspencer
  */
-public class SMBV1OplockOwner implements OplockOwner {
+public class SMBV1OplockOwner extends OplockOwnerAdapter implements Serializable {
+
+    // Serialization id
+    private static final long serialVersionUID = 2L;
 
     // Oplock owner details
-    private int m_treeId;
-    private int m_userId;
-    private int m_processId;
-
     private int m_fileId;
-
-    private transient SMBSrvSession m_ownerSess;
 
     /**
      * Class constructor
@@ -47,40 +47,9 @@ public class SMBV1OplockOwner implements OplockOwner {
      * @param userId int
      */
     public SMBV1OplockOwner(SMBSrvSession sess, int treeId, int procId, int userId) {
-        m_treeId = treeId;
-        m_processId = procId;
-        m_userId = userId;
+        super( sess, treeId, procId, userId);
 
         m_fileId = -1;
-
-        m_ownerSess = sess;
-    }
-
-    /**
-     * Return the tree id
-     *
-     * @return int
-     */
-    public final int getTreeId() {
-        return m_treeId;
-    }
-
-    /**
-     * Return the process id
-     *
-     * @return int
-     */
-    public final int getProcessId() {
-        return m_processId;
-    }
-
-    /**
-     * Return the user id
-     *
-     * @return int
-     */
-    public final int getUserId() {
-        return m_userId;
     }
 
     /**
@@ -91,13 +60,6 @@ public class SMBV1OplockOwner implements OplockOwner {
     public final int getFileId() {
         return m_fileId;
     }
-
-    /**
-     * Return the owner session
-     *
-     * @return SMBSrvSession
-     */
-    public final SMBSrvSession getSession() { return m_ownerSess; }
 
     /**
      * Set the file id
@@ -117,7 +79,7 @@ public class SMBV1OplockOwner implements OplockOwner {
     public boolean equals(Object obj) {
 
         // Make sure the object is valid, and is the same type
-        if ( obj == null || obj instanceof SMBV1OplockOwner == false)
+        if ( !(obj instanceof SMBV1OplockOwner))
             return false;
 
         // Compare the SMB V1 oplock owner details
@@ -137,7 +99,7 @@ public class SMBV1OplockOwner implements OplockOwner {
     public boolean isOwner(OpLockType opType, OplockOwner opOwner) {
 
         // Make sure the object is valid, and is the same type
-        if ( opOwner == null || opOwner instanceof SMBV1OplockOwner == false)
+        if ( !(opOwner instanceof SMBV1OplockOwner))
             return false;
 
         // Compare the SMB V1 oplock owner details
@@ -156,6 +118,15 @@ public class SMBV1OplockOwner implements OplockOwner {
         // Check for the same user/process/file id
         return getTreeId() == v1Owner.getTreeId() && getUserId() == v1Owner.getUserId() && getProcessId() == v1Owner.getProcessId() &&
                 getFileId() == v1Owner.getFileId();
+    }
+
+    /**
+     * Return a short unique id string for the oplock owner
+     *
+     * @return String
+     */
+    public String getUniqueId() {
+        return getSession().getUniqueId() + "-" + getFileId();
     }
 
     /**

@@ -199,6 +199,21 @@ public class VirtualCircuit {
     }
 
     /**
+     * Iterate the tree connection ids
+     *
+     * @return Iterator&lt;Integer&gt;
+     */
+    public final Iterator<Integer> iterateConnections() {
+
+        //  Check if the tree id and connection array are valid
+        if (m_connections == null)
+            return null;
+
+        //  Iterate the tree connection ids
+        return m_connections.keySet().iterator();
+    }
+
+    /**
      * Remove the specified tree connection from the active connection list.
      *
      * @param treeId int
