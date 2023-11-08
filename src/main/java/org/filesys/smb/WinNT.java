@@ -37,16 +37,28 @@ public class WinNT {
 	public static final int RequestOplockMask			= (RequestBatchOplock + RequestExclusiveOplock);
 
 	//	NTCreateAndX create options flags
-	public static final int CreateFile			= 0x00000000;
-	public static final int CreateDirectory		= 0x00000001;
-	public static final int CreateWriteThrough	= 0x00000002;
-	public static final int CreateSequential	= 0x00000004;
-	
-	public static final int CreateNonDirectory	= 0x00000040;
-	public static final int CreateRandomAccess	= 0x00000800;
-	public static final int CreateDeleteOnClose	= 0x00001000;
-	
-	public static final int CreateReparsePoint  = 0x00200000;
+	public static final int CreateFile						= 0x00000000;
+	public static final int CreateDirectory					= 0x00000001;
+	public static final int CreateWriteThrough				= 0x00000002;
+	public static final int CreateSequential				= 0x00000004;
+	public static final int CreateNoIntermediateBuffering	= 0x00000008;
+	public static final int CreateSynchronousIOAlert		= 0x00000010;
+	public static final int CreateSynchronousIONonAlert		= 0x00000020;
+	public static final int CreateNonDirectory				= 0x00000040;
+	public static final int CreateCompleteIfOplocked		= 0x00000100;
+	public static final int CreateNoEAKnowledge				= 0x00000200;
+	public static final int CreateOpenRemoteInstance		= 0x00000400;
+	public static final int CreateRandomAccess				= 0x00000800;
+	public static final int CreateDeleteOnClose				= 0x00001000;
+	public static final int CreateOpenByFileId				= 0x00002000;
+	public static final int CreateOpenForBackupIntent		= 0x00004000;
+	public static final int CreateNoCompression				= 0x00008000;
+	public static final int CreateRequiringOplock			= 0x00010000;
+	public static final int CreateDisallowExclusive			= 0x00020000;
+	public static final int CreateReserveOpfilter			= 0x00100000;
+	public static final int CreateReparsePoint  			= 0x00200000;
+	public static final int CreateOpenNoRecall				= 0x00400000;
+	public static final int CreateOpenForFreeSpaceQuery		= 0x00800000;
 	
 	// Granted oplock type (NTCreateAndX response)
 	public static final int GrantedOplockNone		= 0;

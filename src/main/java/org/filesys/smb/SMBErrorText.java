@@ -41,7 +41,7 @@ public final class SMBErrorText {
      * @param errcode  Error code.
      * @return Error string.
      */
-    public final static String ErrorString(int errclass, int errcode) {
+    public static String ErrorString(int errclass, int errcode) {
 
         // Determine the error class
         String errtext = null;
@@ -233,7 +233,7 @@ public final class SMBErrorText {
      * @param errcode Hardware error code.
      * @return Hardware error string.
      */
-    private final static String HardwareErrorText(int errcode) {
+    private static String HardwareErrorText(int errcode) {
 
         // Convert the hardware error code to a text string
         String errtext = null;
@@ -352,7 +352,7 @@ public final class SMBErrorText {
      * @param errcode Network error code.
      * @return Network error string.
      */
-    private final static String NetworkErrorText(int errcode) {
+    private static String NetworkErrorText(int errcode) {
 
         // Convert the network error code to a text string
         String errtext = null;
@@ -472,7 +472,7 @@ public final class SMBErrorText {
      * @param errcode Server error code.
      * @return Server error string.
      */
-    private final static String ServerErrorText(int errcode) {
+    private static String ServerErrorText(int errcode) {
 
         // Convert the server error code to a text string
         String errtext = null;
@@ -570,7 +570,7 @@ public final class SMBErrorText {
      * @param errcode NT error code.
      * @return NT error string.
      */
-    private final static String NTErrorText(int errcode) {
+    private static String NTErrorText(int errcode) {
 
         // Convert the NT error code to a text string
         String errtext = "";
@@ -645,6 +645,9 @@ public final class SMBErrorText {
             case SMBStatus.NTNotSupported:
                 errtext = "Not supported";
                 break;
+            case SMBStatus.NTNetworkNameDeleted:
+                errtext = "Network name deleted";
+                break;
             case SMBStatus.NTBadDeviceType:
                 errtext = "Bad device type";
                 break;
@@ -708,8 +711,14 @@ public final class SMBErrorText {
             case SMBStatus.NTServerDisabled:
                 errtext = "Server disabled";
                 break;
+            case SMBStatus.NTBadImpersonationLevel:
+                errtext = "Bad impersonation level";
+                break;
             case SMBStatus.NTTooManyOpenFiles:
                 errtext = "Too many open files";
+                break;
+            case SMBStatus.NTCannotDelete:
+                errtext = "Cannot delete";
                 break;
             case SMBStatus.NTFSDriverRequired:
                 errtext = "FS driver required";
@@ -720,8 +729,17 @@ public final class SMBErrorText {
             case SMBStatus.NTNoSuchDomain:
                 errtext = "No such domain";
                 break;
+            case SMBStatus.NTOplockNotGranted:
+                errtext = "Oplock not granted";
+                break;
+            case SMBStatus.NTInvalidOplockProtocol:
+                errtext = "Invalid oplock protocol";
+                break;
             case SMBStatus.NTDirectoryNotEmpty:
                 errtext = "Directory not empty";
+                break;
+            case SMBStatus.NTNotADirectory:
+                errtext = "Not a directory";
                 break;
             case SMBStatus.NTNoMoreFiles:
                 errtext = "No more files";
@@ -743,6 +761,12 @@ public final class SMBErrorText {
                 break;
             case SMBStatus.NTInvalidLevel:
                 errtext = "Invalid information level";
+                break;
+            case SMBStatus.NTPipeBroken:
+                errtext = "Pipe broken";
+                break;
+            case SMBStatus.NTInvalidDeviceState:
+                errtext = "Invalid device state";
                 break;
             case SMBStatus.NTUserSessionDeleted:
                 errtext = "User session deleted";
@@ -796,7 +820,7 @@ public final class SMBErrorText {
      * @param errcode Win32 error code.
      * @return Win32 error string.
      */
-    private final static String Win32ErrorText(int errcode) {
+    private static String Win32ErrorText(int errcode) {
 
         // Convert the Win32 error code to a text string
         String errtext = "";
@@ -875,7 +899,7 @@ public final class SMBErrorText {
      * @param errcode DCE/RPC error code
      * @return DCE/RPC error string.
      */
-    private final static String DCERPCErrorText(int errcode) {
+    private static String DCERPCErrorText(int errcode) {
 
         // Convert the DCE/RPC error code to a text string
         if (errcode == SMBStatus.DCERPC_Fault)

@@ -159,7 +159,7 @@ public class DialectSelector {
      * @return boolean
      */
     public boolean hasSMB2() {
-        if ( hasDialect( Dialect.SMB2_Any) || hasDialect( Dialect.SMB2_202))
+        if ( hasDialect( Dialect.SMB2_Any) || hasDialect( Dialect.SMB2_202) || hasDialect( Dialect.SMB2_210))
             return true;
         return false;
     }

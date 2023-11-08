@@ -108,5 +108,6 @@ public class FileInfoLevel {
 	public static final int NTAttributeTagInfo 		= 1035;
 	public static final int NTFileTrackingInfo		= 1036;
 	public static final int NTIdBothDirectoryInfo	= 1037;
+	public static final int NTIdFullDirectoryInfo	= 1038;
 	public static final int NTFileNormalizedName	= 1048;
 }
