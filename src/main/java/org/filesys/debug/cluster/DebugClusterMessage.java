@@ -20,6 +20,7 @@
 package org.filesys.debug.cluster;
 
 import org.filesys.server.filesys.cache.hazelcast.ClusterMessage;
+import org.filesys.server.filesys.cache.hazelcast.ClusterMessageType;
 
 /**
  * Debug Cluster Message Class
@@ -41,7 +42,7 @@ public class DebugClusterMessage extends ClusterMessage {
      * @param debugStr String
      */
     public DebugClusterMessage(String fromNode, String debugStr) {
-        super(ClusterMessage.AllNodes, fromNode, 0);
+        super(ClusterMessage.AllNodes, fromNode, ClusterMessageType.DebugLog);
 
         m_debugStr = debugStr;
     }
