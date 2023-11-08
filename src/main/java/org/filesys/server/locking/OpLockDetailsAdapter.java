@@ -20,6 +20,9 @@
 package org.filesys.server.locking;
 
 import java.io.IOException;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.filesys.server.filesys.DeferFailedException;
 import org.filesys.smb.OpLockType;
@@ -31,12 +34,22 @@ import org.filesys.smb.server.SMBSrvSession;
  *
  * @author gkspencer
  */
-public class OpLockDetailsAdapter implements OpLockDetails {
+public class OpLockDetailsAdapter implements OpLockDetails, Serializable {
+
+    // Serialization id
+    private static final long serialVersionUID = 1L;
+
+    // Flag to indicate the oplock break timed out
+    private boolean m_failedBreak;
+
+    // Oplock owner details
+    private List<OplockOwner> m_oplockOwners;
 
     /**
      * Default constructor
      */
     public OpLockDetailsAdapter() {
+        m_oplockOwners = new ArrayList<>();
     }
 
     /**
@@ -47,6 +60,20 @@ public class OpLockDetailsAdapter implements OpLockDetails {
     public OpLockType getLockType() {
         return OpLockType.LEVEL_NONE;
     }
+
+    /**
+     * Check if the oplock is a batch oplock
+     *
+     * @return boolean
+     */
+    public boolean isBatchOplock() { return getLockType() == OpLockType.LEVEL_BATCH; }
+
+    /**
+     * Check if the oplock is a level II oplock
+     *
+     * @return boolean
+     */
+    public boolean isLevelIIOplock() { return getLockType() == OpLockType.LEVEL_II; }
 
     /**
      * Return the share relative path of the locked file
@@ -118,7 +145,7 @@ public class OpLockDetailsAdapter implements OpLockDetails {
      * @return boolean
      */
     public boolean hasOplockBreakFailed() {
-        return false;
+        return m_failedBreak;
     }
 
     /**
@@ -155,23 +182,89 @@ public class OpLockDetailsAdapter implements OpLockDetails {
     public void setOplockBreakFailed() {}
 
     /**
-     * Set the oplock owner details
+     * Check if there is an oplock owner
      *
-     * @param owner OplockOwner
+     * @return boolean
      */
-    public void setOplockOwner(OplockOwner owner) {}
+    public final boolean hasOplockOwner() {
+        return m_oplockOwners != null && !m_oplockOwners.isEmpty();
+    }
 
     /**
-     * Remove an oplock owner
+     * Return the oplock owner details
+     *
+     * @return OplockOwner
+     */
+    public final OplockOwner getOplockOwner() {
+        if ( m_oplockOwners != null && !m_oplockOwners.isEmpty())
+            return m_oplockOwners.get( 0);
+        return null;
+    }
+
+    /**
+     * For a shared level II oplock there can be multiple owners, return the number of owners
+     *
+     * @return int
+     */
+    public final int numberOfOwners() {
+        if ( m_oplockOwners != null)
+            return m_oplockOwners.size();
+        return 0;
+    }
+
+    /**
+     * Return the list of oplock owners
+     *
+     * @return List&lt;OplockOwner&gt;
+     */
+    public final List<OplockOwner> getOwnerList() { return m_oplockOwners; }
+
+    /**
+     * Add another owner to the list, for level II oplocks
+     *
+     * @param owner OplockOwner
+     * @exception InvalidOplockStateException Not a level II oplock, or no owner list
+     */
+    public final void addOplockOwner(OplockOwner owner)
+            throws InvalidOplockStateException {
+
+        // Check the oplock type and state
+        if ( m_oplockOwners == null)
+            throw new InvalidOplockStateException( "No existing owner list");
+        if ( getLockType() != OpLockType.LEVEL_II && !m_oplockOwners.isEmpty())
+            throw new InvalidOplockStateException( "Not a level II oplock");
+
+        m_oplockOwners.add( owner);
+    }
+
+    /**
+     * Remove an owner from a level II shared oplock
      *
      * @param owner OplockOwner
      * @return OplockOwner
-     * @throws InvalidOplockStateException Not a level II oplock, or empty owner list
+     * @exception InvalidOplockStateException Not a level II oplock, or no owner list
      */
-    public OplockOwner removeOplockOwner(OplockOwner owner)
-        throws InvalidOplockStateException {
-            return null;
+    public final OplockOwner removeOplockOwner(OplockOwner owner)
+            throws InvalidOplockStateException {
+
+        // Make sure there is an owners list
+        if ( m_oplockOwners == null)
+            throw new InvalidOplockStateException( "No existing owner list");
+
+        int idx = m_oplockOwners.indexOf( owner);
+
+        if ( idx != -1)
+            return m_oplockOwners.remove(idx);
+
+        return null;
     }
+
+    /**
+     * Set the oplock owner list using an existing list
+     *
+     * @param owners List&lt;OplockOwner&gt;
+     */
+    protected void setOwnerList( List<OplockOwner> owners) { m_oplockOwners = owners; }
 
     /**
      * Set the owner file id
@@ -214,4 +307,44 @@ public class OpLockDetailsAdapter implements OpLockDetails {
     public boolean hasBreakInProgress() {
         return false;
     }
+
+    /**
+     * Clear the oplock break in progress flag
+     */
+    public void clearBreakInProgress() { }
+
+    /**
+     * Validate an oplock break level
+     *
+     * @param toLevel int
+     * @return boolean
+     */
+    public boolean isValidBreakLevel(int toLevel) {
+        boolean validBreak = true;
+
+        switch ( getLockType()) {
+
+            // Batch or exclusive oplock can break to level II or none
+            case LEVEL_BATCH:
+            case LEVEL_EXCLUSIVE:
+                if ( toLevel != BreakLevel.LEVEL_II && toLevel != BreakLevel.LEVEL_NONE)
+                    validBreak = false;
+                break;
+
+            // Level II oplock can break to none
+            case LEVEL_II:
+                if ( toLevel != BreakLevel.LEVEL_NONE)
+                    validBreak = false;
+                break;
+        }
+
+        return validBreak;
+    }
+
+    /**
+     * Set/clear the oplock break failed flag
+     *
+     * @param state boolean
+     */
+    protected void setBreakFailed( boolean state) { m_failedBreak = state; }
 }

@@ -21,9 +21,7 @@ package org.filesys.server.locking;
 
 import java.io.IOException;
 
-import org.filesys.server.filesys.DeferFailedException;
-import org.filesys.server.filesys.ExistingOpLockException;
-import org.filesys.server.filesys.NetworkFile;
+import org.filesys.server.filesys.*;
 import org.filesys.smb.OpLockType;
 import org.filesys.smb.server.SMBSrvPacket;
 import org.filesys.smb.server.SMBSrvSession;
@@ -61,9 +59,10 @@ public interface OpLockManager {
      * @param netFile NetworkFile
      * @return boolean
      * @throws ExistingOpLockException If the file already has an oplock
+     * @throws InvalidOplockStateException Invalid oplock state, usually due to an existing batch oplock
      */
     public boolean grantOpLock(String path, OpLockDetails oplock, NetworkFile netFile)
-            throws ExistingOpLockException;
+            throws ExistingOpLockException, InvalidOplockStateException;
 
     /**
      * Request an oplock break on the specified oplock
@@ -87,12 +86,34 @@ public interface OpLockManager {
     public void releaseOpLock(String path, OplockOwner owner);
 
     /**
+     * Add a new owner to an oplock
+     *
+     * @param path String
+     * @param oplock OplockDetails
+     * @param owner OplockOwner
+     * @throws InvalidOplockStateException If the oplock type is OplockType.BATCH and there is already an owner
+     */
+    public void addOplockOwner(String path, OpLockDetails oplock, OplockOwner owner)
+        throws InvalidOplockStateException;
+
+    /**
+     * Remove an oplock owner
+     *
+     * @param path String
+     * @param oplock OplockDetails
+     * @param owner OplockOwner
+     * @return int Remaining number of oplock owners
+     */
+    public int removeOplockOwner(String path, OpLockDetails oplock, OplockOwner owner);
+
+    /**
      * Change an oplock type
      *
      * @param oplock OpLockDetails
      * @param newTyp OpLockType
+     * @param requeue boolean
      */
-    public void changeOpLockType(OpLockDetails oplock, OpLockType newTyp);
+    public void changeOpLockType(OpLockDetails oplock, OpLockType newTyp, boolean requeue);
 
     /**
      * Cancel an oplock break timer
@@ -107,4 +128,13 @@ public interface OpLockManager {
      * @return int
      */
     public int checkExpiredOplockBreaks();
+
+    /**
+     * Check access to a path, the file open parameters may not allow the path to be opened
+     *
+     * @param path String
+     * @param params FileOpenParams
+     * @return boolean
+     */
+    public boolean checkAccess(String path, FileOpenParams params);
 }

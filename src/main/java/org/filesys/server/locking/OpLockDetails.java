@@ -44,6 +44,20 @@ public interface OpLockDetails {
     public OpLockType getLockType();
 
     /**
+     * Check if the oplock is a batch oplock
+     *
+     * @return boolean
+     */
+    public boolean isBatchOplock();
+
+    /**
+     * Check if the oplock is a level II oplock
+     *
+     * @return boolean
+     */
+    public boolean isLevelIIOplock();
+
+    /**
      * Return the share relative path of the locked file
      *
      * @return String
@@ -129,11 +143,20 @@ public interface OpLockDetails {
     public void setOplockBreakFailed();
 
     /**
-     * Set the oplock owner details
+     * For a shared level II oplock there can be multiple owners, return the number of owners
+     *
+     * @return int
+     */
+    public int numberOfOwners();
+
+    /**
+     * Add an oplock owner, LevelII oplock may have multiple owners
      *
      * @param owner OplockOwner
+     * @exception InvalidOplockStateException Invalid oplock state, does not allow multiple owners
      */
-    public void setOplockOwner(OplockOwner owner);
+    public void addOplockOwner(OplockOwner owner)
+        throws InvalidOplockStateException;
 
     /**
      * Remove an oplock owner
@@ -180,4 +203,17 @@ public interface OpLockDetails {
      * @return boolean
      */
     public boolean hasBreakInProgress();
+
+    /**
+     * Clear the oplock break in progress flag
+     */
+    public void clearBreakInProgress();
+
+    /**
+     * Validate an oplock break level
+     *
+     * @param toLevel int
+     * @return boolean
+     */
+    public boolean isValidBreakLevel(int toLevel);
 }
