@@ -49,10 +49,12 @@ public final class AccessMode {
 	//	NT access mode constants
 	public static final int	NTRead				= 0x00000001;
 	public static final int	NTWrite				= 0x00000002;
-	public static final int	NTAppend			= 0x00000004;
+	public static final int	NTAppend			= 0x00000004;	// for files
+	public static final int NTAddSubDir			= 0x00000004;	// for folders
 	public static final int	NTReadEA			= 0x00000008;
 	public static final int	NTWriteEA			= 0x00000010;
-	public static final int	NTExecute			= 0x00000020;
+	public static final int	NTExecute			= 0x00000020;	// for files
+	public static final int NTTraverse			= 0x00000020;	// for folders
 	public static final int	NTDeleteChild		= 0x00000040;
 	public static final int	NTReadAttrib		= 0x00000080;
 	public static final int	NTWriteAttrib		= 0x00000100;
@@ -126,7 +128,7 @@ public final class AccessMode {
 	 * @return boolean
 	 */
 	public static boolean hasReadAccess(int accMode) {
-		return (accMode & NTRead) != 0 || (accMode & NTGenericRead) != 0;
+		return (accMode & NTRead) != 0 || (accMode & NTGenericRead) != 0 || (accMode & NTGenericAll) != 0;
 	}
 
 	/**
@@ -136,7 +138,7 @@ public final class AccessMode {
 	 * @return boolean
 	 */
 	public static boolean hasWriteAccess(int accMode) {
-		return (accMode & NTWrite) != 0 || (accMode & NTGenericWrite) != 0;
+		return (accMode & NTWrite) != 0 || (accMode & NTGenericWrite) != 0 || (accMode & NTGenericAll) != 0;
 	}
 
 	/**
@@ -146,6 +148,16 @@ public final class AccessMode {
 	 * @return boolean
 	 */
 	public static boolean hasDeleteAccess(int accMode) {
-		return (accMode & NTDelete) != 0;
+		return (accMode & NTDelete) != 0 || (accMode & NTGenericAll) != 0;
+	}
+
+	/**
+	 * Check if the access mode as append access
+	 *
+	 * @param accMode int
+	 * @return boolean
+	 */
+	public static boolean hasAppendAccess(int accMode) {
+		return (accMode & NTAppend) != 0 || (accMode & NTGenericAll) != 0;
 	}
 }

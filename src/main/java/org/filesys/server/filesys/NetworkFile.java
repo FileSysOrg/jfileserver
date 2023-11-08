@@ -24,10 +24,12 @@ import java.io.IOException;
 import java.util.EnumSet;
 import java.util.Set;
 
+import org.filesys.debug.Debug;
 import org.filesys.locking.FileLock;
 import org.filesys.locking.FileLockList;
 import org.filesys.server.locking.OpLockDetails;
 import org.filesys.server.locking.OplockOwner;
+import org.filesys.smb.OpLockType;
 
 /**
  * <p>
@@ -177,6 +179,31 @@ public abstract class NetworkFile {
         m_fid = fid;
         m_streamId = stid;
         m_dirId = did;
+    }
+
+    /**
+     * Copy constructor
+     *
+     * <p>Copy the main details of the existing network file to this file</p>
+     *
+     * @param netFile NetworkFile
+     */
+    public NetworkFile( NetworkFile netFile) {
+        m_fid = netFile.getFileId();
+        m_dirId = netFile.getDirectoryId();
+        m_streamId = netFile.getStreamId();
+
+        setName( netFile.getName());
+        setFullName( netFile.getFullName());
+        setStreamName( getStreamName());
+
+        setAttributes( netFile.getFileAttributes());
+        setFileSize( netFile.getFileSize());
+
+
+        m_createDate = netFile.getCreationDate();
+        m_modifyDate = netFile.getModifyDate();
+        m_accessDate = netFile.getAccessDate();
     }
 
     /**
@@ -333,7 +360,7 @@ public abstract class NetworkFile {
      */
 
     public final boolean isDirectory() {
-        return (m_attrib & FileAttribute.Directory) != 0 ? true : false;
+        return (m_attrib & FileAttribute.Directory) != 0;
     }
 
     /**
@@ -343,7 +370,7 @@ public abstract class NetworkFile {
      */
 
     public final boolean isHidden() {
-        return (m_attrib & FileAttribute.Hidden) != 0 ? true : false;
+        return (m_attrib & FileAttribute.Hidden) != 0;
     }
 
     /**
@@ -353,7 +380,7 @@ public abstract class NetworkFile {
      */
 
     public final boolean isReadOnly() {
-        return (m_attrib & FileAttribute.ReadOnly) != 0 ? true : false;
+        return (m_attrib & FileAttribute.ReadOnly) != 0;
     }
 
     /**
@@ -363,7 +390,7 @@ public abstract class NetworkFile {
      */
 
     public final boolean isSystem() {
-        return (m_attrib & FileAttribute.System) != 0 ? true : false;
+        return (m_attrib & FileAttribute.System) != 0;
     }
 
     /**
@@ -372,7 +399,7 @@ public abstract class NetworkFile {
      * @return boolean
      */
     public final boolean isArchived() {
-        return (m_attrib & FileAttribute.Archive) != 0 ? true : false;
+        return (m_attrib & FileAttribute.Archive) != 0;
     }
 
     /**
@@ -381,7 +408,7 @@ public abstract class NetworkFile {
      * @return boolean
      */
     public final boolean isStream() {
-        return m_streamName != null ? true : false;
+        return m_streamName != null;
     }
 
     /**
@@ -402,7 +429,7 @@ public abstract class NetworkFile {
      * @return boolean
      */
     public final boolean hasNTAttribute(int attr) {
-        return (m_attrib & attr) == attr ? true : false;
+        return (m_attrib & attr) == attr;
     }
 
     /**
@@ -411,7 +438,7 @@ public abstract class NetworkFile {
      * @return boolean
      */
     public final boolean hasAccessDate() {
-        return m_accessDate != 0L ? true : false;
+        return m_accessDate != 0L;
     }
 
     /**
@@ -429,7 +456,7 @@ public abstract class NetworkFile {
      * @return boolean
      */
     public final boolean hasCreationDate() {
-        return m_createDate != 0L ? true : false;
+        return m_createDate != 0L;
     }
 
     /**
@@ -520,7 +547,7 @@ public abstract class NetworkFile {
      * @return boolean
      */
     public boolean hasModifyDate() {
-        return m_modifyDate != 0L ? true : false;
+        return m_modifyDate != 0L;
     }
 
     /**
@@ -875,6 +902,17 @@ public abstract class NetworkFile {
     }
 
     /**
+     * Return the oplock type, or type none if there is no oplock on the file/folder
+     *
+     * @return OplockType
+     */
+    public final OpLockType hasOplockType() {
+        if ( m_oplock != null)
+            return m_oplock.getLockType();
+        return OpLockType.LEVEL_NONE;
+    }
+
+    /**
      * Return the oplock details
      *
      * @return OpLockDetails
@@ -924,9 +962,7 @@ public abstract class NetworkFile {
      * @param did int
      */
     protected final void setUniqueId(int fid, int did) {
-        long ldid = did;
-        long lfid = fid;
-        m_uniqueId = (ldid << 32) + lfid;
+        m_uniqueId = ((long) did << 32) + (long) fid;
     }
 
     /**
@@ -953,7 +989,7 @@ public abstract class NetworkFile {
      * @return boolean
      */
     public final boolean hasAccessToken() {
-        return m_accessToken != null ? true : false;
+        return m_accessToken != null;
     }
 
     /**
@@ -1033,6 +1069,25 @@ public abstract class NetworkFile {
         if ( m_searchMap == null)
             return 0;
         return m_searchMap.numberOfSearches();
+    }
+
+    /**
+     * Get file information from the open file details
+     *
+     * @return FileInfo
+     */
+    public final FileInfo getFileInformation() {
+        FileInfo finfo = new FileInfo( getName(), getFileSize(), getFileAttributes());
+
+        finfo.setCreationDateTime( getCreationDate());
+        finfo.setModifyDateTime( getModifyDate());
+        finfo.setChangeDateTime( getModifyDate());
+        finfo.setAccessDateTime( getAccessDate());
+
+        finfo.setFileId( getFileId());
+        finfo.setFileType( isDirectory() ? FileType.Directory : FileType.RegularFile);
+
+        return finfo;
     }
 
     /**
@@ -1166,8 +1221,6 @@ public abstract class NetworkFile {
         StringBuilder str = new StringBuilder();
 
         str.append("[");
-        str.append(getName());
-        str.append("/");
         str.append(getFullName());
 
         str.append(" ");
@@ -1186,6 +1239,19 @@ public abstract class NetworkFile {
 
         if ( isPreviousVersion())
             str.append( " Ver");
+
+        if ( hasAccessToken()) {
+            str.append(",Token=");
+            str.append( getAccessToken());
+        }
+
+        if ( getUniqueId() != 0) {
+            str.append(",UniqueId=");
+            str.append( getUniqueId());
+        }
+
+        if ( isClosed())
+            str.append( ",Closed");
 
         str.append("]");
 

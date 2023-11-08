@@ -612,17 +612,24 @@ public final class FileName {
             pathStr = new String[2];
 
         //  Check if the path is valid
-        if (path != null && path.length() > 0) {
+        if (path != null && !path.isEmpty()) {
 
             //  Check if the path has a trailing separator, if so then there is no
             //  file name.
             int pos = path.lastIndexOf(sep);
 
-            if (pos == -1 || pos == (path.length() - 1)) {
+            if (pos == (path.length() - 1)) {
 
                 //  Set the path string in the returned string array
                 pathStr[0] = path;
-            } else {
+            }
+            else if ( pos == -1) {
+
+                // No separator, assume the root path
+                pathStr[0] = "" + sep;
+                pathStr[1] = path;
+            }
+            else {
 
                 //  Split the path into directory list and file name strings
                 pathStr[1] = path.substring(pos + 1);
@@ -681,7 +688,7 @@ public final class FileName {
     public static String[] splitPathStream(String path) {
 
         //	Allocate the return list
-        String[] pathStr = new String[3];
+        String[] pathStr = new String[4];   // path, file name, stream name, stream type
 
         //	Split the path into directory path and file/stream name
         FileName.splitPath(path, DOS_SEPERATOR, pathStr);
@@ -693,9 +700,17 @@ public final class FileName {
 
         if (pos != -1) {
 
+            // Split the stream name and stream type
+            pathStr[2] = pathStr[1].substring(pos + 1);
+
             //	Split the file/stream name
-            pathStr[2] = pathStr[1].substring(pos);
             pathStr[1] = pathStr[1].substring(0, pos);
+
+            pos = pathStr[2].indexOf(NTFSStreamSeperator);
+            if ( pos != -1) {
+                pathStr[3] = pathStr[2].substring(pos + 1);
+                pathStr[2] = pathStr[2].substring(0, pos);
+            }
         }
 
         //	Return the path components list
@@ -710,8 +725,8 @@ public final class FileName {
      */
     public static boolean containsStreamName(String path) {
 
-        //	Check if the path contains the stream name seperator character
-        if (path.indexOf(NTFSStreamSeperator) != -1)
+        //	Check if the path contains the stream name separator character
+        if (path.contains(NTFSStreamSeperator))
             return true;
         return false;
     }
@@ -722,7 +737,7 @@ public final class FileName {
      * @param path String
      * @return String
      */
-    public final static String normalizePath(String path) {
+    public static String normalizePath(String path) {
 
         //	Split the path into directories and file name, only uppercase the directories to normalize
         //	the path.

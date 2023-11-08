@@ -21,6 +21,8 @@ import org.filesys.server.SrvSession;
 
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Hashed Open File Map Class
@@ -35,39 +37,44 @@ public class HashedOpenFileMap extends OpenFileMap {
     public static final int MAX_FILE_ID_HANDLE  = 0x1FFFFFFF;
 
     // Hash map of open NetworkFile objects indexed by the file id handle
-    private HashMap<Integer, NetworkFile> m_files;
+    private ConcurrentHashMap<Integer, NetworkFile> m_files;
 
     // Next file id handle to use
-    private int m_nextFileId    = 1;
+    private AtomicInteger m_nextFileId;
 
     /**
      * Default constructor
      */
     public HashedOpenFileMap() {
-        m_files = new HashMap<>( INITIALFILES);
+        m_files = new ConcurrentHashMap<Integer, NetworkFile>( INITIALFILES);
+        m_nextFileId = new AtomicInteger( 1);
     }
 
     @Override
-    public int addFile(NetworkFile file, SrvSession sess)
+    public synchronized int addFile(NetworkFile file, SrvSession sess)
         throws TooManyFilesException {
 
         // Find a free id for the new file
-        while ( m_files.get( m_nextFileId) != null) {
-            m_nextFileId++;
+        int id = m_nextFileId.getAndIncrement();
 
-            if ( m_nextFileId >= MAX_FILE_ID_HANDLE)
-                m_nextFileId = 1;
+        while ( m_files.get( id) != null) {
+            id = m_nextFileId.getAndIncrement();
+
+            if ( m_nextFileId.get() >= MAX_FILE_ID_HANDLE) {
+                m_nextFileId.set(1);
+                id = 1;
+            }
         }
 
-        // Store the opne file details
-        m_files.put( m_nextFileId, file);
+        // Store the open file details
+        m_files.put( id, file);
 
         // Return the file id handle, and bump the next handle id
-        return m_nextFileId++;
+        return id;
     }
 
     @Override
-    public NetworkFile findFile(int fid) {
+    public synchronized NetworkFile findFile(int fid) {
         return m_files.get( fid);
     }
 
@@ -82,12 +89,12 @@ public class HashedOpenFileMap extends OpenFileMap {
     }
 
     @Override
-    public void removeAllFiles() {
+    public synchronized void removeAllFiles() {
         m_files.clear();
     }
 
     @Override
-    public NetworkFile removeFile(int fid, SrvSession sess) {
+    public synchronized NetworkFile removeFile(int fid, SrvSession sess) {
         return m_files.remove( fid);
     }
 }
