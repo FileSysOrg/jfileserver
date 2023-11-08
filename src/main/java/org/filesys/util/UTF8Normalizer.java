@@ -33,7 +33,7 @@ public class UTF8Normalizer {
 
     // Normalizer method type
     public enum NormalizerType {
-        Unknown, Java5, Java6or7, IBMICU
+        Unknown, Java5, Java6Onwards, IBMICU
     };
 
     // Type of normalizer method
@@ -83,8 +83,8 @@ public class UTF8Normalizer {
                     normStr = (String) m_method.invoke(null, utf8str, false, 0);
                     break;
 
-                // Java6 or 7
-                case Java6or7:
+                // Java6 onwards
+                case Java6Onwards:
 
                     // Call the normalize(CharSequence, Normalizer.Form) method
                     normStr = (String) m_method.invoke(null, utf8str, m_field.get(null));
@@ -95,9 +95,7 @@ public class UTF8Normalizer {
                     throw new RuntimeException("Normalizer is not initialized");
             }
         }
-        catch (InvocationTargetException ex) {
-        }
-        catch (IllegalAccessException ex) {
+        catch (InvocationTargetException | IllegalAccessException ex) {
         }
 
         // Return the normalized string
@@ -137,9 +135,7 @@ public class UTF8Normalizer {
                 return;
             }
         }
-        catch (ClassNotFoundException ex) {
-        }
-        catch (NoSuchMethodException ex) {
+        catch (ClassNotFoundException | NoSuchMethodException ex) {
         }
 
         // Check the Java version and use the appropriate method
@@ -166,17 +162,16 @@ public class UTF8Normalizer {
                     return;
                 }
             }
-            catch (ClassNotFoundException ex) {
-            }
-            catch (NoSuchMethodException ex) {
+            catch (ClassNotFoundException | NoSuchMethodException ex) {
             }
         }
-        else if (javaVer.equals("1.6") || javaVer.equals("1.7") || javaVer.equals("1.8")) {
+        else {
+//        else if (javaVer.equals("1.6") || javaVer.equals("1.7") || javaVer.equals("1.8")) {
 
             try {
 
                 // Load the java.text.Normalizer class
-                Class<?> java6Class = Class.forName("java.text.Normalizer");
+                Class<?> javaClass = Class.forName("java.text.Normalizer");
 
                 // Load the Normalizer.Form class, used as a parameter
                 Class<?> normFormClass = Class.forName("java.text.Normalizer$Form");
@@ -189,19 +184,15 @@ public class UTF8Normalizer {
                 paramTypes[0] = CharSequence.class;
                 paramTypes[1] = normFormClass;
 
-                m_method = java6Class.getMethod("normalize", paramTypes);
+                m_method = javaClass.getMethod("normalize", paramTypes);
 
                 // Check if the method is valid
                 if (m_method != null) {
-                    m_type = NormalizerType.Java6or7;
+                    m_type = NormalizerType.Java6Onwards;
                     return;
                 }
             }
-            catch (ClassNotFoundException ex) {
-            }
-            catch (NoSuchMethodException ex) {
-            }
-            catch (NoSuchFieldException ex) {
+            catch (ClassNotFoundException | NoSuchMethodException | NoSuchFieldException ex) {
             }
         }
     }
