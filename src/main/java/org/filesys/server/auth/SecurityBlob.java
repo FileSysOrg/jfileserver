@@ -50,6 +50,15 @@ public class SecurityBlob {
     // Response security blob details
     private byte[] m_respBlob;
 
+    // Session requires signing to be enabled
+    private boolean m_requireSigning;
+
+    // NTLM flags set by the client
+    private int m_ntlmFlags;
+
+    // Requires MIC verification
+    private boolean m_verifyMIC;
+
     /**
      * Class constructor
      *
@@ -175,6 +184,60 @@ public class SecurityBlob {
     }
 
     /**
+     * Return the NTLM flags from the client NTLMSSP authentication, only valid if the security blob
+     * is an NTLMSSP blob
+     *
+     * @return int
+     */
+    public final int getNTLMFlags() { return m_ntlmFlags; }
+
+    /**
+     * Return the state of the specified NTLM flag
+     *
+     * @param flag int
+     * @return boolean
+     */
+    public final boolean hasNTLMFlag(int flag) {
+        return (getNTLMFlags() & flag) != 0;
+    }
+
+
+    /**
+     * Check if signing is required for the new session
+     *
+     * @return boolean
+     */
+    public final boolean requireSigning() { return m_requireSigning; }
+
+    /**
+     * Set/clear the required signing flag
+     *
+     * @param signing boolean
+     */
+    public final void setRequireSigning(boolean signing) { m_requireSigning = signing; }
+
+    /**
+     * Check if MIC verification is required
+     *
+     * @return boolean
+     */
+    public final boolean requiresMICVerification() { return m_verifyMIC; }
+
+    /**
+     * Set/clear the require MIC verification flag
+     *
+     * @param verifyMIC boolean
+     */
+    public final void setRequireVerifyMIC( boolean verifyMIC) { m_verifyMIC = verifyMIC; }
+
+    /**
+     * Set the NTLM flags sent by the client
+     *
+     * @param flgs int
+     */
+    public final void setNTLMFlags(int flgs) { m_ntlmFlags = flgs; }
+
+    /**
      * Set the response blob
      *
      * @param respBlob byte[]
@@ -219,7 +282,7 @@ public class SecurityBlob {
      */
     public final String toString() {
 
-        StringBuffer str = new StringBuffer();
+        StringBuilder str = new StringBuilder();
 
         str.append("[");
         str.append( isType().name());
@@ -232,6 +295,16 @@ public class SecurityBlob {
         if ( isUnicode())
             str.append(" Unicode");
 
+        if ( requireSigning())
+            str.append( " Signing");
+
+        if ( requiresMICVerification())
+            str.append( " MICVerify");
+
+        if ( isNTLMSSP()) {
+            str.append(", NTLM flags=0x");
+            str.append(Integer.toHexString( getNTLMFlags()));
+        }
         str.append(", respBlob=");
 
         if ( hasResponseBlob()) {

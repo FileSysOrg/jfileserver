@@ -424,7 +424,7 @@ public class PasswordEncryptor {
         hmacMd5.init(key);
 
         // Build the data to be encrypted
-        StringBuffer str = new StringBuffer();
+        StringBuilder str = new StringBuilder();
 
         str.append(userName.toUpperCase());
 
