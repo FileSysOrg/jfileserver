@@ -628,12 +628,15 @@ public class SMBRequestHandler extends RequestHandler implements Runnable {
                                 // Get the virtual circuit details
                                 VirtualCircuit curVC = sess.findVirtualCircuit( vcId);
 
-                                // DEBUG
-                                if (Debug.EnableInfo && hasDebug())
-                                    Debug.println("[SMB] Closing idle virtual circuit, sess=" + sess.getUniqueId() + ", VC=" + curVC.getId() + ", client=" + curVC.getClientInformation());
+                                if ( curVC != null) {
 
-                                // Remove and close the virtual circuit
-                                vcList.removeCircuit( curVC.getId(), sess);
+                                    // DEBUG
+                                    if (Debug.EnableInfo && hasDebug())
+                                        Debug.println("[SMB] Closing idle virtual circuit, sess=" + sess.getUniqueId() + ", VC=" + curVC.getId() + ", client=" + curVC.getClientInformation());
+
+                                    // Remove and close the virtual circuit
+                                    vcList.removeCircuit(curVC.getId(), sess);
+                                }
                             }
                         }
 
