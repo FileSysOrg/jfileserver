@@ -21,6 +21,7 @@
 package org.filesys.server.filesys.cache.cluster;
 
 import java.io.Serializable;
+import java.util.EnumSet;
 import java.util.HashMap;
 
 import org.filesys.server.filesys.ExistingOpLockException;
@@ -39,32 +40,26 @@ import org.filesys.server.locking.OpLockDetails;
 public abstract class ClusterFileState extends FileState implements Serializable {
 
     // Serialization id
-    private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 2L;
 
-    // File state update masks
-    public final static int UpdateOplock        = 0x0001;
-    public final static int UpdateSharingMode   = 0x0002;
-    public final static int UpdateByteLock      = 0x0004;
-    public final static int UpdateFileStatus    = 0x0008;
-    public final static int UpdateChangeDate    = 0x0010;
-    public final static int UpdateModifyDate    = 0x0020;
-    public final static int UpdateFileSize      = 0x0040;
-    public final static int UpdateAllocSize     = 0x0080;
-    public final static int UpdateOpenCount     = 0x0100;
-    public final static int UpdateRetentionExpire = 0x0200;
-
-    // State update strings
-    private static final String[] _updateStr = {"OpLock", "SharingMode", "ByteLock", "FileSts", "ChangeDate", "ModDate", "Size", "Alloc", "OpenCount", "Retention"};
-    public static final int UpdateMaskCount = _updateStr.length + 1;
+    // Update mask flags
+    public enum UpdateFlag {
+        Oplock,
+        SharingMode,
+        ByteLock,
+        FileStatus,
+        ChangeDate,
+        ModifyDate,
+        FileSize,
+        AllocSize,
+        RetentionExpire
+    };
 
     // Bit mask of pending state updates
-    private transient int m_stateUpdates;
+    private transient EnumSet<UpdateFlag> m_stateUpdates = EnumSet.noneOf( UpdateFlag.class);
 
     // State cache that this file state belongs to
     private transient ClusterFileStateCache m_stateCache;
-
-    // Primary owner of the file, when there are multiple file opens on the same file
-    private Object m_primaryOwner;
 
     // Data update in progress on the specified cluster node
     private Object m_dataUpdateNode;
@@ -95,41 +90,13 @@ public abstract class ClusterFileState extends FileState implements Serializable
      */
     public OpLockDetails getOpLock() {
         OpLockDetails oplock = super.getOpLock();
-        if (oplock != null && oplock instanceof RemoteOpLockDetails) {
+        if ( oplock instanceof RemoteOpLockDetails) {
 
             // Need to fill in the oplock state cache details
             RemoteOpLockDetails remoteOplock = (RemoteOpLockDetails) oplock;
             remoteOplock.setStateCache(getStateCache());
         }
         return oplock;
-    }
-
-    /**
-     * Return the primary owner
-     *
-     * @return Object
-     */
-    public final Object getPrimaryOwner() {
-        return m_primaryOwner;
-    }
-
-    /**
-     * Check if there is a primary owner
-     *
-     * @return boolean
-     */
-    public final boolean hasPrimaryOwner() {
-        return m_primaryOwner != null ? true : false;
-    }
-
-    /**
-     * Set the primary owner, only if the file open count is currently zero
-     *
-     * @param priOwner Object
-     */
-    public final void setPrimaryOwner(Object priOwner) {
-        if (getOpenCount() == 0)
-            m_primaryOwner = priOwner;
     }
 
     /**
@@ -378,30 +345,30 @@ public abstract class ClusterFileState extends FileState implements Serializable
     /**
      * Return the pending updates mask
      *
-     * @return int
+     * @return EnumSet&lt;UpdateFlag&gt;
      */
-    public final int getPendingUpdates() {
+    public final EnumSet<UpdateFlag> getPendingUpdates() {
         return m_stateUpdates;
     }
 
     /**
      * Clear the pending updates flags and return the current update mask value
      *
-     * @return int
+     * @return EnumSet&lt;UpdateFlag&gt;
      */
-    public final int clearPendingUpdates() {
-        int updMask = m_stateUpdates;
-        m_stateUpdates = 0;
+    public final EnumSet<UpdateFlag> clearPendingUpdates() {
+        EnumSet<UpdateFlag> updMask = m_stateUpdates;
+        m_stateUpdates.clear();
         return updMask;
     }
 
     /**
      * Set the update mask
      *
-     * @param updMask int
+     * @param updFlag UpdateFlag
      */
-    public final void setUpdateMask(int updMask) {
-        m_stateUpdates = updMask;
+    public final void setUpdateMask(UpdateFlag updFlag) {
+        m_stateUpdates.add( updFlag);
     }
 
     /**
@@ -485,26 +452,17 @@ public abstract class ClusterFileState extends FileState implements Serializable
     /**
      * Return the update mask as a string
      *
-     * @param updMask int
+     * @param updMask EnumSet&lt;UpdateFlag&gt;
      * @return String
      */
-    public static final String getUpdateMaskAsString(int updMask) {
-        if (updMask == 0)
+    public static String getUpdateMaskAsString(EnumSet<UpdateFlag> updMask) {
+        if (updMask.isEmpty())
             return "[Empty]";
 
         StringBuilder str = new StringBuilder(32);
 
         str.append("[");
-
-        for (int idx = 0; idx < _updateStr.length; idx++) {
-            if ((updMask & (1 << idx)) != 0) {
-                str.append(_updateStr[idx]);
-                str.append(",");
-            }
-        }
-
-        if (str.length() > 1)
-            str.setLength(str.length() - 1);
+        str.append( updMask);
         str.append("]");
 
         return str.toString();
@@ -516,7 +474,7 @@ public abstract class ClusterFileState extends FileState implements Serializable
      * @return String
      */
     public String toString() {
-        StringBuffer str = new StringBuffer();
+        StringBuilder str = new StringBuilder();
 
         str.append("[");
         str.append(getPath());
@@ -534,8 +492,8 @@ public abstract class ClusterFileState extends FileState implements Serializable
         if (getOpenCount() > 0) {
             str.append("(shr=");
             str.append(getSharedAccess().name());
-            str.append(",pid=0x");
-            str.append(Long.toHexString(getProcessId()));
+            str.append(",owner=");
+            str.append(getProcessId());
             str.append(")");
         }
 

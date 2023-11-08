@@ -26,6 +26,8 @@ import org.filesys.server.filesys.cache.FileStateCache;
 import org.filesys.server.filesys.cache.StateCacheException;
 import org.filesys.server.locking.OpLockManager;
 
+import java.util.EnumSet;
+
 /**
  * Cluster File State Cache Class
  *
@@ -101,9 +103,9 @@ public abstract class ClusterFileStateCache extends FileStateCache {
      * Update a file state, notify the cluster of the updates
      *
      * @param clState    ClusterFileState
-     * @param updateMask int
+     * @param updateMask EnumSet&lt;UpdateFlag&gt;
      */
-    public abstract void updateFileState(ClusterFileState clState, int updateMask);
+    public abstract void updateFileState(ClusterFileState clState, EnumSet<ClusterFileState.UpdateFlag> updateMask);
 
     /**
      * Set the filesystem driver and driver context details, if required by the cache
