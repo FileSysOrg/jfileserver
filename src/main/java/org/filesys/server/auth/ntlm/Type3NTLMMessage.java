@@ -53,6 +53,9 @@ public class Type3NTLMMessage extends NTLMMessage {
     // Data block offset, used to indicate if session key and flags have been specified
     private int m_dataOffset = -1;
 
+    // Indicate if the NTLM authenticate requires a MIC check
+    private boolean m_verifyMIC;
+
     /**
      * Default constructor
      */
@@ -171,12 +174,26 @@ public class Type3NTLMMessage extends NTLMMessage {
      */
     public final byte[] getSessionKey() {
 
-        if (hasSessionKey() == false)
+        if ( !hasSessionKey())
             return null;
 
         // Get the session key bytes
         return getByteValue(OffsetSessionKey);
     }
+
+    /**
+     * Check if the message needs MIC verification
+     *
+     * @return boolean
+     */
+    public final boolean requiresMICVerify() { return m_verifyMIC; }
+
+    /**
+     * Set/clear the requires MIC verification flags
+     *
+     * @param verifyMIC boolean
+     */
+    public final void setRequiresMICVerify( boolean verifyMIC) { m_verifyMIC = verifyMIC; }
 
     /**
      * Get the message integrity code

@@ -144,6 +144,15 @@ public class NTLMv2Blob {
     }
 
     /**
+     * Get the bytes used as the temp value
+     *
+     * @return DataBuffer
+     */
+    public final DataBuffer getTempBytes() {
+        return new DataBuffer( getBuffer(), m_offset + OFFSET_HEADER, m_len - OFFSET_HEADER);
+    }
+
+    /**
      * Get the target information list
      *
      * @return List of target information
@@ -152,58 +161,8 @@ public class NTLMv2Blob {
 
         // Wrap a data buffer around the target information section of the buffer
         DataBuffer tBuf = new DataBuffer( getBuffer(), getOffset() + OFFSET_TARGETINFO, getLength() - OFFSET_TARGETINFO);
-        List<TargetInfo> tList = null;
-        boolean endOfList = false;
+        List<TargetInfo> tList = TargetInfo.unpackInfoList( tBuf, 0);
 
-        while ( endOfList == false) {
-
-            // Get the current target information type and data length
-            TargetInfo.Type tTyp = TargetInfo.Type.fromInt( tBuf.getShort());
-            int tLen = tBuf.getShort();
-
-            if ( tTyp == TargetInfo.Type.END_OF_LIST) {
-                endOfList = true;
-                continue;
-            }
-
-            // Get the target information value
-            TargetInfo tInfo = null;
-
-            switch ( tTyp) {
-
-                // String type target information
-                case SERVER:
-                case DOMAIN:
-                case FULL_DNS:
-                case DNS_DOMAIN:
-                case DNS_TREE:
-                case SPN:
-                    String sVal = tBuf.getString( tLen/2, true);
-                    tInfo = new StringTargetInfo( tTyp, sVal);
-                    break;
-
-                // Timestamp type target information
-                case TIMESTAMP:
-                    long lVal = tBuf.getLong();
-                    tInfo = new TimestampTargetInfo( lVal);
-                    break;
-
-                // Integer type target information
-                case FLAGS:
-                    int iVal = tBuf.getInt();
-                    tInfo = new FlagsTargetInfo( iVal);
-                    break;
-            }
-
-            // Add the target information to the list if valid
-            if ( tInfo != null) {
-                 if ( tList == null)
-                     tList = new ArrayList<>();
-                 tList.add( tInfo);
-            }
-        }
-
-        // Return the target information list
         return tList;
     }
 
@@ -232,7 +191,7 @@ public class NTLMv2Blob {
     }
 
     /**
-     * Calcualte the LMv2 HMAC value
+     * Calculate the LMv2 HMAC value
      *
      * @param v2hash       byte[]
      * @param srvChallenge byte[]
