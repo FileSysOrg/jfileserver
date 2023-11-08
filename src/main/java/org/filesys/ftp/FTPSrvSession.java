@@ -41,13 +41,7 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.util.*;
 
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.SSLEngineResult;
-import javax.net.ssl.SSLSession;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.*;
 import javax.net.ssl.SSLEngineResult.HandshakeStatus;
 
 import org.filesys.debug.Debug;
@@ -3970,13 +3964,13 @@ public class FTPSrvSession extends SrvSession<FTPSrvSession.Dbg> implements Runn
 
         // DEBUG
         if (Debug.EnableDbg && hasDebug(FTPSrvSession.Dbg.SSL))
-            debugPrintln("SSL unwrap() len=" + len + ", returned " + sslRes.bytesProduced() + " bytes, res=" + sslRes);
+            debugPrintln("SSL unwrap() len=" + len + ", returned " + sslRes.bytesProduced() + " bytes, res=" + sslRes + ", sts=" + sslRes.getStatus());
 
         int unwrapLen = sslRes.bytesProduced();
         boolean loopDone = false;
         Runnable task = null;
 
-        while (loopDone == false && m_sslEngine.getHandshakeStatus() != HandshakeStatus.NOT_HANDSHAKING &&
+        while ( !loopDone && m_sslEngine.getHandshakeStatus() != HandshakeStatus.NOT_HANDSHAKING &&
                 sslRes.getStatus() != SSLEngineResult.Status.CLOSED) {
 
             switch (m_sslEngine.getHandshakeStatus()) {
@@ -4007,7 +4001,10 @@ public class FTPSrvSession extends SrvSession<FTPSrvSession.Dbg> implements Runn
 
                         // DEBUG
                         if (Debug.EnableDbg && hasDebug(FTPSrvSession.Dbg.SSL))
-                            debugPrintln("  wrap() returned " + sslRes.bytesProduced() + " bytes, res=" + sslRes);
+                            debugPrintln("  wrap() returned " + sslRes.bytesProduced() + " bytes, res=" + sslRes + ", sts=" + sslRes.getStatus());
+
+                        if ( sslRes.bytesProduced() == 0)
+                            break;
                     }
 
                     // Send the output to the client
@@ -4055,7 +4052,7 @@ public class FTPSrvSession extends SrvSession<FTPSrvSession.Dbg> implements Runn
 
                         // DEBUG
                         if (Debug.EnableDbg && hasDebug(FTPSrvSession.Dbg.SSL))
-                            debugPrintln("  unwrap() len=" + rdlen + ",returned " + sslRes.bytesProduced() + " bytes, res=" + sslRes);
+                            debugPrintln("  unwrap() len=" + rdlen + ",returned " + sslRes.bytesProduced() + " bytes, res=" + sslRes + ", sts=" + sslRes.getStatus());
 
                         // Run the SSL engine task in the current thread
                         if (m_sslEngine.getHandshakeStatus() == HandshakeStatus.NEED_TASK) {
@@ -4142,7 +4139,7 @@ public class FTPSrvSession extends SrvSession<FTPSrvSession.Dbg> implements Runn
 
         m_sslContext = SSLContext.getInstance(engineTyp);
 
-        // MNT-7301 FTPS server requires unnecessarly to have a trustStore while a keyStore should be sufficient
+        // MNT-7301 FTPS server requires unnecessarily to have a trustStore while a keyStore should be sufficient
         TrustManager[] trManager = null;
 
         if (ftpConfig.getTrustStorePath() != null) {
@@ -4158,6 +4155,8 @@ public class FTPSrvSession extends SrvSession<FTPSrvSession.Dbg> implements Runn
         m_sslEngine = m_sslContext.createSSLEngine();
         m_sslEngine.setUseClientMode(false);
         m_sslEngine.setWantClientAuth(true);
+
+        m_sslEngine.beginHandshake();
 
         SSLSession sslSess = m_sslEngine.getSession();
         m_sslOut = ByteBuffer.allocate(sslSess.getApplicationBufferSize() + 50);
