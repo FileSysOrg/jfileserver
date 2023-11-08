@@ -1072,6 +1072,13 @@ public class SMBSrvSession extends SrvSession<SMBSrvSession.Dbg> implements Runn
 				// Debug
 				if (Debug.EnableInfo && hasDebug(SMBSrvSession.Dbg.NEGOTIATE))
 					debugPrintln("Negotiate context: " + negCtx);
+
+				// Win Protocol Test Suite - NegotiateTestCaseS1178
+				// Check for dialect count of zero
+				if ( negCtx.getDialects().isEmpty()) {
+					sendErrorResponseSMB(smbPkt, SMBStatus.NTInvalidParameter, SMBStatus.SRVNotSupported, SMBStatus.ErrSrv);
+					return;
+				}
 			}
 			else {
 
@@ -1090,13 +1097,13 @@ public class SMBSrvSession extends SrvSession<SMBSrvSession.Dbg> implements Runn
 
             // Error parsing the negotiate request
             sendErrorResponseSMB(smbPkt, ex.getNTErrorCode(), ex.getErrorCode(), ex.getErrorClass());
-            setState(SessionState.SESS_HANGUP);
+//            setState(SessionState.SESS_HANGUP);
             return;
         }
 
         // Find the highest level SMB dialect that the server and client both support
 		DialectSelector diaSelector = getSMBServer().getSMBConfiguration().getEnabledDialects();
-		int diaIdx = diaSelector.findHighestDialect( negCtx.getDialects());
+		int diaIdx = negCtx.findHighestDialect( diaSelector);
 
 		// Debug
 		if (Debug.EnableInfo && hasDebug(SMBSrvSession.Dbg.NEGOTIATE)) {
@@ -1155,11 +1162,12 @@ public class SMBSrvSession extends SrvSession<SMBSrvSession.Dbg> implements Runn
 				if (Debug.EnableError && hasDebug(SMBSrvSession.Dbg.NEGOTIATE))
 					debugPrintln("No common dialect between client and server");
 
-				// Return an error status
-				sendErrorResponseSMB(smbPkt, SMBStatus.NTInvalidParameter, SMBStatus.SRVNotSupported, SMBStatus.ErrSrv);
+				// Win Protocol Test Suite - NegotiateTestCaseS0
+				// Return STATUS_NOT_SUPPORTED if no dialect could be negotiated
+				sendErrorResponseSMB(smbPkt, SMBStatus.NTNotSupported, SMBStatus.SRVNotSupported, SMBStatus.ErrSrv);
 
 				// Drop the session
-				setState( SessionState.SESS_HANGUP);
+//				setState( SessionState.SESS_HANGUP);
 				return;
 
 			}
@@ -1171,14 +1179,15 @@ public class SMBSrvSession extends SrvSession<SMBSrvSession.Dbg> implements Runn
             m_pktHandler.writePacket(respPkt, respPkt.getLength());
 
             // Check if the negotiated SMB dialect supports the session setup command, if not then bypass the session setup phase
-            if ( diaIdx == -1)
-                setState(SessionState.SESS_HANGUP);
-            else
-            	setState( respPkt.getParser().nextStateForDialect( diaIdx));
+//            if ( diaIdx == -1)
+//                setState(SessionState.SESS_HANGUP);
+//            else
+			if ( diaIdx != -1) {
+				setState(respPkt.getParser().nextStateForDialect(diaIdx));
 
-            // If a dialect was selected inform the server that the session has been opened
-            if (diaIdx != -1)
-                getSMBServer().sessionOpened(this);
+				// If a dialect was selected inform the server that the session has been opened
+				getSMBServer().sessionOpened(this);
+			}
         }
         catch (AuthenticatorException ex) {
 
@@ -1315,7 +1324,7 @@ public class SMBSrvSession extends SrvSession<SMBSrvSession.Dbg> implements Runn
 			debugPrintln("Rx packet - " + smbPkt.getParser().toShortString());
 
 		// Call the protocol handler
-		if (m_handler.runProtocol(smbPkt) == false) {
+		if ( !m_handler.runProtocol(smbPkt)) {
 
 			// The sessions protocol handler did not process the request, return an unsupported SMB error status.
 			sendErrorResponseSMB(smbPkt, SMBStatus.SRVNotSupported, SMBStatus.ErrSrv);
@@ -1335,7 +1344,7 @@ public class SMBSrvSession extends SrvSession<SMBSrvSession.Dbg> implements Runn
 
 			// DEBUG
 			if (Debug.EnableInfo && hasDebug(SMBSrvSession.Dbg.NOTIFY)) {
-				debugPrintln("Sent queued asynch response type=" + smbPkt.getParser().toShortString());
+				debugPrintln("Sent queued async response type=" + smbPkt.getParser().toShortString());
 				synchronized (this) {
 					debugPrintln("  Async queue len=" + m_asynchQueue.size());
 				}

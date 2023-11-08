@@ -19,11 +19,9 @@ package org.filesys.smb.server;
 
 import org.filesys.debug.Debug;
 import org.filesys.server.filesys.*;
-import org.filesys.server.locking.LocalOpLockDetails;
-import org.filesys.server.locking.OpLockDetails;
-import org.filesys.server.locking.OpLockInterface;
-import org.filesys.server.locking.OpLockManager;
+import org.filesys.server.locking.*;
 import org.filesys.smb.OpLockType;
+import org.filesys.smb.SMBStatus;
 
 import java.io.IOException;
 
@@ -50,10 +48,10 @@ public class OpLockHelper {
      * @param netFile NetworkFile
      * @return LocalOpLockDetails
      */
-    public static final OpLockDetails grantOpLock(SMBSrvSession sess, SMBSrvPacket pkt, DiskInterface disk, TreeConnection tree, FileOpenParams params, NetworkFile netFile) {
+    public static OpLockDetails grantOpLock(SMBSrvSession sess, SMBSrvPacket pkt, DiskInterface disk, TreeConnection tree, FileOpenParams params, NetworkFile netFile) {
 
-        // Check if the file open is on a folder
-        if (netFile.isDirectory())
+        // Check if the file open is on a folder, or an attributes only open of a file
+        if (netFile.isDirectory() || params.isAttributesOnlyAccess())
             return null;
 
         // Check if the filesystem supports oplocks
@@ -63,7 +61,7 @@ public class OpLockHelper {
 
             // Get the oplock interface, check if oplocks are enabled
             OpLockInterface oplockIface = (OpLockInterface) disk;
-            if (oplockIface.isOpLocksEnabled(sess, tree) == false)
+            if ( !oplockIface.isOpLocksEnabled(sess, tree))
                 return null;
 
             OpLockManager oplockMgr = oplockIface.getOpLockManager(sess, tree);
@@ -75,11 +73,26 @@ public class OpLockHelper {
 
                 if (oplock != null && oplock.getLockType() == OpLockType.LEVEL_II) {
 
-                    // DEBUG
-                    if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.Dbg.OPLOCK))
-                        sess.debugPrintln("Grant oplock returning existing level II oplock=" + oplock);
+                    try {
 
-                    return oplock;
+                        // Need to add an owner for the new file open
+                        oplockMgr.addOplockOwner(params.getPath(), oplock, params.getOplockOwner());
+
+                        // DEBUG
+                        if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.Dbg.OPLOCK))
+                            sess.debugPrintln("Grant oplock returning existing level II oplock=" + oplock);
+
+                        return oplock;
+                    }
+                    catch ( InvalidOplockStateException ex) {
+
+                        // DEBUG
+                        if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.Dbg.OPLOCK))
+                            sess.debugPrintln("Error adding new owner to oplock=" + oplock + ", ex=" + ex);
+
+                        if ( Debug.hasDumpStackTraces())
+                            Debug.println( ex);
+                    }
                 }
 
                 // Get the oplock type
@@ -88,16 +101,6 @@ public class OpLockHelper {
                 if (oplockTyp == OpLockType.LEVEL_NONE)
                     return null;
 
-                // For read-only access the oplock type should be changed to a level II oplock
-/**
-                if (oplockTyp == OpLockType.LEVEL_BATCH && params.getAccessMode() == FileAccessRead) {
-                    oplockTyp = OpLockType.LEVEL_II;
-
-                    // DEBUG
-                    if ( Debug.EnableDbg && sess.hasDebug( SMBSrvSession.Dbg.OPLOCK))
-                        sess.debugPrintln("Read-only file open, convert request for batch oplock to level II");
-                }
-**/
                 // Create the oplock details
                 oplock = new LocalOpLockDetails(oplockTyp, params.getPath(), sess, params.getOplockOwner(), netFile.isDirectory());
 
@@ -123,7 +126,7 @@ public class OpLockHelper {
                         oplock = null;
                     }
                 }
-                catch (ExistingOpLockException ex) {
+                catch (ExistingOpLockException | InvalidOplockStateException ex) {
 
                     // DEBUG
                     if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.Dbg.OPLOCK))
@@ -156,16 +159,17 @@ public class OpLockHelper {
      * @param tree   TreeConnection
      * @throws DeferredPacketException If an oplock break has been started
      * @throws AccessDeniedException   If the oplock break send fails
+     * @throws SMBSrvException         If the requested oplock cannot be granted
      */
-    public static final void checkOpLock(SMBSrvSession sess, SMBSrvPacket pkt, DiskInterface disk, FileOpenParams params, TreeConnection tree)
-            throws DeferredPacketException, AccessDeniedException {
+    public static void checkOpLock(SMBSrvSession sess, SMBSrvPacket pkt, DiskInterface disk, FileOpenParams params, TreeConnection tree)
+            throws DeferredPacketException, AccessDeniedException, SMBSrvException {
 
         // Check if the filesystem supports oplocks
         if (disk instanceof OpLockInterface) {
 
             // Get the oplock interface, check if oplocks are enabled
             OpLockInterface oplockIface = (OpLockInterface) disk;
-            if (oplockIface.isOpLocksEnabled(sess, tree) == false)
+            if ( !oplockIface.isOpLocksEnabled(sess, tree))
                 return;
 
             OpLockManager oplockMgr = oplockIface.getOpLockManager(sess, tree);
@@ -183,7 +187,7 @@ public class OpLockHelper {
             // Check if the file has an oplock, and it is not a shared level II oplock
             OpLockDetails oplock = oplockMgr.getOpLockDetails(params.getFullPath());
 
-            if (oplock != null && oplock.getLockType() != OpLockType.LEVEL_II) {
+            if (oplock != null && oplock.isBatchOplock()) {
 
                 // DEBUG
                 if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.Dbg.OPLOCK))
@@ -200,11 +204,10 @@ public class OpLockHelper {
                     // Check if the session that owns the oplock is still valid
                     SMBSrvSession opSess = localOpLock.getOwnerSession();
 
-                    if (opSess.isShutdown() == false) {
+                    if ( opSess != null && !opSess.isShutdown()) {
 
                         // Check if the file open is for attributes/metadata only
-                        if ((params.getAccessMode() & (AccessMode.NTRead + AccessMode.NTWrite + AccessMode.NTAppend)) == 0 &&
-                                (params.getAccessMode() & (AccessMode.NTGenericRead + AccessMode.NTGenericWrite + AccessMode.NTGenericExecute)) == 0) {
+                        if ( params.isAttributesOnlyAccess()) {
 
                             // DEBUG
                             if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.Dbg.OPLOCK))
@@ -214,19 +217,15 @@ public class OpLockHelper {
                             return;
                         }
 
-                        // Check for a batch oplock, is the owner the same
-                        if ( oplock.getLockType() == OpLockType.LEVEL_BATCH && params.requestBatchOpLock()) {
+                        // Check if the new file open is allowed access to the file/folder, do not trigger an oplock break if
+                        // access to the file would not be allowed
+                        if ( !oplockMgr.checkAccess(params.getFullPath(), params)) {
 
-                            // Check if the current oplock owner is the same as the requester
-                            if ( localOpLock.getOplockOwner().isOwner( OpLockType.LEVEL_BATCH, params.getOplockOwner())) {
+                            // DEBUG
+                            if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.Dbg.OPLOCK))
+                                sess.debugPrintln("No oplock break, failed access check, params=" + params + ", oplock=" + oplock);
 
-                                // DEBUG
-                                if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.Dbg.OPLOCK))
-                                    sess.debugPrintln("No oplock break, oplock owner, params=" + params + ", oplock=" + oplock);
-
-                                // Oplock break not required
-                                return;
-                            }
+                            return;
                         }
 
                         // Check if the oplock has a failed break timeout, do not send another break request to the client, fail the open
@@ -285,15 +284,29 @@ public class OpLockHelper {
 
                         // DEBUG
                         if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.Dbg.OPLOCK))
-                            sess.debugPrintln("Oplock released, session invalid sess=" + opSess.getUniqueId());
+                            sess.debugPrintln("Oplock released, session invalid, oplock=" + localOpLock);
                     }
                 }
                 else if (oplock.isRemoteLock()) {
 
                     // Check if the open is not accessing the file data, ie. accessing attributes only
-                    if ((params.getAccessMode() & (AccessMode.NTRead + AccessMode.NTWrite + AccessMode.NTAppend)) == 0 &&
-                            (params.getAccessMode() & (AccessMode.NTGenericRead + AccessMode.NTGenericWrite + AccessMode.NTGenericExecute)) == 0)
+                    if ( params.isAttributesOnlyAccess())
                         return;
+
+                    // Check if the oplock is a shared level II oplock, no break required
+                    if ( oplock.isLevelIIOplock())
+                        return;
+
+                    // Check if the new file open is allowed access to the file/folder, do not trigger an oplock break if
+                    // access to the file would not be allowed
+                    if ( !oplockMgr.checkAccess(params.getFullPath(), params)) {
+
+                        // DEBUG
+                        if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.Dbg.OPLOCK))
+                            sess.debugPrintln("No oplock break, failed access check (remote), params=" + params + ", oplock=" + oplock);
+
+                        return;
+                    }
 
                     // Check if the oplock has a failed break timeout, do not send another break request to the client, fail the open
                     // request with an access denied error
@@ -343,8 +356,8 @@ public class OpLockHelper {
                 }
 
                 // Check if the SMB file open request processing should be deferred until the oplock break has completed
-                if (deferredPkt == true)
-                    throw new DeferredPacketException("Waiting for oplock break");
+                if ( deferredPkt)
+                    throw new DeferredPacketException("Waiting for oplock break on " + params.getPath());
             }
         }
 
@@ -361,7 +374,7 @@ public class OpLockHelper {
      * @param tree    TreeConnection
      * @param netFile NetworkFile
      */
-    public static final void releaseOpLock(SMBSrvSession sess, SMBSrvPacket pkt, DiskInterface disk, TreeConnection tree, NetworkFile netFile) {
+    public static void releaseOpLock(SMBSrvSession sess, SMBSrvPacket pkt, DiskInterface disk, TreeConnection tree, NetworkFile netFile) {
 
         // Check if the filesystem supports oplocks
         if (disk instanceof OpLockInterface) {

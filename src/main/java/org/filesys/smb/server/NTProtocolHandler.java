@@ -231,7 +231,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         // Get the current end of the reply packet offset
         boolean andxErr = false;
 
-        while (andxCmd != SMBV1.NO_ANDX_CMD && andxErr == false) {
+        while (andxCmd != SMBV1.NO_ANDX_CMD && !andxErr) {
 
             // Determine the chained command type
             int prevEndOfPkt = endOfPkt;
@@ -268,7 +268,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
 
             // Check if the end of chain has been reached, if not then look for the next chained command in the request.
             // End of chain might be set if the current command is not an AndX SMB command.
-            if (endOfChain == false) {
+            if ( !endOfChain) {
 
                 // Advance to the next chained command block
                 andxCmd = parser.getAndXParameter(andxOff, 0) & 0x00FF;
@@ -717,7 +717,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
             throws SMBSrvException, TooManyConnectionsException, java.io.IOException {
 
         // Check that the received packet looks like a valid tree connect request
-        if (parser.checkPacketIsValid(4, 3) == false) {
+        if ( !parser.checkPacketIsValid(4, 3)) {
             m_sess.sendErrorResponseSMB(smbPkt, SMBStatus.NTInvalidParameter, SMBStatus.SRVNonSpecificError, SMBStatus.ErrSrv);
             return;
         }
@@ -975,7 +975,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
             throws IOException, SMBSrvException {
 
         // Check that the received packet looks like a valid file close request
-        if (parser.checkPacketIsValid(3, 0) == false) {
+        if ( !parser.checkPacketIsValid(3, 0)) {
             m_sess.sendErrorResponseSMB(smbPkt, SMBStatus.SRVUnrecognizedCommand, SMBStatus.ErrSrv);
             return;
         }
@@ -989,7 +989,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         }
 
         // Check if the user has the required access permission
-        if (conn.hasReadAccess() == false) {
+        if ( !conn.hasReadAccess()) {
 
             // User does not have the required access rights
             m_sess.sendErrorResponseSMB(smbPkt, SMBStatus.SRVNoAccessRights, SMBStatus.ErrSrv);
@@ -1071,12 +1071,12 @@ public class NTProtocolHandler extends CoreProtocolHandler {
             }
 
             // Indicate that the file has been closed
-            if (delayedClose == false)
+            if ( !delayedClose)
                 netFile.setClosed(true);
 
             // DEBUG
             if (Debug.EnableInfo && m_sess.hasDebug(SMBSrvSession.Dbg.BENCHMARK)) {
-                if (netFile.isDirectory() == false) {
+                if ( !netFile.isDirectory()) {
                     if (netFile.wasCreated() && netFile.getWriteCount() > 0)
                         m_sess.debugPrintln("Benchmark: File=" + netFile.getFullName() + ", Size=" + MemorySize.asScaledString(netFile.getFileSize()) +
                                 ", Write Time=" + (System.currentTimeMillis() - netFile.getCreationDate()) + "ms" +
@@ -1105,7 +1105,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         }
 
         // Remove the file from the connections list of open files
-        if (delayedClose == false)
+        if ( !delayedClose)
             conn.removeFile(fid, getSession());
 
         // Build the close file response
@@ -1139,7 +1139,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
             throws IOException, SMBSrvException {
 
         // Check that we received enough parameters for a transact2 request
-        if (parser.checkPacketIsValid(14, 0) == false) {
+        if ( !parser.checkPacketIsValid(14, 0)) {
 
             // Not enough parameters for a valid transact2 request
             m_sess.sendErrorResponseSMB(smbPkt, SMBStatus.NTInvalidParameter, SMBStatus.SRVNonSpecificError, SMBStatus.ErrSrv);
@@ -1163,7 +1163,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         }
 
         // Check if the user has the required access permission
-        if (conn.hasReadAccess() == false) {
+        if ( !conn.hasReadAccess()) {
 
             // User does not have the required access rights
             m_sess.sendErrorResponseSMB(smbPkt, SMBStatus.SRVNoAccessRights, SMBStatus.ErrSrv);
@@ -1243,7 +1243,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
             throws IOException, SMBSrvException {
 
         // Check that we received enough parameters for a transact2 request
-        if (parser.checkPacketIsValid(8, 0) == false) {
+        if ( !parser.checkPacketIsValid(8, 0)) {
 
             // Not enough parameters for a valid transact2 request
             m_sess.sendErrorResponseSMB(smbPkt, SMBStatus.NTInvalidParameter, SMBStatus.SRVNonSpecificError, SMBStatus.ErrSrv);
@@ -1269,7 +1269,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         }
 
         // Check if the user has the required access permission
-        if (conn.hasReadAccess() == false) {
+        if ( !conn.hasReadAccess()) {
 
             // User does not have the required access rights
             m_sess.sendErrorResponseSMB(smbPkt, SMBStatus.SRVNoAccessRights, SMBStatus.ErrSrv);
@@ -1277,7 +1277,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         }
 
         // Check if there is an active transaction, and it is an NT transaction
-        if (vc.hasTransaction() == false
+        if ( !vc.hasTransaction()
                 || (vc.getTransaction().isType() == PacketTypeV1.Transaction && parser.getCommand() != PacketTypeV1.TransactionSecond)
                 || (vc.getTransaction().isType() == PacketTypeV1.Transaction2 && parser.getCommand() != PacketTypeV1.Transaction2Second)) {
 
@@ -1424,7 +1424,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
             throws IOException, SMBSrvException {
 
         // Check that the received packet looks like a valid find close request
-        if (parser.checkPacketIsValid(1, 0) == false) {
+        if ( !parser.checkPacketIsValid(1, 0)) {
             m_sess.sendErrorResponseSMB(smbPkt, SMBStatus.NTInvalidParameter, SMBStatus.SRVNonSpecificError, SMBStatus.ErrSrv);
             return;
         }
@@ -1447,7 +1447,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         }
 
         // Check if the user has the required access permission
-        if (conn.hasReadAccess() == false) {
+        if ( !conn.hasReadAccess()) {
 
             // User does not have the required access rights
             m_sess.sendErrorResponseSMB(smbPkt, SMBStatus.SRVNoAccessRights, SMBStatus.ErrSrv);
@@ -1490,7 +1490,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
             throws IOException, SMBSrvException {
 
         // Check that the received packet looks like a valid locking andX request
-        if (parser.checkPacketIsValid(8, 0) == false) {
+        if ( !parser.checkPacketIsValid(8, 0)) {
             m_sess.sendErrorResponseSMB(smbPkt, SMBStatus.NTInvalidParameter, SMBStatus.SRVNonSpecificError, SMBStatus.ErrSrv);
             return;
         }
@@ -1513,7 +1513,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
         }
 
         // Check if the user has the required access permission
-        if (conn.hasReadAccess() == false) {
+        if ( !conn.hasReadAccess()) {
 
             // User does not have the required access rights
             m_sess.sendErrorResponseSMB(smbPkt, SMBStatus.SRVNoAccessRights, SMBStatus.ErrSrv);
@@ -1587,7 +1587,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                 }
 
                 // Check if the oplock should be released or converted to a shared Level II oplock
-                if (LockingAndX.hasLevelIIOplock(lockType) == false) {
+                if ( !LockingAndX.hasLevelIIOplock(lockType)) {
 
                     // Release the oplock
                     oplockMgr.releaseOpLock(oplock.getPath(), netFile.getOplockOwner());
@@ -1599,7 +1599,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                 else {
 
                     // Change the oplock type to a LevelII
-                    oplockMgr.changeOpLockType(oplock, OpLockType.LEVEL_II);
+                    oplockMgr.changeOpLockType(oplock, OpLockType.LEVEL_II, true);
 
                     // DEBUG
                     if (Debug.EnableDbg && m_sess.hasDebug(SMBSrvSession.Dbg.OPLOCK))
@@ -1637,7 +1637,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                     long offset = -1;
                     long length = -1;
 
-                    if (largeFileLock == false) {
+                    if ( !largeFileLock) {
 
                         // Get the lock offset and length, short format
                         offset = parser.unpackInt();
@@ -1667,7 +1667,7 @@ public class NTProtocolHandler extends CoreProtocolHandler {
                     try {
 
                         // Check if the request is an unlock
-                        if (isLock == false) {
+                        if ( !isLock) {
 
                             // Unlock the file
                             lockMgr.unlockFile(m_sess, conn, netFile, fLock);
@@ -6570,15 +6570,16 @@ public class NTProtocolHandler extends CoreProtocolHandler {
      * Build an oplock break asynchronous response, sent from the server to the client
      *
      * @param oplock LocalOpLockDetails
+     * @param owner OplockOwner
      * @return SMBSrvPacket
      */
-    public SMBSrvPacket buildOpLockBreakResponse(LocalOpLockDetails oplock) {
+    public SMBSrvPacket buildOpLockBreakResponse(LocalOpLockDetails oplock, OplockOwner owner) {
 
         // Get the oplock owner details
-        SMBV1OplockOwner oplockOwner = (SMBV1OplockOwner) oplock.getOplockOwner();
-
-        if ( oplockOwner == null)
+        if ( owner == null || owner instanceof SMBV1OplockOwner == false)
             return null;
+
+        SMBV1OplockOwner oplockOwner = (SMBV1OplockOwner) owner;
 
         // Allocate a packet for the oplock break request to be sent on the owner client session
         SMBSrvPacket opBreakPkt = new SMBSrvPacket(128);
