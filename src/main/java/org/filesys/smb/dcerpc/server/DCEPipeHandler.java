@@ -37,7 +37,7 @@ public class DCEPipeHandler {
             null,                // winreg
             new WkssvcDCEHandler(),
             null,                // NETLOGON
-            new LsaRpcDCEHandler(),
+            null,                // LSARPC
             null,                // spoolss
             null,                // netdfs
             null,                // service control
