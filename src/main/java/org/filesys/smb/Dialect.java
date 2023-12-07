@@ -500,7 +500,7 @@ public final class Dialect {
      * @param dialectId int
      * @return boolean
      */
-    public static final boolean isSMB1( int dialectId) {
+    public static boolean isSMB1(int dialectId) {
         if ( dialectId >= 0 && dialectId <= NT)
             return true;
         return false;
@@ -512,7 +512,7 @@ public final class Dialect {
      * @param dialectId int
      * @return boolean
      */
-    public static final boolean isSMB2( int dialectId) {
+    public static boolean isSMB2(int dialectId) {
         if ( dialectId >= SMB2_202)
             return true;
         return false;
@@ -524,7 +524,7 @@ public final class Dialect {
      * @param dialectId int
      * @return boolean
      */
-    public static final boolean isSMB3( int dialectId) {
+    public static boolean isSMB3(int dialectId) {
         if ( dialectId >= SMB3_300)
             return true;
         return false;
@@ -536,7 +536,7 @@ public final class Dialect {
      * @param dialectId int
      * @return int
      */
-    public static final int getMajorSMBVersion(int dialectId) {
+    public static int getMajorSMBVersion(int dialectId) {
         if ( dialectId < SMB2_202)
             return 1;
         else if ( dialectId <= SMB2_Any)
