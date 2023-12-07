@@ -118,7 +118,7 @@ public final class AccessMode {
 	 * @return boolean
 	 */
 	public static boolean hasNTAccessMode(int accessMask, int ntFlg) {
-		return (accessMask & ntFlg) == ntFlg ? true : false;
+		return (accessMask & ntFlg) == ntFlg;
 	}
 
 	/**
@@ -159,5 +159,16 @@ public final class AccessMode {
 	 */
 	public static boolean hasAppendAccess(int accMode) {
 		return (accMode & NTAppend) != 0 || (accMode & NTGenericAll) != 0;
+	}
+
+
+	/**
+	 * Check if the access mode only has append access
+	 *
+	 * @param accMode int
+	 * @return boolean
+	 */
+	public static boolean hasAppendAccessOnly(int accMode) {
+		return (accMode & (NTAppend | NTRead | NTWrite)) == NTAppend;
 	}
 }
