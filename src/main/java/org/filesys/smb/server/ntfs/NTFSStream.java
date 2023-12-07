@@ -41,15 +41,32 @@ public class NTFSStream {
      * @param isDir boolean
      * @return boolean
      */
-    public static boolean isValidStreamType( String typ, boolean isDir) {
+    public static boolean isInvalidStreamType( String typ, boolean isDir) {
 
-        boolean valid = false;
+        boolean invalid = true;
 
         if ( !isDir && typ.equals( DataStreamType))
-            valid = true;
+            invalid = false;
         else if ( isDir && typ.equals( DirectoryStreamType))
-            valid = true;
+            invalid = false;
 
-        return valid;
+        return invalid;
+    }
+
+    /**
+     * Check if the stream type and name are invalid for an index stream
+     *
+     * @param streamTyp String
+     * @param streamName String
+     * @return boolean
+     */
+    public static boolean isInvalidIndexStream( String streamTyp, String streamName) {
+        if ( streamTyp == null || streamName == null)
+            return false;
+
+        if ( streamTyp.equals( DirectoryStreamType) && ( !streamName.isEmpty() && !streamName.equals( DirectoryStreamName)))
+            return true;
+
+        return false;
     }
 }
