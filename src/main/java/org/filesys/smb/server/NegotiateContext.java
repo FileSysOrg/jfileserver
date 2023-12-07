@@ -79,12 +79,22 @@ public class NegotiateContext {
     }
 
     /**
-     * Get the client/server capabilties
+     * Get the client/server capabilities
      *
      * @return int
      */
     public final int getCapabilities() {
         return m_capabilities;
+    }
+
+    /**
+     * Check if the specified capability is enabled
+     *
+     * @param capab int
+     * @return boolean
+     */
+    public final boolean hasCapability(int capab) {
+        return (m_capabilities & capab) != 0;
     }
 
     /**
