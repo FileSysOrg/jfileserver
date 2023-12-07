@@ -332,7 +332,7 @@ public class FileStateLockManager implements LockManager, OpLockManager, Runnabl
         FileState fstate = m_stateCache.findFileState(path);
         OpLockType opType = OpLockType.INVALID;
 
-        if ( fstate != null)
+        if ( fstate != null && fstate.hasOpLock())
             opType = fstate.getOpLock().getLockType();
 
         // Remove the oplock owner
