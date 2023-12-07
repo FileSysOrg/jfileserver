@@ -77,10 +77,13 @@ public abstract class NetworkFile {
         CLOSED,
         FORCE_CLOSE,
         PREVIOUS_VERSION,
-        POST_CLOSE_FILE,     // close the file using the same worker thread that processes the client close request but after the
-                            // protocol layer has responded to the client
-        END_OF_FILE,        // read/write is at end of file
-        CREATE_FILE         // File should be created if it does not exist
+        POST_CLOSE_FILE,            // close the file using the same worker thread that processes the client close request but after the
+                                    // protocol layer has responded to the client
+        END_OF_FILE,                // read/write is at end of file
+        CREATE_FILE,                // File should be created if it does not exist
+        DISALLOW_SET_CREATETIME,    // do not allow setting of creation date/time via this file handle
+        DISALLOW_SET_ACCESSTIME,    // do not allow setting of access date/time via this file handle
+        DISALLOW_SET_MODIFYTIME     // do not allow setting of the modify date/time via this file handle
     };
 
     // File identifier and parent directory identifier
@@ -147,6 +150,9 @@ public abstract class NetworkFile {
 
     // Map of handle based directory searches
     private SearchMap m_searchMap;
+
+    // Requested id that opened this file
+    private long m_requestId;
 
     /**
      * Create a network file object with the specified file identifier.
@@ -601,6 +607,13 @@ public abstract class NetworkFile {
     }
 
     /**
+     * Return the request id that opened this file
+     *
+     * @return long
+     */
+    public final long getRequestId() { return m_requestId; }
+
+    /**
      * Set the file attributes, as specified by the SMBFileAttribute class.
      *
      * @param attrib int
@@ -802,6 +815,16 @@ public abstract class NetworkFile {
     public final void setCreateRequired(boolean create) { setStatusFlag(Flags.CREATE_FILE, create); }
 
     /**
+     * Check if the specific status flag is set
+     *
+     * @param flg Flags
+     * @return boolean
+     */
+    public final boolean hasStatusFlag(Flags flg) {
+        return m_flags.contains( flg);
+    }
+
+    /**
      * Set/clear a file status flag
      *
      * @param flag Flags
@@ -813,6 +836,13 @@ public abstract class NetworkFile {
         else
             m_flags.remove( flag);
     }
+
+    /**
+     * Set the request id that opened this file
+     *
+     * @param reqId long
+     */
+    public final void setRequestId(long reqId) { m_requestId = reqId; }
 
     /**
      * Add a lock to the active lock list
@@ -1252,6 +1282,9 @@ public abstract class NetworkFile {
 
         if ( isClosed())
             str.append( ",Closed");
+
+        str.append(", ReqId=");
+        str.append( getRequestId());
 
         str.append("]");
 
