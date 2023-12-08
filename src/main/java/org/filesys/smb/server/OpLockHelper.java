@@ -156,20 +156,23 @@ public class OpLockHelper {
      * @param disk   DiskInterface
      * @param params FileOpenParams
      * @param tree   TreeConnection
+     * @return OpLockType
      * @throws DeferredPacketException If an oplock break has been started
      * @throws AccessDeniedException   If the oplock break send fails
      * @throws SMBSrvException         If the requested oplock cannot be granted
      */
-    public static void checkOpLock(SMBSrvSession sess, SMBSrvPacket pkt, DiskInterface disk, FileOpenParams params, TreeConnection tree)
+    public static OpLockType checkOpLock(SMBSrvSession sess, SMBSrvPacket pkt, DiskInterface disk, FileOpenParams params, TreeConnection tree)
             throws DeferredPacketException, AccessDeniedException, SMBSrvException {
 
         // Check if the filesystem supports oplocks
+        OpLockType opType = OpLockType.LEVEL_NONE;
+
         if (disk instanceof OpLockInterface) {
 
             // Get the oplock interface, check if oplocks are enabled
             OpLockInterface oplockIface = (OpLockInterface) disk;
             if (!oplockIface.isOpLocksEnabled(sess, tree))
-                return;
+                return OpLockType.LEVEL_NONE;
 
             OpLockManager oplockMgr = oplockIface.getOpLockManager(sess, tree);
 
@@ -180,11 +183,13 @@ public class OpLockHelper {
                     sess.debugPrintln("OpLock manager is null, tree=" + tree);
 
                 // Nothing to do
-                return;
+                return OpLockType.LEVEL_NONE;
             }
 
             // Check if the file has an oplock, and it is not a shared level II oplock
             OpLockDetails oplock = oplockMgr.getOpLockDetails(params.getFullPath());
+            if ( oplock != null)
+                opType = oplock.getLockType();
 
             if (oplock != null && oplock.isBatchOplock()) {
 
@@ -213,7 +218,7 @@ public class OpLockHelper {
                                 sess.debugPrintln("No oplock break, access attributes only, params=" + params + ", oplock=" + oplock);
 
                             // Oplock break not required
-                            return;
+                            return OpLockType.LEVEL_NONE;
                         }
 
                         // Check if the new file open is allowed access to the file/folder, do not trigger an oplock break if
@@ -224,7 +229,7 @@ public class OpLockHelper {
                             if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.Dbg.OPLOCK))
                                 sess.debugPrintln("No oplock break, failed access check, params=" + params + ", oplock=" + oplock);
 
-                            return;
+                            return oplock.getLockType();
                         }
 
                         // Check if the oplock has a failed break timeout, do not send another break request to the client, fail the open
@@ -286,11 +291,11 @@ public class OpLockHelper {
 
                     // Check if the open is not accessing the file data, ie. accessing attributes only
                     if (params.isAttributesOnlyAccess())
-                        return;
+                        return OpLockType.LEVEL_NONE;
 
                     // Check if the oplock is a shared level II oplock, no break required
                     if (oplock.isLevelIIOplock())
-                        return;
+                        return oplock.getLockType();
 
                     // Check if the new file open is allowed access to the file/folder, do not trigger an oplock break if
                     // access to the file would not be allowed
@@ -300,7 +305,7 @@ public class OpLockHelper {
                         if (Debug.EnableDbg && sess.hasDebug(SMBSrvSession.Dbg.OPLOCK))
                             sess.debugPrintln("No oplock break, failed access check (remote), params=" + params + ", oplock=" + oplock);
 
-                        return;
+                        return oplock.getLockType();
                     }
 
                     // Check if the oplock has a failed break timeout, do not send another break request to the client, fail the open
@@ -356,6 +361,9 @@ public class OpLockHelper {
 
         // Returning without an exception indicates that there is no oplock on the file, or a shared oplock, so the
         // file open request can continue
+
+        // Return the existing oplock type, or OpLockType.LEVEL_NONE if the filesystem does not support oplocks
+        return opType;
     }
 
     /**
