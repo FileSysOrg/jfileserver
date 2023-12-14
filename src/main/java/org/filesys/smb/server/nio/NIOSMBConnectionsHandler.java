@@ -185,6 +185,7 @@ public class NIOSMBConnectionsHandler implements SMBConnectionsHandler, RequestH
                 catch ( ConcurrentModificationException ex) {
 
                     // TEST
+/*
                     long exTime = System.currentTimeMillis();
 
                     Debug.println("Concurrent modification exception in idle session reaper:");
@@ -203,6 +204,7 @@ public class NIOSMBConnectionsHandler implements SMBConnectionsHandler, RequestH
                         Debug.println("    Thread " + th.getName() + ", sts=" + (th.isAlive() ? "Alive" : "NotAlive"));
                         Debug.println("      Stacktrace: " + (strace.length > 0 ? strace[0].toString() : "None"));
                     }
+ */
                 }
             }
         }
