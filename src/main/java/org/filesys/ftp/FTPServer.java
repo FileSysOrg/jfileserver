@@ -543,12 +543,8 @@ public class FTPServer extends NetworkFileServer implements Runnable, Configurat
                 srvThread.setName("Sess_FTP" + srvSess.getSessionId() + "_" + sessSock.getInetAddress().getHostAddress());
                 srvThread.start();
 
-                //	Sleep for a while
-                try {
-                    Thread.sleep(1000L);
-                }
-                catch (InterruptedException ex) {
-                }
+                //	Give up the CPU
+                Thread.yield();
             }
         }
         catch (SocketException ex) {
