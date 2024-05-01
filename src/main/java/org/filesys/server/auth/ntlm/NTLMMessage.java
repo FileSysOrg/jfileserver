@@ -81,7 +81,7 @@ public abstract class NTLMMessage {
     }
 
     // Default buffer size to allocate
-    private static final int DefaultBlobSize = 256;
+    private static final int DefaultBlobSize = 512;
 
     // Field offsets
     public static final int OffsetSignature = 0;
@@ -90,7 +90,7 @@ public abstract class NTLMMessage {
     // Buffer header length
     public static final int BufferHeaderLen = 8;
 
-    // Buffer, offset and lenght of the NTLM blob
+    // Buffer, offset and length of the NTLM blob
     private byte[] m_buf;
     private int m_offset;
     private int m_len;
