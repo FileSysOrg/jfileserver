@@ -83,7 +83,8 @@ public abstract class NetworkFile {
         CREATE_FILE,                // File should be created if it does not exist
         DISALLOW_SET_CREATETIME,    // do not allow setting of creation date/time via this file handle
         DISALLOW_SET_ACCESSTIME,    // do not allow setting of access date/time via this file handle
-        DISALLOW_SET_MODIFYTIME     // do not allow setting of the modify date/time via this file handle
+        DISALLOW_SET_MODIFYTIME,    // do not allow setting of the modify date/time via this file handle
+        CLIENT_API                  // file is a special client API file
     };
 
     // File identifier and parent directory identifier
@@ -612,6 +613,13 @@ public abstract class NetworkFile {
      * @return long
      */
     public final long getRequestId() { return m_requestId; }
+
+    /**
+     * Check if the file is a special client API file
+     *
+     * @return boolean
+     */
+    public final boolean isClientAPIFile() { return m_flags.contains( Flags.CLIENT_API); }
 
     /**
      * Set the file attributes, as specified by the SMBFileAttribute class.
@@ -1269,6 +1277,9 @@ public abstract class NetworkFile {
 
         if ( isPreviousVersion())
             str.append( " Ver");
+
+        if ( isClientAPIFile())
+            str.append( " ClientAPI");
 
         if ( hasAccessToken()) {
             str.append(",Token=");
