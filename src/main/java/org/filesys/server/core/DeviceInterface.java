@@ -50,7 +50,7 @@ public interface DeviceInterface {
      * @param sess Server session
      * @param tree Tree connection
      */
-    public void treeOpened(SrvSession sess, TreeConnection tree);
+    public void treeOpened(SrvSession<?> sess, TreeConnection tree);
 
     /**
      * Connection closed to this device
@@ -58,5 +58,5 @@ public interface DeviceInterface {
      * @param sess Server session
      * @param tree Tree connection
      */
-    public void treeClosed(SrvSession sess, TreeConnection tree);
+    public void treeClosed(SrvSession<?> sess, TreeConnection tree);
 }

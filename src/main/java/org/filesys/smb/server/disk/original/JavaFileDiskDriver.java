@@ -161,7 +161,7 @@ public class JavaFileDiskDriver implements DiskInterface {
      * @param file Network file details
      * @exception IOException I/O error
      */
-    public void closeFile(SrvSession sess, TreeConnection tree, NetworkFile file)
+    public void closeFile(SrvSession<?> sess, TreeConnection tree, NetworkFile file)
             throws IOException {
 
         //	Close the file
@@ -186,7 +186,7 @@ public class JavaFileDiskDriver implements DiskInterface {
      * @param params Directory parameters
      * @exception IOException I/O error
      */
-    public void createDirectory(SrvSession sess, TreeConnection tree, FileOpenParams params)
+    public void createDirectory(SrvSession<?> sess, TreeConnection tree, FileOpenParams params)
             throws IOException {
 
         //  Get the full path for the new directory
@@ -207,7 +207,7 @@ public class JavaFileDiskDriver implements DiskInterface {
      * @return NetworkFile
      * @exception IOException I/O error
      */
-    public NetworkFile createFile(SrvSession sess, TreeConnection tree, FileOpenParams params)
+    public NetworkFile createFile(SrvSession<?> sess, TreeConnection tree, FileOpenParams params)
             throws IOException {
 
         //  Get the full path for the new file
@@ -241,7 +241,7 @@ public class JavaFileDiskDriver implements DiskInterface {
      * @param dir  Path of directory to delete
      * @exception IOException I/O error
      */
-    public void deleteDirectory(SrvSession sess, TreeConnection tree, String dir)
+    public void deleteDirectory(SrvSession<?> sess, TreeConnection tree, String dir)
             throws IOException {
 
         //  Get the full path for the directory
@@ -292,7 +292,7 @@ public class JavaFileDiskDriver implements DiskInterface {
      * @param name Name of file to delete
      * @exception IOException I/O error
      */
-    public void deleteFile(SrvSession sess, TreeConnection tree, String name)
+    public void deleteFile(SrvSession<?> sess, TreeConnection tree, String name)
             throws IOException {
 
         //  Get the full path for the file
@@ -327,7 +327,7 @@ public class JavaFileDiskDriver implements DiskInterface {
      * @param name File name
      * @return FileStatus
      */
-    public FileStatus fileExists(SrvSession sess, TreeConnection tree, String name) {
+    public FileStatus fileExists(SrvSession<?> sess, TreeConnection tree, String name) {
 
         //  Get the full path for the file
         DeviceContext ctx = tree.getContext();
@@ -380,7 +380,7 @@ public class JavaFileDiskDriver implements DiskInterface {
      * @param file Network file
      * @exception IOException I/O error
      */
-    public void flushFile(SrvSession sess, TreeConnection tree, NetworkFile file)
+    public void flushFile(SrvSession<?> sess, TreeConnection tree, NetworkFile file)
             throws IOException {
 
         //	Flush the file
@@ -396,7 +396,7 @@ public class JavaFileDiskDriver implements DiskInterface {
      * @return SMBFileInfo
      * @exception IOException I/O error
      */
-    public FileInfo getFileInformation(SrvSession sess, TreeConnection tree, String name)
+    public FileInfo getFileInformation(SrvSession<?> sess, TreeConnection tree, String name)
             throws IOException {
 
         //  Get the full path for the file/directory
@@ -426,7 +426,7 @@ public class JavaFileDiskDriver implements DiskInterface {
      * @return true if the device is read-only, else false
      * @throws IOException If an error occurs.
      */
-    public boolean isReadOnly(SrvSession sess, DeviceContext ctx)
+    public boolean isReadOnly(SrvSession<?> sess, DeviceContext ctx)
             throws IOException {
 
         //  Check if the directory exists, and it is a directory
@@ -718,7 +718,7 @@ public class JavaFileDiskDriver implements DiskInterface {
      * @return Number of bytes read
      * @exception IOException I/O error
      */
-    public int readFile(SrvSession sess, TreeConnection tree, NetworkFile file, byte[] buf, int bufPos, int siz, long filePos)
+    public int readFile(SrvSession<?> sess, TreeConnection tree, NetworkFile file, byte[] buf, int bufPos, int siz, long filePos)
             throws IOException {
 
         //	Check if the file is a directory
@@ -746,7 +746,7 @@ public class JavaFileDiskDriver implements DiskInterface {
      * @param netFile NetworkFile for handle based rename, or null for path based rename
      * @exception IOException I/O error
      */
-    public void renameFile(SrvSession sess, TreeConnection tree, String oldName, String newName, NetworkFile netFile)
+    public void renameFile(SrvSession<?> sess, TreeConnection tree, String oldName, String newName, NetworkFile netFile)
             throws IOException {
 
         //  Get the full path for the existing file and the new file name
@@ -781,7 +781,7 @@ public class JavaFileDiskDriver implements DiskInterface {
      * @return New file position
      * @exception IOException I/O error
      */
-    public long seekFile(SrvSession sess, TreeConnection tree, NetworkFile file, long pos, int typ)
+    public long seekFile(SrvSession<?> sess, TreeConnection tree, NetworkFile file, long pos, int typ)
             throws IOException {
 
         //  Check that the network file is our type
@@ -797,7 +797,7 @@ public class JavaFileDiskDriver implements DiskInterface {
      * @param info File information to be set
      * @exception IOException I/O error
      */
-    public void setFileInformation(SrvSession sess, TreeConnection tree, String name, FileInfo info)
+    public void setFileInformation(SrvSession<?> sess, TreeConnection tree, String name, FileInfo info)
             throws IOException {
 
         //	Check if the modify date/time should be updated
@@ -865,7 +865,7 @@ public class JavaFileDiskDriver implements DiskInterface {
      * @param siz  New file length
      * @exception IOException I/O error
      */
-    public void truncateFile(SrvSession sess, TreeConnection tree, NetworkFile file, long siz)
+    public void truncateFile(SrvSession<?> sess, TreeConnection tree, NetworkFile file, long siz)
             throws IOException {
 
         //	Truncate or extend the file
@@ -885,7 +885,7 @@ public class JavaFileDiskDriver implements DiskInterface {
      * @param fileoff Offset within the file to start writing the data
      * @exception IOException I/O error
      */
-    public int writeFile(SrvSession sess, TreeConnection tree, NetworkFile file, byte[] buf, int bufoff, int siz, long fileoff)
+    public int writeFile(SrvSession<?> sess, TreeConnection tree, NetworkFile file, byte[] buf, int bufoff, int siz, long fileoff)
             throws IOException {
 
         //	Check if the file is a directory
@@ -946,7 +946,7 @@ public class JavaFileDiskDriver implements DiskInterface {
      * @param sess Server session
      * @param tree Tree connection
      */
-    public void treeOpened(SrvSession sess, TreeConnection tree) {
+    public void treeOpened(SrvSession<?> sess, TreeConnection tree) {
     }
 
     /**
@@ -955,7 +955,7 @@ public class JavaFileDiskDriver implements DiskInterface {
      * @param sess Server session
      * @param tree Tree connection
      */
-    public void treeClosed(SrvSession sess, TreeConnection tree) {
+    public void treeClosed(SrvSession<?> sess, TreeConnection tree) {
     }
 
     /**

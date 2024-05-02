@@ -42,7 +42,7 @@ public interface DiskInterface extends DeviceInterface {
      * @param param Network file context.
      * @throws java.io.IOException If an error occurs.
      */
-    public void closeFile(SrvSession sess, TreeConnection tree, NetworkFile param)
+    public void closeFile(SrvSession<?> sess, TreeConnection tree, NetworkFile param)
             throws java.io.IOException;
 
     /**
@@ -53,7 +53,7 @@ public interface DiskInterface extends DeviceInterface {
      * @param params Directory create parameters
      * @throws java.io.IOException If an error occurs.
      */
-    public void createDirectory(SrvSession sess, TreeConnection tree, FileOpenParams params)
+    public void createDirectory(SrvSession<?> sess, TreeConnection tree, FileOpenParams params)
             throws java.io.IOException;
 
     /**
@@ -65,7 +65,7 @@ public interface DiskInterface extends DeviceInterface {
      * @return NetworkFile
      * @throws java.io.IOException If an error occurs.
      */
-    public NetworkFile createFile(SrvSession sess, TreeConnection tree, FileOpenParams params)
+    public NetworkFile createFile(SrvSession<?> sess, TreeConnection tree, FileOpenParams params)
             throws java.io.IOException;
 
     /**
@@ -76,7 +76,7 @@ public interface DiskInterface extends DeviceInterface {
      * @param dir  Directory name.
      * @throws java.io.IOException If an error occurs.
      */
-    public void deleteDirectory(SrvSession sess, TreeConnection tree, String dir)
+    public void deleteDirectory(SrvSession<?> sess, TreeConnection tree, String dir)
             throws java.io.IOException;
 
     /**
@@ -87,7 +87,7 @@ public interface DiskInterface extends DeviceInterface {
      * @param name File name
      * @throws java.io.IOException If an error occurs.
      */
-    public void deleteFile(SrvSession sess, TreeConnection tree, String name)
+    public void deleteFile(SrvSession<?> sess, TreeConnection tree, String name)
             throws java.io.IOException;
 
     /**
@@ -99,7 +99,7 @@ public interface DiskInterface extends DeviceInterface {
      * @return FileStatus
      * @see FileStatus
      */
-    FileStatus fileExists(SrvSession sess, TreeConnection tree, String name);
+    FileStatus fileExists(SrvSession<?> sess, TreeConnection tree, String name);
 
     /**
      * Flush any buffered output for the specified file.
@@ -109,7 +109,7 @@ public interface DiskInterface extends DeviceInterface {
      * @param file Network file context.
      * @throws java.io.IOException If an error occurs.
      */
-    public void flushFile(SrvSession sess, TreeConnection tree, NetworkFile file)
+    public void flushFile(SrvSession<?> sess, TreeConnection tree, NetworkFile file)
             throws java.io.IOException;
 
     /**
@@ -121,7 +121,7 @@ public interface DiskInterface extends DeviceInterface {
      * @return File information if valid, else null
      * @throws java.io.IOException If an error occurs.
      */
-    public FileInfo getFileInformation(SrvSession sess, TreeConnection tree, String name)
+    public FileInfo getFileInformation(SrvSession<?> sess, TreeConnection tree, String name)
             throws java.io.IOException;
 
     /**
@@ -132,7 +132,7 @@ public interface DiskInterface extends DeviceInterface {
      * @return boolean
      * @throws java.io.IOException If an error occurs.
      */
-    boolean isReadOnly(SrvSession sess, DeviceContext ctx)
+    boolean isReadOnly(SrvSession<?> sess, DeviceContext ctx)
             throws java.io.IOException;
 
     /**
@@ -144,7 +144,7 @@ public interface DiskInterface extends DeviceInterface {
      * @return NetworkFile
      * @throws java.io.IOException If an error occurs.
      */
-    public NetworkFile openFile(SrvSession sess, TreeConnection tree, FileOpenParams params)
+    public NetworkFile openFile(SrvSession<?> sess, TreeConnection tree, FileOpenParams params)
             throws java.io.IOException;
 
     /**
@@ -160,7 +160,7 @@ public interface DiskInterface extends DeviceInterface {
      * @return Number of bytes read
      * @throws java.io.IOException If an error occurs.
      */
-    public int readFile(SrvSession sess, TreeConnection tree, NetworkFile file, byte[] buf, int bufPos, int siz, long filePos)
+    public int readFile(SrvSession<?> sess, TreeConnection tree, NetworkFile file, byte[] buf, int bufPos, int siz, long filePos)
             throws java.io.IOException;
 
     /**
@@ -173,7 +173,7 @@ public interface DiskInterface extends DeviceInterface {
      * @param netFile NetworkFile for handle based rename, or null for path based rename
      * @throws java.io.IOException If an error occurs.
      */
-    public void renameFile(SrvSession sess, TreeConnection tree, String oldName, String newName, NetworkFile netFile)
+    public void renameFile(SrvSession<?> sess, TreeConnection tree, String oldName, String newName, NetworkFile netFile)
             throws java.io.IOException;
 
     /**
@@ -187,7 +187,7 @@ public interface DiskInterface extends DeviceInterface {
      * @return New file position, relative to the start of file.
      * @throws java.io.IOException If an error occurs.
      */
-    long seekFile(SrvSession sess, TreeConnection tree, NetworkFile file, long pos, int typ)
+    long seekFile(SrvSession<?> sess, TreeConnection tree, NetworkFile file, long pos, int typ)
             throws java.io.IOException;
 
     /**
@@ -199,7 +199,7 @@ public interface DiskInterface extends DeviceInterface {
      * @param info FileInfo
      * @throws java.io.IOException If an error occurs.
      */
-    public void setFileInformation(SrvSession sess, TreeConnection tree, String name, FileInfo info)
+    public void setFileInformation(SrvSession<?> sess, TreeConnection tree, String name, FileInfo info)
             throws java.io.IOException;
 
     /**
@@ -226,7 +226,7 @@ public interface DiskInterface extends DeviceInterface {
      * @param siz  New file length
      * @throws java.io.IOException If an error occurs.
      */
-    public void truncateFile(SrvSession sess, TreeConnection tree, NetworkFile file, long siz)
+    public void truncateFile(SrvSession<?> sess, TreeConnection tree, NetworkFile file, long siz)
             throws java.io.IOException;
 
     /**
@@ -242,7 +242,7 @@ public interface DiskInterface extends DeviceInterface {
      * @return Number of bytes actually written
      * @throws java.io.IOException If an error occurs.
      */
-    public int writeFile(SrvSession sess, TreeConnection tree, NetworkFile file, byte[] buf, int bufoff, int siz,
+    public int writeFile(SrvSession<?> sess, TreeConnection tree, NetworkFile file, byte[] buf, int bufoff, int siz,
                          long fileoff)
             throws java.io.IOException;
 }
