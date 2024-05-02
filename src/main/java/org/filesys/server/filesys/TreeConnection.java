@@ -178,7 +178,7 @@ public class TreeConnection {
      */
     public final boolean hasContext() {
         if (m_shareDev != null)
-            return m_shareDev.getContext() != null ? true : false;
+            return m_shareDev.getContext() != null;
         return false;
     }
 

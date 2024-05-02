@@ -105,7 +105,7 @@ public class SMBSrvSession extends SrvSession<SMBSrvSession.Dbg> implements Runn
 		SIGNING,	// request/response signing
 		ENCRYPTION,	// Encryption/decryption
 		AUDIT,		// Auditing
-		POSTPROC	// Post processing
+		POSTPROC,	// Post processing
 	}
 	
 	// Server session object factory
