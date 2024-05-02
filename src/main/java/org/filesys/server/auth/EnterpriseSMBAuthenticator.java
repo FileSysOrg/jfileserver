@@ -1281,7 +1281,7 @@ public class EnterpriseSMBAuthenticator extends SMBAuthenticator implements Call
             if ( mechToken != null && SecurityBlob.checkForNTLMSSP( mechToken, 0))
                 isNTLMSSP = true;
 
-            if (isNTLMSSP || hasNTLMSSPOid) {
+            if (isNTLMSSP && hasNTLMSSPOid) {
 
                 // NTLMSSP logon, get the NTLMSSP security blob that is inside the SPNEGO blob
                 byte[] ntlmsspBlob = negToken.getMechtoken();

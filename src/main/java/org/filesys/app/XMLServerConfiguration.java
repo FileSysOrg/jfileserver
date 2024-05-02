@@ -255,7 +255,7 @@ public class XMLServerConfiguration extends SMBOnlyXMLServerConfiguration {
 			if ( elem.hasAttribute("adapter")) {
 
 				// Get the IP address for the adapter
-				InetAddress bindAddr = parseAdapterName(elem.getAttribute("adapter"));
+				InetAddress bindAddr = parseAdapterName( getAttributeWithEnvVars( elem, "adapter"));
 
 				// Set the bind address for the server
 				ftpConfig.setFTPBindAddress(bindAddr);
@@ -305,14 +305,14 @@ public class XMLServerConfiguration extends SMBOnlyXMLServerConfiguration {
 			ftpConfig.setAllowAnonymousFTP(true);
 
 			// Check if an anonymous account has been specified
-			String anonAcc = elem.getAttribute("user");
-			if ( anonAcc != null && anonAcc.length() > 0) {
+			String anonAcc = getAttributeWithEnvVars(elem, "user");
+			if ( anonAcc != null && !anonAcc.isEmpty()) {
 
 				// Set the anonymous account name
 				ftpConfig.setAnonymousFTPAccount(anonAcc);
 
 				// Check if the anonymous account name is valid
-				if ( ftpConfig.getAnonymousFTPAccount() == null || ftpConfig.getAnonymousFTPAccount().length() == 0)
+				if ( ftpConfig.getAnonymousFTPAccount() == null || ftpConfig.getAnonymousFTPAccount().isEmpty())
 					throw new InvalidConfigurationException("Anonymous FTP account invalid");
 			}
 			else {
@@ -332,7 +332,7 @@ public class XMLServerConfiguration extends SMBOnlyXMLServerConfiguration {
 		if ( elem != null) {
 
 			// Get the root path
-			String rootPath = getText(elem);
+			String rootPath = getTextWithEnvVars(elem);
 
 			// Validate the root path
 			try {
@@ -356,8 +356,8 @@ public class XMLServerConfiguration extends SMBOnlyXMLServerConfiguration {
 			int rangeFrom = -1;
 			int rangeTo = -1;
 
-			String rangeStr = elem.getAttribute("rangeFrom");
-			if ( rangeStr != null && rangeStr.length() > 0) {
+			String rangeStr = getAttributeWithEnvVars(elem,"rangeFrom");
+			if ( rangeStr != null && !rangeStr.isEmpty()) {
 
 				// Validate the range string
 				try {
@@ -369,8 +369,8 @@ public class XMLServerConfiguration extends SMBOnlyXMLServerConfiguration {
 			}
 
 			// Check for the to port range value
-			rangeStr = elem.getAttribute("rangeTo");
-			if ( rangeStr != null && rangeStr.length() > 0) {
+			rangeStr = getAttributeWithEnvVars(elem,"rangeTo");
+			if ( rangeStr != null && !rangeStr.isEmpty()) {
 
 				// Validate the range string
 				try {
@@ -404,7 +404,7 @@ public class XMLServerConfiguration extends SMBOnlyXMLServerConfiguration {
 		if ( elem != null) {
 
 			// Check for FTP debug flags
-			String flags = elem.getAttribute("flags");
+			String flags = getAttributeWithEnvVars(elem, "flags");
 			EnumSet<FTPSrvSession.Dbg> ftpDbg = EnumSet.<FTPSrvSession.Dbg>noneOf( FTPSrvSession.Dbg.class);
 
 			if ( flags != null) {
@@ -441,7 +441,7 @@ public class XMLServerConfiguration extends SMBOnlyXMLServerConfiguration {
 			if ( classElem == null)
 				throw new InvalidConfigurationException("Class not specified for FTP site interface");
 
-			String siteClass = getText(classElem);
+			String siteClass = getTextWithEnvVars(classElem);
 
 			// Validate the site interface class
 			try {
@@ -479,7 +479,7 @@ public class XMLServerConfiguration extends SMBOnlyXMLServerConfiguration {
 
 			// Get the parameters for the FTP authenticator class
 			ConfigElement params = buildConfigElement(elem);
-			ftpConfig.setAuthenticator(getText(classElem), params);
+			ftpConfig.setAuthenticator(getTextWithEnvVars(classElem), params);
 		}
 
 		// FTPS parameter parsing
@@ -489,10 +489,10 @@ public class XMLServerConfiguration extends SMBOnlyXMLServerConfiguration {
 		if ( elem != null) {
 
 			// Get the path to the key store, check that the file exists
-			String keyStorePath = getText( elem);
+			String keyStorePath = getTextWithEnvVars( elem);
 			File keyStoreFile = new File( keyStorePath);
 			
-			if ( keyStoreFile.exists() == false)
+			if ( !keyStoreFile.exists())
 				throw new InvalidConfigurationException("FTPS key store file does not exist, " + keyStorePath);
 			else if ( keyStoreFile.isDirectory())
 				throw new InvalidConfigurationException("FTPS key store path is a directory, " + keyStorePath);
@@ -506,9 +506,9 @@ public class XMLServerConfiguration extends SMBOnlyXMLServerConfiguration {
 		if ( elem != null) {
 			
 			// Get the key store type, and validate
-			String keyStoreType = getText( elem);
+			String keyStoreType = getTextWithEnvVars( elem);
 			
-			if ( keyStoreType == null || keyStoreType.length() == 0)
+			if ( keyStoreType == null || keyStoreType.isEmpty())
 				throw new InvalidConfigurationException("FTPS key store type is invalid");
 			
 			try {
@@ -535,10 +535,10 @@ public class XMLServerConfiguration extends SMBOnlyXMLServerConfiguration {
 		if ( elem != null) {
 
 			// Get the path to the trust store, check that the file exists
-			String trustStorePath = getText( elem);
+			String trustStorePath = getTextWithEnvVars( elem);
 			File trustStoreFile = new File( trustStorePath);
 			
-			if ( trustStoreFile.exists() == false)
+			if ( !trustStoreFile.exists())
 				throw new InvalidConfigurationException("FTPS trust store file does not exist, " + trustStorePath);
 			else if ( trustStoreFile.isDirectory())
 				throw new InvalidConfigurationException("FTPS trust store path is a directory, " + trustStorePath);
@@ -552,9 +552,9 @@ public class XMLServerConfiguration extends SMBOnlyXMLServerConfiguration {
 		if ( elem != null) {
 			
 			// Get the trust store type, and validate
-			String trustStoreType = getText( elem);
+			String trustStoreType = getTextWithEnvVars( elem);
 			
-			if ( trustStoreType == null || trustStoreType.length() == 0)
+			if ( trustStoreType == null || trustStoreType.isEmpty())
 				throw new InvalidConfigurationException("FTPS trust store type is invalid");
 			
 			try {
@@ -573,7 +573,7 @@ public class XMLServerConfiguration extends SMBOnlyXMLServerConfiguration {
 		if ( elem != null) {
 
 			// Set the key store passphrase
-			ftpConfig.setTrustStorePassphrase( getText( elem));
+			ftpConfig.setTrustStorePassphrase( getTextWithEnvVars( elem));
 		}
 		
 		// Check if only secure sessions should be allowed to logon
