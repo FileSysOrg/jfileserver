@@ -372,9 +372,11 @@ public abstract class ProtocolHandler {
      * Output an audit log record to the audit log
      *
      * @param auditTyp AuditType
+     * @param sess     SrvSession
      * @param client   ClientInfo
+     * @param fileId   int
      * @param detail   String
      */
-    public void auditPrintln(AuditType auditTyp, ClientInfo client, String detail) {
+    public void auditPrintln(AuditType auditTyp, SrvSession<?> sess, ClientInfo client, int fileId, String detail) {
     }
 }
