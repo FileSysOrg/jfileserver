@@ -31,6 +31,7 @@ import org.filesys.server.filesys.clientapi.ApiRequest;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.EnumSet;
+import java.util.List;
 
 /**
  * JSON Client API Class
@@ -122,21 +123,6 @@ public abstract class JSONClientAPI implements ClientAPIInterface {
                     apiResp = processGetAPIInfo((GetAPIInfoRequest) apiReq);
                     break;
 
-                // Check out files
-                case CheckOutFile:
-                    apiResp = processCheckOutFile((CheckOutFileRequest) apiReq);
-                    break;
-
-                // Check if files
-                case CheckInFile:
-                    apiResp = processCheckInFile((CheckInFileRequest) apiReq);
-                    break;
-
-                // Cancel check out of files
-                case CancelCheckOut:
-                    apiResp = processCancelCheckOut((CancelCheckOutFileRequest) apiReq);
-                    break;
-
                 // Get a URL for a file/folder
                 case GetUrlForPath:
                     apiResp = processGetURLForPath((GetURLForPathRequest) apiReq);
@@ -145,6 +131,11 @@ public abstract class JSONClientAPI implements ClientAPIInterface {
                 // Get file status for a list of paths
                 case GetPathStatus:
                     apiResp = processGetPathStatus((GetPathStatusRequest) apiReq);
+                    break;
+
+                // Run a sever-side action
+                case RunAction:
+                    apiResp = processRunAction((RunActionRequest) apiReq, netFile);
                     break;
             }
 
@@ -195,6 +186,13 @@ public abstract class JSONClientAPI implements ClientAPIInterface {
     public abstract EnumSet<ApiRequest> getSupportedRequests();
 
     /**
+     * Get the client context menu details
+     *
+     * @return ContextMenu
+     */
+    public ContextMenu getContextMenu() { return null; }
+
+    /**
      * Get the client API version
      *
      * @return String
@@ -215,62 +213,8 @@ public abstract class JSONClientAPI implements ClientAPIInterface {
         if ( hasDebug())
             Debug.println("[JSONClientAPI] Process GetAPIInfo request");
 
-        // Return details of the server client API version and supported request types
-        return new GetAPIInfoResponse( getClientAPIVersion(), getSupportedRequests());
-    }
-
-    /**
-     * Process a checkout file request
-     *
-     * @param req CheckOutFileRequest
-     * @return ClientAPIResponse
-     * @throws ClientAPIException If an error occurs
-     */
-    public ClientAPIResponse processCheckOutFile( CheckOutFileRequest req)
-        throws ClientAPIException {
-
-        // DEBUG
-        if ( hasDebug())
-            Debug.println("[JSONClientAPI] Process CheckOutFile request");
-
-        // Return an unsupported error
-        return new ErrorResponse( "Not supported");
-    }
-
-    /**
-     * Process a check in file request
-     *
-     * @param req CheckInFileRequest
-     * @return ClientAPIResponse
-     * @throws ClientAPIException If an error occurs
-     */
-    public ClientAPIResponse processCheckInFile( CheckInFileRequest req)
-        throws ClientAPIException {
-
-        // DEBUG
-        if ( hasDebug())
-            Debug.println("[JSONClientAPI] Process CheckInFile request");
-
-        // Return an unsupported error
-        return new ErrorResponse( "Not supported");
-    }
-
-    /**
-     * Process a cancel check out file request
-     *
-     * @param req CancelCheckOutFileRequest
-     * @return ClientAPIResponse
-     * @throws ClientAPIException If an error occurs
-     */
-    public ClientAPIResponse processCancelCheckOut( CancelCheckOutFileRequest req)
-            throws ClientAPIException {
-
-        // DEBUG
-        if ( hasDebug())
-            Debug.println("[JSONClientAPI] Process CancelCheckOutFile request");
-
-        // Return an unsupported error
-        return new ErrorResponse( "Not supported");
+        // Return details of the server client API version, supported request types and context menu details
+        return new GetAPIInfoResponse( getClientAPIVersion(), getSupportedRequests(), getContextMenu());
     }
 
     /**
@@ -304,6 +248,25 @@ public abstract class JSONClientAPI implements ClientAPIInterface {
         // DEBUG
         if (hasDebug())
             Debug.println("[JSONClientAPI] Process GetPathStatus request");
+
+        // Return an unsupported error
+        return new ErrorResponse("Not yet implemented", true);
+    }
+
+    /**
+     * Process a run server-side action request
+     *
+     * @param req RunScriptRequest
+     * @param netFile ClientAPINetworkFile
+     * @return ClientAPIResponse
+     * @throws ClientAPIException If an error occurs
+     */
+    public ClientAPIResponse processRunAction( RunActionRequest req, ClientAPINetworkFile netFile)
+            throws ClientAPIException {
+
+        // DEBUG
+        if (hasDebug())
+            Debug.println("[JSONClientAPI] Process RunAction request");
 
         // Return an unsupported error
         return new ErrorResponse("Not yet implemented", true);

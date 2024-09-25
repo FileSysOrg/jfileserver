@@ -31,6 +31,13 @@ import org.filesys.server.filesys.TreeConnection;
 public interface ClientAPI {
 
     /**
+     * Check if the client API interface is enabled
+     *
+     * @return boolean
+     */
+    public boolean isClientAPIEnabled();
+
+    /**
      * Return the client API implementation associated with this virtual filesystem
      *
      * @param sess SrvSession

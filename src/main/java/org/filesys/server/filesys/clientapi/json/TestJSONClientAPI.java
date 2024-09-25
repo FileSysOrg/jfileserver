@@ -102,4 +102,9 @@ public class TestJSONClientAPI extends JSONClientAPI {
     public String getClientAPIVersion() {
         return "1.0.0";
     }
+
+    @Override
+    public ContextMenu getContextMenu() {
+        return new ContextMenu( "Test Menu", "Test API context menu", ActionIcon.createAppIcon( ActionIcon.APPICON_FILESYSORG_ALFRESCO));
+    }
 }

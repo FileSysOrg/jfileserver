@@ -26,11 +26,10 @@ package org.filesys.server.filesys.clientapi;
  */
 public enum ApiResponse {
     GetApiInfo,         // return server API version and supported requests
-    CheckOutFile,       // checked a file out
-    CheckInFile,        // checked a file in
     GetUrlForPath,      // return a URL for the specified path
     GetPathStatus,      // return path status info
     PathList,           // success response with a list of relative paths
+    ActionResult,       // result of a server action
 
     Error,              // error message
     Success             // when no values need to be returned

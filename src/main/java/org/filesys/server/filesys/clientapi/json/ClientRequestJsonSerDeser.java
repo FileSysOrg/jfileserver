@@ -53,11 +53,9 @@ public class ClientRequestJsonSerDeser implements JsonDeserializer<ClientAPIRequ
 
         // Client API requests
         m_requestMap.put( ApiRequest.GetApiInfo, GetAPIInfoRequest.class);
-        m_requestMap.put( ApiRequest.CheckOutFile, CheckOutFileRequest.class);
-        m_requestMap.put( ApiRequest.CheckInFile, CheckInFileRequest.class);
         m_requestMap.put( ApiRequest.GetUrlForPath, GetURLForPathRequest.class);
         m_requestMap.put( ApiRequest.GetPathStatus, GetPathStatusRequest.class);
-        m_requestMap.put( ApiRequest.CancelCheckOut, CancelCheckOutFileRequest.class);
+        m_requestMap.put( ApiRequest.RunAction, RunActionRequest.class);
     }
 
     @Override

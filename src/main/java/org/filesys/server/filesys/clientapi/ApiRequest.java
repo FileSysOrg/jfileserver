@@ -27,11 +27,9 @@ package org.filesys.server.filesys.clientapi;
  */
 public enum ApiRequest {
     GetApiInfo,         // get API version and supported requests
-    CheckOutFile,       // check file(s) out
-    CheckInFile,        // check file(s) in
-    CancelCheckOut,     // cancel check out of file(s)
     GetUrlForPath,      // return a URL for the specified path
     GetPathStatus,      // return status for each path for a particular check type
+    RunAction,          // run a server side action
 
     Error               // error type for response only
 }

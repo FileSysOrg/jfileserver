@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 GK Spencer
+ * Copyright (C) 2024 GK Spencer
  *
  * JFileServer is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -14,6 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with JFileServer. If not, see <http://www.gnu.org/licenses/>.
  */
+
 package org.filesys.server.filesys.clientapi.json;
 
 import com.google.gson.JsonArray;
@@ -25,25 +26,44 @@ import org.filesys.server.filesys.clientapi.ApiRequest;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
- * Check Out File API Request Class
+ * Run Action Request Class
  *
  * @author gkspencer
  */
-public class CheckOutFileRequest extends ClientAPIRequest {
+public class RunActionRequest extends ClientAPIRequest {
+
+    @SerializedName(value = "action")
+    private String m_action;
 
     @SerializedName(value = "relative_paths")
     private List<String> m_relPaths;
 
+    @SerializedName(value = "parameters")
+    private List<String> m_params;
+
     /**
      * Default constructor
      */
-    public CheckOutFileRequest() {
+    public RunActionRequest() {
+    }
+
+    @Override
+    public ApiRequest isType() {
+        return ApiRequest.RunAction;
     }
 
     /**
-     * Return the relative path
+     * Return the action name
+     *
+     * @return String
+     */
+    public final String getAction() { return m_action; }
+
+    /**
+     * Return the relative path list
      *
      * @return List&lt;String&gt;
      */
@@ -51,13 +71,27 @@ public class CheckOutFileRequest extends ClientAPIRequest {
         return m_relPaths;
     }
 
-    @Override
-    public ApiRequest isType() {
-        return ApiRequest.CheckOutFile;
+    /**
+     * Check if the request has optional parameters
+     *
+     * @return boolean
+     */
+    public final boolean hasParameters() { return m_params != null && !m_params.isEmpty(); }
+
+    /**
+     * Return the optional parameters list
+     *
+     * @return List&lt;String&gt;
+     */
+    public final List<String> getParameters() {
+        return m_params;
     }
 
     @Override
     public void fromJSON(JsonObject jsonObj) throws JsonParseException {
+
+        // Load the action name
+        m_action = jsonObj.get("action").getAsString();
 
         // Load the relative paths list
         JsonArray elems = jsonObj.get("relative_paths").getAsJsonArray();
@@ -66,7 +100,24 @@ public class CheckOutFileRequest extends ClientAPIRequest {
         m_relPaths = new ArrayList<>(elems.size());
 
         for (JsonElement curElem : elems) {
-            m_relPaths.add(curElem.getAsString());
+            m_relPaths.add( curElem.getAsString());
+        }
+
+        // Load the request optional parameters
+        m_params = null;
+
+        if ( jsonObj.has("parameters")) {
+            JsonArray params = jsonObj.get("parameters").getAsJsonArray();
+
+            // Convert the parameters to a list
+            // Note: Do not use isEmpty() call on JsonArray, not available in earlier versions of GSON
+            if (params != null && params.size() > 0) {
+                m_params = new ArrayList<>(params.size());
+
+                for (JsonElement curElem : params) {
+                    m_params.add(curElem.getAsString());
+                }
+            }
         }
     }
 
@@ -76,8 +127,15 @@ public class CheckOutFileRequest extends ClientAPIRequest {
 
         str.append("[Request=");
         str.append(isType());
+        str.append(", action=");
+        str.append(getAction());
         str.append(",rel_paths=");
         str.append(getRelativePaths());
+        str.append(",params=");
+        if ( hasParameters())
+            str.append(getParameters());
+        else
+            str.append("None");
         str.append("]");
 
         return str.toString();

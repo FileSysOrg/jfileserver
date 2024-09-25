@@ -34,6 +34,12 @@ public abstract class ClientAPIRequest {
     @SerializedName(value = "type")
     private String m_type;
 
+    // Associated client API
+    private transient JSONClientAPI m_api;
+
+    // process the request with debug output enabled
+    private transient boolean m_debug;
+
     /**
      * Class constructor
      */
@@ -46,6 +52,41 @@ public abstract class ClientAPIRequest {
      * @return MsgType
      */
     public abstract ApiRequest isType();
+
+    /**
+     * Check if debug output is enabled
+     *
+     * @return boolean
+     */
+    public final boolean hasDebug() { return m_debug; }
+
+    /**
+     * Enable/disable debug output
+     *
+     * @param ena boolean
+     */
+    public final void setDebug( boolean ena) { m_debug = ena; }
+
+    /**
+     * Check if the request has an associated client API
+     *
+     * @return boolean
+     */
+    public final boolean hasClientAPI() { return m_api != null; }
+
+    /**
+     * Return the associated client API
+     *
+     * @return JSONClientAPI
+     */
+    public final JSONClientAPI getClientAPI() { return m_api; }
+
+    /**
+     * Set the associated client API
+     *
+     * @param clientAPI JSONClientAPI
+     */
+    public final void setClientAPI( JSONClientAPI clientAPI) { m_api = clientAPI; }
 
     /**
      * Set the sync message details from the JSON object values
