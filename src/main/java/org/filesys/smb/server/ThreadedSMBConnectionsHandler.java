@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.filesys.debug.Debug;
+import org.filesys.netbios.NetworkSettings;
 import org.filesys.server.SessionHandlerInterface;
 import org.filesys.server.SessionHandlerList;
 import org.filesys.server.SocketSessionHandler;
@@ -127,6 +128,7 @@ public class ThreadedSMBConnectionsHandler implements SMBConnectionsHandler {
 
 					try {
 						announcer.setBroadcastAddress(config.getBroadcastMask());
+						NetworkSettings.setBroadcastMask(config.getBroadcastMask());
 					}
 					catch (Exception ex) {
 					}
