@@ -136,7 +136,7 @@ public class NetBIOSDatagramSocket {
             throws IOException {
 
         //	Create a datagram packet using the NetBIOS datagram buffer
-        DatagramPacket pkt = new DatagramPacket(dgram.getBuffer(), dgram.getLength(), destAddr, destPort);
+        DatagramPacket pkt = new DatagramPacket(dgram.getBuffer(), dgram.getLength(), destAddr, RFCNetBIOSProtocol.DATAGRAM);
 
         //	Send the NetBIOS datagram
         m_socket.send(pkt);
@@ -152,7 +152,7 @@ public class NetBIOSDatagramSocket {
             throws IOException {
 
         //	Create a datagram packet using the NetBIOS datagram buffer
-        DatagramPacket pkt = new DatagramPacket(dgram.getBuffer(), dgram.getLength(), m_broadcastAddr, m_defPort);
+        DatagramPacket pkt = new DatagramPacket(dgram.getBuffer(), dgram.getLength(), m_broadcastAddr, RFCNetBIOSProtocol.DATAGRAM);
 
         //	Send the NetBIOS datagram
         m_socket.send(pkt);
