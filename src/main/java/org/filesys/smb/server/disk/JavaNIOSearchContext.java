@@ -438,7 +438,8 @@ public class JavaNIOSearchContext extends SearchContext {
             while ( curPath != null && restartOK == false) {
 
                 if ( curPath.getFileName().toString().equalsIgnoreCase(info.getFileName())) {
-                    restartOK = true;
+                    // Rewind by one, so the next call to nextFileInfo will return the correct item
+                    restartOK = restartAt(m_idx - 1);
                 }
                 else {
                     curPath = m_pathIter.next();
