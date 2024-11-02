@@ -23,6 +23,7 @@ import java.net.InetAddress;
 import java.net.Socket;
 
 import org.filesys.debug.Debug;
+import org.filesys.netbios.NetworkSettings;
 import org.filesys.server.SocketSessionHandler;
 import org.filesys.server.config.ServerConfiguration;
 import org.filesys.smb.mailslot.TcpipNetBIOSHostAnnouncer;
@@ -140,6 +141,7 @@ public class NetBIOSSessionSocketHandler extends SocketSessionHandler {
 
 			try {
 				announcer.setBroadcastAddress(smbConfig.getBroadcastMask());
+				NetworkSettings.setBroadcastMask(smbConfig.getBroadcastMask());
 			}
 			catch (Exception ex) {
 			}
