@@ -1275,12 +1275,12 @@ public class NetBIOSNameServer extends NetworkServer implements Runnable, Config
 
                 //	Get a list of all the local addresses
                 InetAddress[] addrs = InetAddress.getAllByName(InetAddress.getLocalHost().getHostName());
+                final Set<String> invalidAddresses = new HashSet<>(Arrays.asList("0.0.0.0", "127.0.0.1", "::1"));
 
                 for (int i = 0; i < addrs.length; i++) {
 
-                    //	Check for a valid address, filter out '127.0.0.1' and '0.0.0.0' addresses
-                    if (addrs[i].getHostAddress().equals("127.0.0.1") == false &&
-                            addrs[i].getHostAddress().equals("0.0.0.0") == false)
+                    //	Check for a valid address, filter out loopback and '0.0.0.0' addresses
+                    if (!invalidAddresses.contains(addrs[i].getHostAddress()))
                         ipList.addElement(addrs[i].getAddress());
                 }
 
@@ -1304,8 +1304,7 @@ public class NetBIOSNameServer extends NetworkServer implements Runnable, Config
                                 while (niAddrs.hasMoreElements()) {
                                     InetAddress curAddr = (InetAddress) niAddrs.nextElement();
 
-                                    if (curAddr.getHostAddress().equals("127.0.0.1") == false &&
-                                            curAddr.getHostAddress().equals("0.0.0.0") == false)
+                                    if (!invalidAddresses.contains(curAddr.getHostAddress()))
                                         ipList.add(curAddr.getAddress());
                                 }
                             }
