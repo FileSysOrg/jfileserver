@@ -810,6 +810,10 @@ public class JavaFileDiskDriver implements DiskInterface {
             //	Update the file/folder modify date/time
             File file = new File(fname);
             file.setLastModified(info.getModifyDateTime());
+
+            // Update the associated network file, too, if possible
+            if (info.hasNetworkFile())
+                info.getNetworkFile().setModifyDate(info.getModifyDateTime());
         }
     }
 
