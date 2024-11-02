@@ -198,7 +198,7 @@ public class NetBIOSNameServer extends NetworkServer implements Runnable, Config
                     boolean txsts = true;
                     int retry = 0;
 
-                    while (req.hasErrorStatus() == false && retry++ < reqRetry) {
+                    retryLoop: while (req.hasErrorStatus() == false && retry++ < reqRetry) {
 
                         //	Debug
                         if (Debug.EnableInfo && hasDebug())
@@ -210,6 +210,9 @@ public class NetBIOSNameServer extends NetworkServer implements Runnable, Config
                             //	Add name request
                             case ADD_NAME:
 
+                            	// The server is shutting down, we can stop handling ADD_NAME
+                            	if (m_shutdown)
+                            		break retryLoop;
                                 //	Check if a WINS server is configured
                                 if (hasPrimaryWINSServer())
                                     txsts = sendAddName(req, getPrimaryWINSServer(), false);
@@ -230,6 +233,9 @@ public class NetBIOSNameServer extends NetworkServer implements Runnable, Config
                             //	Refresh name request
                             case REFRESH_NAME:
 
+                            	// The server is shutting down, we can stop handling REFRESH_NAME
+                            	if (m_shutdown)
+                            		break retryLoop;
                                 //	Check if a WINS server is configured
                                 if (hasPrimaryWINSServer())
                                     txsts = sendRefreshName(req, getPrimaryWINSServer(), false);
@@ -1617,6 +1623,9 @@ public class NetBIOSNameServer extends NetworkServer implements Runnable, Config
                 Debug.println(ex);
         }
 
+        //	Indicate that the server is closing
+        m_shutdown = true;
+
         //	If the shutdown is not immediate then release all of the names registered by this server
         if (isActive() && immediate == false) {
 
@@ -1662,9 +1671,6 @@ public class NetBIOSNameServer extends NetworkServer implements Runnable, Config
             if (Debug.EnableError)
                 Debug.println(ex);
         }
-
-        //	Indicate that the server is closing
-        m_shutdown = true;
 
         try {
 
