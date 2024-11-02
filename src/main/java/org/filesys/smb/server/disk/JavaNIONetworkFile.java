@@ -130,8 +130,11 @@ public class JavaNIONetworkFile extends NetworkFile {
             m_io = null;
 
             //	Set the last modified date/time for the file
-            if (this.getWriteCount() > 0)
-                Files.setLastModifiedTime(m_path, FileTime.fromMillis( System.currentTimeMillis()));
+            if (this.isModifyDateDirty()) {
+                long curTime = System.currentTimeMillis();
+                Files.setLastModifiedTime(m_path, FileTime.fromMillis(curTime));
+                this.setModifyDate(curTime);
+            }
 
             //	Indicate that the file is closed
             setClosed(true);

@@ -97,8 +97,11 @@ public class PseudoNetworkFile extends NetworkFile implements NetworkFileStateIn
             m_io = null;
 
             // Set the last modified date/time for the file
-            if (this.getWriteCount() > 0)
-                m_file.setLastModified(System.currentTimeMillis());
+            if (this.isModifyDateDirty()) {
+                long curTime = System.currentTimeMillis();
+                m_file.setLastModified(curTime);
+                this.setModifyDate(curTime);
+            }
 
             // Indicate that the file is closed
             setClosed(true);
