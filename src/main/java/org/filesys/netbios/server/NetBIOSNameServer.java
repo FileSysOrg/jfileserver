@@ -724,7 +724,7 @@ public class NetBIOSNameServer extends NetworkServer implements Runnable, Config
             throw new IOException("NetBIOS name socket not initialized");
 
         //	Create an add name request and add to the request list
-        NetBIOSRequest nbReq = new NetBIOSRequest(NetBIOSRequest.Type.ADD_NAME, name, getNextTransactionId());
+        NetBIOSRequest nbReq = new NetBIOSRequest(NetBIOSRequest.Type.ADD_NAME, name, getNextTransactionId(), AddNameRetries);
 
         //	Set the retry interval
         if (hasPrimaryWINSServer())
