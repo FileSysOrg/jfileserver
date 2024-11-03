@@ -46,6 +46,10 @@ public class JavaNIOSearchContext extends SearchContext {
     private Iterator<Path> m_pathIter;
     private int m_idx;
 
+    // Help speed up a common restartAt(FileInfo info) call pattern
+    private FileInfo m_cachedFileInfo;
+    private boolean m_restartFromCache;
+
     //	File attributes
     private int m_attr;
 
@@ -74,6 +78,11 @@ public class JavaNIOSearchContext extends SearchContext {
         return m_idx;
     }
 
+    private void resetIndex() {
+        m_idx = 0;
+        m_cachedFileInfo = null;
+    }
+
     /**
      * Determine if there are more files to return for this search
      *
@@ -87,7 +96,7 @@ public class JavaNIOSearchContext extends SearchContext {
         else if (m_stream == null || m_pathIter == null)
             return false;
         else if ( m_pathIter != null)
-            return m_pathIter.hasNext();
+            return m_pathIter.hasNext() || m_restartFromCache && m_cachedFileInfo != null;
         return true;
     }
 
@@ -104,7 +113,7 @@ public class JavaNIOSearchContext extends SearchContext {
 
         // Indicate this is a single file/folder search
         setSingleFileSearch( true);
-        m_idx = 0;
+        resetIndex();
 
         m_stream = null;
         m_pathIter = null;
@@ -131,7 +140,7 @@ public class JavaNIOSearchContext extends SearchContext {
 
         // Indicate a multi-file search
         setSingleFileSearch( false);
-        m_idx = 0;
+        resetIndex();
 
         // Start the folder search
         m_stream = Files.newDirectoryStream(m_root);
@@ -222,6 +231,11 @@ public class JavaNIOSearchContext extends SearchContext {
                     //  Indicate that the file information is valid
                     infoValid = true;
                 }
+            }
+            else if (m_restartFromCache == true && m_cachedFileInfo != null) {
+                m_restartFromCache = false;
+                info.copyFrom(m_cachedFileInfo);
+                infoValid = true;
             }
             else if (m_pathIter != null && m_pathIter.hasNext()) {
 
@@ -329,11 +343,14 @@ public class JavaNIOSearchContext extends SearchContext {
 
                     //  Indicate that the file information is valid
                     infoValid = true;
+
+                    m_cachedFileInfo = info;
                 }
             }
         }
         catch ( IOException ex) {
             infoValid = false;
+            m_cachedFileInfo = null;
         }
 
         //  Return the file information valid state
@@ -354,6 +371,10 @@ public class JavaNIOSearchContext extends SearchContext {
                 return m_root.getFileName().toString();
             else
                 return null;
+        }
+        else if (m_restartFromCache == true && m_cachedFileInfo != null) {
+            m_restartFromCache = false;
+            return m_cachedFileInfo.getFileName();
         }
         else if ( m_pathIter != null && m_pathIter.hasNext()) {
 
@@ -397,7 +418,7 @@ public class JavaNIOSearchContext extends SearchContext {
             return false;
         }
 
-        m_idx = 0;
+        resetIndex();
 
         while ( m_pathIter.hasNext() && m_idx != resumeId) {
             m_pathIter.next();
@@ -420,9 +441,15 @@ public class JavaNIOSearchContext extends SearchContext {
         boolean restartOK = false;
 
         if (m_stream != null) {
+            if (m_cachedFileInfo != null && m_cachedFileInfo == info) {
+                // Avoid expensively reiterating the whole directory if we're asked to merely go
+                // back to the immediately previously retrieved entry.
+                m_restartFromCache = true;
+                return true;
+            }
 
             // Restart the stream iterator and find the required restart path
-            m_idx = 0;
+            resetIndex();
 
             try {
                 m_stream = Files.newDirectoryStream(m_root);
