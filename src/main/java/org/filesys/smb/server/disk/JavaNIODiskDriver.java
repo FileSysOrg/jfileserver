@@ -855,6 +855,10 @@ public class JavaNIODiskDriver implements DiskInterface {
 
             //	Update the file/folder modify date/time
             Files.setLastModifiedTime( filePath, FileTime.fromMillis( info.getModifyDateTime()));
+
+            // Update the associated network file, too, if possible
+            if (info.hasNetworkFile())
+                info.getNetworkFile().setModifyDate(info.getModifyDateTime());
         }
     }
 

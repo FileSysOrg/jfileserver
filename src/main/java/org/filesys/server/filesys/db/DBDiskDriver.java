@@ -1488,8 +1488,12 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
             if (info.hasSetFlag(FileInfo.SetCreationDate))
                 dbInfo.setAccessDateTime(info.getCreationDateTime());
 
-            if (info.hasSetFlag(FileInfo.SetModifyDate))
-                dbInfo.setAccessDateTime(info.getModifyDateTime());
+            if (info.hasSetFlag(FileInfo.SetModifyDate)) {
+                long modifyDate = info.getModifyDateTime();
+                dbInfo.setAccessDateTime(modifyDate);
+                if (info.hasNetworkFile())
+                    info.getNetworkFile().setModifyDate(modifyDate);
+            }
 
             if (info.hasSetFlag(FileInfo.SetChangeDate))
                 dbInfo.setAccessDateTime(info.getChangeDateTime());
