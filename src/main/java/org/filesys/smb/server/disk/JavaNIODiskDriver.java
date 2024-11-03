@@ -27,6 +27,7 @@ import java.nio.file.*;
 import java.nio.file.DirectoryNotEmptyException;
 import java.nio.file.attribute.FileTime;
 import java.util.EnumSet;
+import java.util.Iterator;
 import java.util.Random;
 import java.util.StringTokenizer;
 import java.util.concurrent.Executor;
@@ -557,10 +558,10 @@ public class JavaNIODiskDriver implements DiskInterface {
 
             int lastPos = pathStr.length();
             idx = 0;
-            File lastDir = null;
+            Path lastDir = null;
             if (base != null && base.length() > 0)
-                lastDir = new File(base);
-            File curDir = null;
+                lastDir = Path.of(base);
+            Path curDir = null;
 
             while (idx < maxDir) {
 
@@ -569,47 +570,46 @@ public class JavaNIODiskDriver implements DiskInterface {
                 pathStr.append(java.io.File.separator);
 
                 //  Check if the current path exists
-                curDir = new File(pathStr.toString());
+                curDir = Path.of(pathStr.toString());
 
-                if (curDir.exists() == false) {
+                if (!Files.exists(curDir)) {
 
                     //  Check if there is a previous directory to search
                     if (lastDir == null)
                         throw new PathNotFoundException();
 
                     //  Search the current path for a matching directory, the case may be different
-                    String[] fileList = lastDir.list();
-                    if (fileList == null || fileList.length == 0)
-                        throw new PathNotFoundException();
+                    try (DirectoryStream<Path> lastDirStream = Files.newDirectoryStream(lastDir)) {
+                        Iterator<Path> lastDirIter = lastDirStream.iterator();
 
-                    int fidx = 0;
-                    boolean foundPath = false;
+                        boolean foundPath = false;
 
-                    while (fidx < fileList.length && foundPath == false) {
+                        while (lastDirIter.hasNext() && foundPath == false) {
+                            // Check if the current file name matches the required directory name
+                            String candidateFile = lastDirIter.next().getFileName().toString();
+                            if (candidateFile.equalsIgnoreCase(dirs[idx])) {
 
-                        //  Check if the current file name matches the required directory name
-                        if (fileList[fidx].equalsIgnoreCase(dirs[idx])) {
+                                // Use the current directory name
+                                pathStr.setLength(lastPos);
+                                pathStr.append(candidateFile);
+                                pathStr.append(java.io.File.separator);
 
-                            //  Use the current directory name
-                            pathStr.setLength(lastPos);
-                            pathStr.append(fileList[fidx]);
-                            pathStr.append(java.io.File.separator);
-
-                            //  Check if the path is valid
-                            curDir = new File(pathStr.toString());
-                            if (curDir.exists()) {
-                                foundPath = true;
-                                break;
+                                // Check if the path is valid
+                                curDir = Path.of(pathStr.toString());
+                                if (Files.exists(curDir)) {
+                                    foundPath = true;
+                                    break;
+                                }
                             }
                         }
 
-                        //  Update the file name index
-                        fidx++;
+                        // Check if we found the required directory
+                        if (foundPath == false)
+                            throw new PathNotFoundException();
                     }
-
-                    //  Check if we found the required directory
-                    if (foundPath == false)
+                    catch (IOException ex) {
                         throw new PathNotFoundException();
+                    }
                 }
 
                 //  Set the last valid directory file
@@ -626,37 +626,28 @@ public class JavaNIODiskDriver implements DiskInterface {
             if (path.endsWith( FileName.DOS_SEPERATOR_STR) == false) {
 
                 //  Map the file name
-                String[] fileList = lastDir.list();
                 String fileName = dirs[dirs.length - 1];
+                Path targetFile = Path.of(pathStr.toString(), fileName);
 
-                //	Check if the file list is valid, if not then the path is not valid
-                if (fileList == null)
-                    throw new FileNotFoundException(path);
-
-                //	Search for the required file
-                idx = 0;
-                boolean foundFile = false;
-
-                while (idx < fileList.length && foundFile == false) {
-                    if (fileList[idx].compareTo(fileName) == 0)
-                        foundFile = true;
-                    else
-                        idx++;
-                }
+                //  Search for the required file
+                boolean foundFile = Files.exists(targetFile);
 
                 //  Check if we found the file name, if not then do a case insensitive search
                 if (foundFile == false) {
+                    try (DirectoryStream<Path> lastDirStream = Files.newDirectoryStream(lastDir)) {
+                        Iterator<Path> lastDirIter = lastDirStream.iterator();
 
-                    //  Search again using a case insensitive search
-                    idx = 0;
+                        // Search again using a case insensitive search
+                        while (lastDirIter.hasNext() && foundFile == false) {
 
-                    while (idx < fileList.length && foundFile == false) {
-                        if (fileList[idx].equalsIgnoreCase(fileName)) {
-                            foundFile = true;
-                            fileName = fileList[idx];
+                            String candidateFile = lastDirIter.next().getFileName().toString();
+                            if (candidateFile.equalsIgnoreCase(fileName)) {
+                                foundFile = true;
+                                fileName = candidateFile;
+                            }
                         }
-                        else
-                            idx++;
+                    } catch (IOException ex) {
+                        throw new PathNotFoundException();
                     }
                 }
 
