@@ -627,27 +627,31 @@ public class JavaNIODiskDriver implements DiskInterface {
 
                 //  Map the file name
                 String fileName = dirs[dirs.length - 1];
-                Path targetFile = Path.of(pathStr.toString(), fileName);
 
-                //  Search for the required file
-                boolean foundFile = Files.exists(targetFile);
+                // If it's in fact a wildcard search, we can skip attempting to map a real file
+                if (!WildCard.containsWildcards(fileName)) {
+                    Path targetFile = Path.of(pathStr.toString(), fileName);
 
-                //  Check if we found the file name, if not then do a case insensitive search
-                if (foundFile == false) {
-                    try (DirectoryStream<Path> lastDirStream = Files.newDirectoryStream(lastDir)) {
-                        Iterator<Path> lastDirIter = lastDirStream.iterator();
+                    // Search for the required file
+                    boolean foundFile = Files.exists(targetFile);
 
-                        // Search again using a case insensitive search
-                        while (lastDirIter.hasNext() && foundFile == false) {
+                    // Check if we found the file name, if not then do a case insensitive search
+                    if (foundFile == false) {
+                        try (DirectoryStream<Path> lastDirStream = Files.newDirectoryStream(lastDir)) {
+                            Iterator<Path> lastDirIter = lastDirStream.iterator();
 
-                            String candidateFile = lastDirIter.next().getFileName().toString();
-                            if (candidateFile.equalsIgnoreCase(fileName)) {
-                                foundFile = true;
-                                fileName = candidateFile;
+                            // Search again using a case insensitive search
+                            while (lastDirIter.hasNext() && foundFile == false) {
+
+                                String candidateFile = lastDirIter.next().getFileName().toString();
+                                if (candidateFile.equalsIgnoreCase(fileName)) {
+                                    foundFile = true;
+                                    fileName = candidateFile;
+                                }
                             }
+                        } catch (IOException ex) {
+                            throw new PathNotFoundException();
                         }
-                    } catch (IOException ex) {
-                        throw new PathNotFoundException();
                     }
                 }
 
