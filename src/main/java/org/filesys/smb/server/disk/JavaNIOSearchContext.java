@@ -411,6 +411,7 @@ public class JavaNIOSearchContext extends SearchContext {
 
         // Restart the iteration and skip to the required position
         try {
+            m_stream.close();
             m_stream = Files.newDirectoryStream(m_root);
             m_pathIter = m_stream.iterator();
         }
@@ -452,6 +453,7 @@ public class JavaNIOSearchContext extends SearchContext {
             resetIndex();
 
             try {
+                m_stream.close();
                 m_stream = Files.newDirectoryStream(m_root);
                 m_pathIter = m_stream.iterator();
             }
@@ -513,4 +515,19 @@ public class JavaNIOSearchContext extends SearchContext {
         if (m_relPath != null && m_relPath.endsWith(FileName.DOS_SEPERATOR_STR) == false)
             m_relPath = m_relPath + FileName.DOS_SEPERATOR_STR;
     }
+
+    /**
+     * Close the search.
+     */
+    public void closeSearch() {
+        if (m_stream != null) {
+            try {
+                m_stream.close();
+            }
+            catch (IOException unused) {
+            }
+        }
+        super.closeSearch();
+    }
+
 }
