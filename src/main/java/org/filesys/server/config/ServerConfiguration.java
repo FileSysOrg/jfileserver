@@ -159,6 +159,13 @@ public class ServerConfiguration implements ServerConfigurationAccessor {
     }
 
     /**
+     * Remove all active servers
+     */
+    public final void removeAllServers() {
+        m_serverList.removeAll();
+    }
+
+    /**
      * Return the number of active servers
      *
      * @return int
