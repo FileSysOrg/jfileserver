@@ -155,13 +155,22 @@ public class ServerConfiguration implements ServerConfigurationAccessor {
      * @return NetworkServer
      */
     public final NetworkServer removeServer(String proto) {
-        return m_serverList.removeServer(proto);
+        final NetworkServer server = m_serverList.removeServer(proto);
+        if (server instanceof ConfigurationListener) {
+            removeListener((ConfigurationListener) server);
+        }
+        return server;
     }
 
     /**
      * Remove all active servers
      */
     public final void removeAllServers() {
+        for (NetworkServer server : m_serverList) {
+            if (server instanceof ConfigurationListener) {
+                removeListener((ConfigurationListener) server);
+            }
+        }
         m_serverList.removeAll();
     }
 
