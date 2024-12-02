@@ -123,7 +123,8 @@ public class JavaNIODeviceContext extends DiskDeviceContext {
                     throw new DeviceContextException("Trashcan path is not a folder - " + m_trashDir.getAbsolutePath());
 
                 // Make sure the trashcan folder is on the same volume as the shared folder, so we can rename deleted files
-                if ( rootDir.getParent().equalsIgnoreCase( m_trashDir.getParent()) == false) {
+                if (!m_trashDir.getAbsolutePath().startsWith(rootDir.getAbsolutePath())
+                        && !rootDir.getParent().equalsIgnoreCase(m_trashDir.getParent())) {
 
                     // File share and trash folders are not on the same volume
                     throw new DeviceContextException("File share and trash folders must be on the same volume");
