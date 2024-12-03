@@ -123,8 +123,7 @@ public class JavaNIODeviceContext extends DiskDeviceContext {
                     throw new DeviceContextException("Trashcan path is not a folder - " + m_trashDir.getAbsolutePath());
 
                 // Make sure the trashcan folder is on the same volume as the shared folder, so we can rename deleted files
-                if (!m_trashDir.getAbsolutePath().startsWith(rootDir.getAbsolutePath())
-                        && !rootDir.getParent().equalsIgnoreCase(m_trashDir.getParent())) {
+                if (!isTrashcanOnSameVolume(rootDir, m_trashDir)) {
 
                     // File share and trash folders are not on the same volume
                     throw new DeviceContextException("File share and trash folders must be on the same volume");
@@ -168,6 +167,24 @@ public class JavaNIODeviceContext extends DiskDeviceContext {
             //	Local path not specified
             throw new DeviceContextException("LocalPath parameter not specified");
         }
+    }
+
+    /**
+     * Validate that the trashcan folder resides on the same volume as the shared
+     * folder. This is a requirement because we want to be able to move files into
+     * the trashcan by simply renaming them.
+     * <p>
+     * The default implementation only uses a simple heuristic, override this method
+     * to provide a more advanced platform-specific check if required.
+     *
+     * @param rootDir  The root directory of the shared folder
+     * @param trashCan The proposed trashcan directory
+     * @return True if the proposed trashcan directory is acceptable, false to
+     *         signal an error
+     */
+    protected boolean isTrashcanOnSameVolume(File rootDir, File trashCan) {
+        return trashCan.getAbsolutePath().startsWith(rootDir.getAbsolutePath())
+                || rootDir.getParent().equalsIgnoreCase(m_trashDir.getParent());
     }
 
     /**
