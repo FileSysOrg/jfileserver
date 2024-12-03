@@ -1025,7 +1025,7 @@ public class JavaNIODiskDriver implements DiskInterface {
             throws DeviceContextException {
 
         // Parse the configuration and return the device context for this share
-        JavaNIODeviceContext ctx = new JavaNIODeviceContext( shareName, args);
+        JavaNIODeviceContext ctx = createJavaNIODeviceContext(shareName, args);
 
         // If the trashcan folder is configured then check if there are any trash files left over from a previous
         // server run
@@ -1061,6 +1061,20 @@ public class JavaNIODiskDriver implements DiskInterface {
 
         // Return the device context
         return ctx;
+    }
+
+    /**
+     * Provide a new <code>JavaNIODeviceContext</code> for
+     * <code>createContext</code> Override this method to provide your own class.
+     *
+     * @param shareName
+     * @param args
+     * @return DeviceContext
+     * @throws DeviceContextException Error creating the device context
+     */
+    protected JavaNIODeviceContext createJavaNIODeviceContext(String shareName, ConfigElement args)
+            throws DeviceContextException {
+        return new JavaNIODeviceContext(shareName, args);
     }
 
     /**
