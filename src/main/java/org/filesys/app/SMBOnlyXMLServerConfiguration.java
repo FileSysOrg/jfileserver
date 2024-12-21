@@ -573,6 +573,11 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 		if ( findChildNode( "disableNIO", smb.getChildNodes()) != null)
 			smbConfig.setDisableNIOCode( true);
 		
+		// Check if the HashedOpenFileMap should be disabled (and ArrayOpenFileMap used
+		// instead)
+		if (findChildNode("disableHashedOpenFileMap", smb.getChildNodes()) != null)
+			smbConfig.setDisableHashedOpenFileMap(true);
+
 		// Check if a maximum virtual circuits per session limit has been specified
 		elem = findChildNode("virtualCircuits", smb.getChildNodes());
 		if ( elem != null) {
