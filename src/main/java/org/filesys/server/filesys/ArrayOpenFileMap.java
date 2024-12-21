@@ -49,7 +49,7 @@ public class ArrayOpenFileMap extends OpenFileMap {
 
         @Override
         public boolean hasNext() {
-            while ( m_files[ m_nextId] == null && m_nextId < m_files.length)
+            while (m_nextId < m_files.length && m_files[m_nextId] == null)
                 m_nextId++;
 
             return m_nextId < m_files.length;
@@ -57,7 +57,7 @@ public class ArrayOpenFileMap extends OpenFileMap {
 
         @Override
         public Integer next() {
-            while ( m_files[ m_nextId] == null && m_nextId < m_files.length)
+            while (m_nextId < m_files.length && m_files[m_nextId] == null)
                 m_nextId++;
 
             if ( m_nextId < m_files.length)
