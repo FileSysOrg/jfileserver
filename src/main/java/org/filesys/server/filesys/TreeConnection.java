@@ -23,10 +23,12 @@ package org.filesys.server.filesys;
 import org.filesys.server.SrvSession;
 import org.filesys.server.auth.ISMBAuthenticator;
 import org.filesys.server.auth.acl.AccessControl;
+import org.filesys.server.config.ServerConfiguration;
 import org.filesys.server.core.DeviceContext;
 import org.filesys.server.core.DeviceInterface;
 import org.filesys.server.core.InvalidDeviceInterfaceException;
 import org.filesys.server.core.SharedDevice;
+import org.filesys.smb.server.SMBConfigSection;
 import org.filesys.smb.server.SMBSrvSession;
 
 import java.util.Iterator;
@@ -67,7 +69,7 @@ public class TreeConnection {
         m_shareDev = shrDev;
         m_shareDev.incrementConnectionCount();
 
-        m_files = new HashedOpenFileMap();
+        m_files = getOpenFileMap(shrDev.getConfiguration());
     }
 
     /**
@@ -82,8 +84,20 @@ public class TreeConnection {
 
         m_treeId = treeId;
 
-        m_files = new HashedOpenFileMap();
+        m_files = getOpenFileMap(shrDev.getConfiguration());
     }
+
+    private OpenFileMap getOpenFileMap(ServerConfiguration config) {
+        if (config != null) {
+            SMBConfigSection smbConfig = (SMBConfigSection) config.getConfigSection(SMBConfigSection.SectionName);
+            if (smbConfig != null)
+                if (smbConfig.hasDisableHashedOpenFileMap()) {
+                    return new ArrayOpenFileMap();
+                }
+        }
+
+        return new HashedOpenFileMap();
+	}
 
     /**
      * Return the tree id
