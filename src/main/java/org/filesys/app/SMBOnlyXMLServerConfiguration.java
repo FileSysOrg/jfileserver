@@ -569,6 +569,20 @@ public class SMBOnlyXMLServerConfiguration extends ServerConfiguration {
 		// Check if session debug is enabled
         procSessionDebugElement( findChildNode("sessionDebug", smb.getChildNodes()), smbConfig);
 
+		// If auditing is enabled we need to enable the 'Audit' debug level
+		if ( Audit.getAuditInterface() != null) {
+			EnumSet<SMBSrvSession.Dbg> flgs = smbConfig.getSessionDebugFlags();
+
+			// Enable the Audit debug level
+			if ( flgs != null)
+				flgs.add(SMBSrvSession.Dbg.AUDIT);
+			else
+				flgs = EnumSet.of(SMBSrvSession.Dbg.AUDIT);
+
+			// Update the session debug flags
+			smbConfig.setSessionDebugFlags(flgs);
+		}
+
 		// Check if NIO based code should be disabled
 		if ( findChildNode( "disableNIO", smb.getChildNodes()) != null)
 			smbConfig.setDisableNIOCode( true);
