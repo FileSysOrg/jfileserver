@@ -138,6 +138,9 @@ public class SMBConfigSection extends ConfigSection {
     // Per session virtual circuit limit
     private int m_virtualCircuitLimit = SMBV1VirtualCircuitList.DefMaxCircuits;
 
+    // Use ArrayOpenFileMap instead of HashedOpenFileMap
+    private boolean m_disableHashedOpenFileMap;
+
     //--------------------------------------------------------------------------------
     //  Win32 NetBIOS configuration
     //
@@ -653,6 +656,15 @@ public class SMBConfigSection extends ConfigSection {
      */
     public final boolean isNativeCodeDisabled() {
         return m_disableNativeCode;
+    }
+
+    /**
+     * Determine if the HashedOpenFileMap should be disabled
+     *
+     * @return boolean
+     */
+    public final boolean hasDisableHashedOpenFileMap() {
+        return m_disableHashedOpenFileMap;
     }
 
     /**
@@ -1493,6 +1505,24 @@ public class SMBConfigSection extends ConfigSection {
      * @param forestName String
      */
     public final void setForestName(String forestName) { m_forestName = forestName; }
+
+    /**
+     * Set the disable HashedOpenFileMap flag
+     *
+     * @param disableHashedOFM boolean
+     * @return int
+     * @throws InvalidConfigurationException Failed to set the disable
+     *                                       HashedOpenFileMap flag
+     */
+    public final int setDisableHashedOpenFileMap(boolean disableHashedOFM) throws InvalidConfigurationException {
+
+        // Inform listeners, validate the configuration change
+        int sts = fireConfigurationChange(ConfigId.SMBDisableHashedOFM, new Boolean(disableHashedOFM));
+        m_disableHashedOpenFileMap = disableHashedOFM;
+
+        // Return the change status
+        return sts;
+    }
 
     /**
      * Close the configuration section
