@@ -190,21 +190,6 @@
                     <autoPublish>true</autoPublish>
                 </configuration>
             </plugin>
-
-            <!-- Nexus staging -->
-<!--
-            <plugin>
-                <groupId>org.sonatype.plugins</groupId>
-                <artifactId>nexus-staging-maven-plugin</artifactId>
-                <version>1.7.0</version>
-                <extensions>true</extensions>
-                <configuration>
-                    <serverId>ossrh</serverId>
-                    <nexusUrl>https://oss.sonatype.org/</nexusUrl>
-                    <autoReleaseAfterClose>true</autoReleaseAfterClose>
-                </configuration>
-            </plugin>
--->
         </plugins>
     </build>
 
