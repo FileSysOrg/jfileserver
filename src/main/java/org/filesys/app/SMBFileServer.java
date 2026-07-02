@@ -99,13 +99,13 @@ public class SMBFileServer implements ServerListener {
 		SMBFileServer fileServer = new SMBFileServer();
 
 		// Loop until shutdown
-		while (m_shutdown == false) {
+		while ( !m_shutdown) {
 
 			// Start the server
-			fileServer.start(args);
+			fileServer.start(args, false);
 
 			// DEBUG
-			if ( Debug.EnableInfo && m_restart == true) {
+			if ( Debug.EnableInfo && m_restart) {
 				Debug.println("Restarting server ...");
 				Debug.println("--------------------------------------------------");
 			}
@@ -140,8 +140,9 @@ public class SMBFileServer implements ServerListener {
 	 * Start the file server
 	 * 
 	 * @param args String[]
+	 * @param nonBlock boolean
 	 */
-	protected void start(String[] args) {
+	protected void start(String[] args, boolean nonBlock) {
 
 		// Command line parameter should specify the configuration file
 		PrintStream out = createOutputStream();
@@ -244,19 +245,23 @@ public class SMBFileServer implements ServerListener {
 			// Check if the server is running as a service
 			boolean service = false;
 
-			if ( ConsoleIO.isValid() == false)
+			if ( !ConsoleIO.isValid())
 				service = true;
 
 			// Checkpoint - servers running
 			checkPoint(out, CheckPoint.Running);
 
+			// For non-blocking mode return now, shutdown will need to be called later
+			if ( nonBlock)
+				return;
+
 			// Wait while the server runs, user may stop or restart the server by typing a key
 			m_shutdown = false;
 
-			while (m_shutdown == false && m_restart == false) {
+			while ( !m_shutdown && !m_restart) {
 
 				// Check if the user has requested a shutdown, if running interactively
-				if ( service == false && m_allowShutViaConsole) {
+				if ( !service && m_allowShutViaConsole) {
 
 					// Wait for the user to enter the shutdown key
 					int inChar = ConsoleIO.readCharacter();
@@ -343,7 +348,7 @@ public class SMBFileServer implements ServerListener {
 	 * 
 	 * @param args String[]
 	 */
-	public final static void shutdownServer(String[] args) {
+	public static void shutdownServer(String[] args) {
 		m_shutdown = true;
 	}
 

@@ -159,7 +159,7 @@ public class FileServer implements ServerListener {
 	 * 
 	 * @param consoleShut boolean
 	 */
-	public static final void setAllowConsoleShutdown(boolean consoleShut) {
+	public static void setAllowConsoleShutdown(boolean consoleShut) {
 		m_allowShutViaConsole = consoleShut;
 	}
 
@@ -173,11 +173,21 @@ public class FileServer implements ServerListener {
 	}
 
 	/**
-	 * Start the file server
-	 * 
+	 * Start the file server and wait for shutdown
+	 *
 	 * @param args String[]
 	 */
-	protected void start(String[] args) {
+	public void start(String[] args) {
+		start(args, false);
+	}
+
+	/**
+	 * Start the file server
+	 *
+	 * @param args String[]
+	 * @param nonBlock boolean
+	 */
+	public void start(String[] args, boolean nonBlock) {
 
 		// Command line parameter should specify the configuration file
 		PrintStream out = createOutputStream();
@@ -310,23 +320,27 @@ public class FileServer implements ServerListener {
 			// Check if the server is running as a service
 			boolean service = false;
 
-			if ( ConsoleIO.isValid() == false)
+			if ( !ConsoleIO.isValid())
 				service = true;
 
 			// Checkpoint - servers running
 			checkPoint(out, CheckPoint.Running);
 
 			// Install the shutdown hook
-			m_mainThread= Thread.currentThread();
+			m_mainThread = Thread.currentThread();
             Runtime.getRuntime().addShutdownHook( new FileServerShutdownHook( this));
+
+			// For non-blocking mode return now, shutdown will need to be called later
+			if ( nonBlock)
+				return;
 
 			// Wait while the server runs, user may stop or restart the server by typing a key
 			m_shutdown = false;
 
-			while (m_shutdown == false && m_restart == false) {
+			while ( !m_shutdown && !m_restart) {
 
 				// Check if the user has requested a shutdown, if running interactively
-				if ( service == false && m_allowShutViaConsole) {
+				if ( !service && m_allowShutViaConsole) {
 
 					// Wait for the user to enter the shutdown key
 					int inChar = ConsoleIO.readCharacter();
@@ -416,11 +430,22 @@ public class FileServer implements ServerListener {
 	}
 
 	/**
-	 * Start the file server
+	 * Start the file server and wait for shutdown
 	 *
 	 * @param config ServerConfiguration
 	 */
-	protected void start(ServerConfiguration config) {
+	public void start(ServerConfiguration config) {
+		start(config, false);
+	}
+
+
+	/**
+	 * Start the file server
+	 *
+	 * @param config ServerConfiguration
+	 * @param nonBlock boolean
+	 */
+	public void start(ServerConfiguration config, boolean nonBlock) {
 
 		// Command line parameter should specify the configuration file
 		PrintStream out = createOutputStream();
@@ -550,7 +575,7 @@ public class FileServer implements ServerListener {
 			// Check if the server is running as a service
 			boolean service = false;
 
-			if ( ConsoleIO.isValid() == false)
+			if ( !ConsoleIO.isValid())
 				service = true;
 
 			// Checkpoint - servers running
@@ -560,13 +585,17 @@ public class FileServer implements ServerListener {
 			m_mainThread= Thread.currentThread();
 			Runtime.getRuntime().addShutdownHook( new FileServerShutdownHook( this));
 
+			// For non-blocking mode return now, shutdown will need to be called later
+			if ( nonBlock)
+				return;
+
 			// Wait while the server runs, user may stop or restart the server by typing a key
 			m_shutdown = false;
 
-			while (m_shutdown == false && m_restart == false) {
+			while ( !m_shutdown && !m_restart) {
 
 				// Check if the user has requested a shutdown, if running interactively
-				if ( service == false && m_allowShutViaConsole) {
+				if ( !service && m_allowShutViaConsole) {
 
 					// Wait for the user to enter the shutdown key
 					int inChar = ConsoleIO.readCharacter();
@@ -656,12 +685,49 @@ public class FileServer implements ServerListener {
 	}
 
 	/**
+	 * Shutdown the server when running in non-blocking mode
+	 */
+	public void shutdown() {
+
+		// Indicate server shutdown
+		m_shutdown = true;
+
+		// Command line parameter should specify the configuration file
+		PrintStream out = createOutputStream();
+
+		// Get the debug configuration
+		DebugConfigSection dbgConfig = (DebugConfigSection) m_srvConfig.getConfigSection(DebugConfigSection.SectionName);
+
+		// Shutdown the servers
+		int idx = m_srvConfig.numberOfServers() - 1;
+
+		while (idx >= 0) {
+
+			// Get the current server
+			NetworkServer server = m_srvConfig.getServer(idx--);
+
+			// DEBUG
+			if ( Debug.EnableInfo && dbgConfig != null && dbgConfig.hasDebug())
+				Debug.println("Shutting server " + server.getProtocolName() + " ...");
+
+			// Stop the server
+			server.shutdownServer(false);
+		}
+
+		// Close the configuration
+		m_srvConfig.closeConfiguration();
+
+		// Checkpoint - servers stopped
+		checkPoint(out, FileServer.CheckPoint.ServerStopped);
+	}
+
+	/**
      * Check if the file server is running
      *
      * @return boolean
      */
     public final boolean isRunning() {
-        return m_shutdown == false && m_mainThread != null;
+        return !m_shutdown && m_mainThread != null;
     }
 
     /**
@@ -693,6 +759,12 @@ public class FileServer implements ServerListener {
 
         // Close the configuration
         m_srvConfig.closeConfiguration();
+
+		// Command line parameter should specify the configuration file
+		PrintStream out = createOutputStream();
+
+		// Checkpoint - servers stopped
+		checkPoint(out, FileServer.CheckPoint.ServerStopped);
     }
 
 	/**
@@ -700,7 +772,7 @@ public class FileServer implements ServerListener {
 	 * 
 	 * @param args String[]
 	 */
-	public final static void shutdownServer(String[] args) {
+	public static void shutdownServer(String[] args) {
 		m_shutdown = true;
 	}
 
