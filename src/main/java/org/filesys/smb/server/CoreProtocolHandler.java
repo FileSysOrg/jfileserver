@@ -2608,6 +2608,9 @@ class CoreProtocolHandler extends ProtocolHandler {
             // Access the disk interface that is associated with the shared device
             DiskInterface disk = (DiskInterface) conn.getSharedDevice().getInterface();
 
+            // Store the associated network file in the file information object
+            finfo.setNetworkFile(netFile);
+
             // Get the file information for the specified file/directory
             finfo.setFileInformationFlags(setFlags);
             disk.setFileInformation(m_sess, conn, netFile.getFullName(), finfo);

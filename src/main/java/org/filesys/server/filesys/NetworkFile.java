@@ -118,6 +118,9 @@ public abstract class NetworkFile {
     protected long m_modifyDate;
     protected long m_accessDate;
 
+    // Track whether file date needs updating on file close
+    protected boolean m_modifyDateDirty;
+
     // Granted file access type
     protected Access m_grantedAccess;
 
@@ -567,6 +570,17 @@ public abstract class NetworkFile {
     }
 
     /**
+     * Return whether the file modify date/time is dirty due to file writes. Calling
+     * {@link incrementWriteCount} marks the modify date/time as dirty, setting the
+     * date/time via {@link setModifyDate} resets it back to clean.
+     *
+     * @return boolean
+     */
+    public final boolean isModifyDateDirty() {
+    	return m_modifyDateDirty;
+    }
+
+    /**
      * Get the write count for the file
      *
      * @return int
@@ -580,6 +594,7 @@ public abstract class NetworkFile {
      */
     public final void incrementWriteCount() {
         m_writeCount++;
+        m_modifyDateDirty = true;
     }
 
     /**
@@ -799,6 +814,7 @@ public abstract class NetworkFile {
      */
     public final void setModifyDate(long dattim) {
         m_modifyDate = dattim;
+        m_modifyDateDirty = false;
     }
 
     /**
