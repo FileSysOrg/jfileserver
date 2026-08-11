@@ -50,6 +50,9 @@ public class JavaNIODeviceContext extends DiskDeviceContext {
     // Large file size, require special processing for deletes/truncates
     private long m_largeFileSize = DefaultLargeFileSize;
 
+    // Whether the underlying file system can be assumed to be case-insensitive
+    private boolean m_caseInsensitiveDisk = false;
+
     /**
      * Class constructor
      *
@@ -144,6 +147,10 @@ public class JavaNIODeviceContext extends DiskDeviceContext {
                 m_trashDir = trashDir;
             }
 
+            // Check if we can assume a case-insensitive file system
+            if (args.getChild("DiskIsCaseInsensitive") != null)
+                m_caseInsensitiveDisk = true;
+
             // Check if debug output is enabled
             if ( args.getChild( "Debug") != null)
                 setDebug( true);
@@ -194,5 +201,15 @@ public class JavaNIODeviceContext extends DiskDeviceContext {
      */
     protected final long getLargeFileSize() {
         return m_largeFileSize;
+    }
+
+    /**
+     * Whether the underlying disk is assumed to be case-insensitive, allowing
+     * certain performance optimizations to be made
+     *
+     * @return boolean
+     */
+    protected final boolean getDiskIsCaseInsensitive() {
+        return m_caseInsensitiveDisk;
     }
 }

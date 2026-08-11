@@ -27,6 +27,7 @@ import java.nio.file.*;
 import java.nio.file.DirectoryNotEmptyException;
 import java.nio.file.attribute.FileTime;
 import java.util.EnumSet;
+import java.util.Iterator;
 import java.util.Random;
 import java.util.StringTokenizer;
 import java.util.concurrent.Executor;
@@ -200,7 +201,7 @@ public class JavaNIODiskDriver implements DiskInterface {
             throws java.io.IOException {
 
         //  Get the full path for the new directory
-        String dirname = FileName.buildPath(tree.getContext().getDeviceName(), params.getPath(), null, java.io.File.separatorChar);
+        String dirname = buildPath(tree.getContext(), params.getPath(), null);
 
         //  Create the new directory
         File newDir = new File(dirname);
@@ -221,8 +222,8 @@ public class JavaNIODiskDriver implements DiskInterface {
             throws java.io.IOException {
 
         //  Get the full path for the new file
-        DeviceContext ctx = tree.getContext();
-        Path newPath = Paths.get( mapPath( ctx.getDeviceName(), params.getPath()));
+        JavaNIODeviceContext ctx = (JavaNIODeviceContext) tree.getContext();
+        Path newPath = Paths.get(mapPath(ctx.getDeviceName(), params.getPath(), ctx.getDiskIsCaseInsensitive()));
 
         //  Check if the file already exists
         if ( Files.exists( newPath, LinkOption.NOFOLLOW_LINKS))
@@ -267,8 +268,8 @@ public class JavaNIODiskDriver implements DiskInterface {
             throws java.io.IOException {
 
         //  Get the full path for the directory
-        DeviceContext ctx = tree.getContext();
-        Path dirPath = Paths.get( FileName.buildPath(ctx.getDeviceName(), dir, null, java.io.File.separatorChar));
+        JavaNIODeviceContext ctx = (JavaNIODeviceContext) tree.getContext();
+        Path dirPath = Paths.get(buildPath(ctx, dir, null));
 
         //  Check if the directory exists, and it is a directory
         if ( Files.exists( dirPath) && Files.isDirectory( dirPath)) {
@@ -286,7 +287,7 @@ public class JavaNIODiskDriver implements DiskInterface {
         else if ( Files.exists( dirPath) == false) {
 
             //  Map the path to a real path
-            String mappedPath = mapPath(ctx.getDeviceName(), dir);
+            String mappedPath = mapPath(ctx.getDeviceName(), dir, ctx.getDiskIsCaseInsensitive());
 
             if (mappedPath != null) {
 
@@ -320,7 +321,7 @@ public class JavaNIODiskDriver implements DiskInterface {
 
         //  Get the full path for the file
         JavaNIODeviceContext ctx = (JavaNIODeviceContext) tree.getContext();
-        Path filePath = Paths.get( FileName.buildPath(ctx.getDeviceName(), name, null, java.io.File.separatorChar));
+        Path filePath = Paths.get(buildPath(ctx, name, null));
 
         //  Check if the file exists, and it is a file
         if ( Files.exists( filePath) && Files.isDirectory( filePath) == false) {
@@ -390,8 +391,8 @@ public class JavaNIODiskDriver implements DiskInterface {
     public FileStatus fileExists(SrvSession sess, TreeConnection tree, String name) {
 
         //  Get the full path for the file
-        DeviceContext ctx = tree.getContext();
-        Path filePath = Paths.get( FileName.buildPath(ctx.getDeviceName(), name, null, java.io.File.separatorChar));
+        JavaNIODeviceContext ctx = (JavaNIODeviceContext) tree.getContext();
+        Path filePath = Paths.get(buildPath(ctx, name, null));
 
         if ( Files.exists( filePath, LinkOption.NOFOLLOW_LINKS)) {
 
@@ -404,7 +405,7 @@ public class JavaNIODiskDriver implements DiskInterface {
 
         // Map the path, and re-check
         try {
-            String mappedPath = mapPath(ctx.getDeviceName(), name);
+            String mappedPath = mapPath(ctx.getDeviceName(), name, ctx.getDiskIsCaseInsensitive());
 
             if ( mappedPath != null) {
                 filePath = Paths.get( mappedPath);
@@ -454,8 +455,8 @@ public class JavaNIODiskDriver implements DiskInterface {
             throws java.io.IOException {
 
         //  Get the full path for the file/directory
-        DeviceContext ctx = tree.getContext();
-        String path = FileName.buildPath(ctx.getDeviceName(), name, null, java.io.File.separatorChar);
+        JavaNIODeviceContext ctx = (JavaNIODeviceContext) tree.getContext();
+        String path = buildPath(ctx, name, null);
 
         //  Build the file information for the file/directory
         FileInfo info = buildFileInformation(path, name);
@@ -464,7 +465,7 @@ public class JavaNIODiskDriver implements DiskInterface {
             return info;
 
         //  Try and map the path to a real path
-        String mappedPath = mapPath(ctx.getDeviceName(), name);
+        String mappedPath = mapPath(ctx.getDeviceName(), name, ctx.getDiskIsCaseInsensitive());
         if (mappedPath != null)
             return buildFileInformation(mappedPath, name);
 
@@ -494,30 +495,33 @@ public class JavaNIODiskDriver implements DiskInterface {
     }
 
     /**
-     * Map the input path to a real path, this may require changing the case of various parts of the
-     * path.
+     * Map the input path to a real path, this may require changing the case of
+     * various parts of the path.
      *
-     * @param path Share relative path
+     * @param path            Share relative path
+     * @param caseInsensitive boolean
      * @return Real path on the local filesystem
      * @exception FileNotFoundException The path could not be mapped to a real path.
      * @exception PathNotFoundException Part of the path is not valid
      */
-    protected final String mapPath(String path)
+    protected final String mapPath(String path, boolean caseInsensitive)
             throws java.io.FileNotFoundException, PathNotFoundException {
-        return mapPath("", path);
+        return mapPath("", path, caseInsensitive);
     }
 
     /**
-     * Map the input path to a real path, this may require changing the case of various parts of the
-     * path. The base path is not checked, it is assumed to exist.
+     * Map the input path to a real path, this may require changing the case of
+     * various parts of the path. The base path is not checked, it is assumed to
+     * exist.
      *
-     * @param base String
-     * @param path String
+     * @param base            String
+     * @param path            String
+     * @param caseInsensitive boolean
      * @return String
      * @exception FileNotFoundException The path could not be mapped to a real path.
      * @exception PathNotFoundException Part of the path is not valid
      */
-    protected final String mapPath(String base, String path)
+    protected final String mapPath(String base, String path, boolean caseInsensitive)
             throws java.io.FileNotFoundException, PathNotFoundException {
 
         //  Split the path string into seperate directory components
@@ -557,10 +561,10 @@ public class JavaNIODiskDriver implements DiskInterface {
 
             int lastPos = pathStr.length();
             idx = 0;
-            File lastDir = null;
+            Path lastDir = null;
             if (base != null && base.length() > 0)
-                lastDir = new File(base);
-            File curDir = null;
+                lastDir = Path.of(base);
+            Path curDir = null;
 
             while (idx < maxDir) {
 
@@ -569,47 +573,48 @@ public class JavaNIODiskDriver implements DiskInterface {
                 pathStr.append(java.io.File.separator);
 
                 //  Check if the current path exists
-                curDir = new File(pathStr.toString());
+                curDir = Path.of(pathStr.toString());
 
-                if (curDir.exists() == false) {
+                if (!Files.exists(curDir)) {
 
                     //  Check if there is a previous directory to search
-                    if (lastDir == null)
+                    // (Unless the disk is case-insensitive, because in that case the file really
+                    // doesn't exist)
+                    if (lastDir == null || caseInsensitive)
                         throw new PathNotFoundException();
 
                     //  Search the current path for a matching directory, the case may be different
-                    String[] fileList = lastDir.list();
-                    if (fileList == null || fileList.length == 0)
-                        throw new PathNotFoundException();
+                    try (DirectoryStream<Path> lastDirStream = Files.newDirectoryStream(lastDir)) {
+                        Iterator<Path> lastDirIter = lastDirStream.iterator();
 
-                    int fidx = 0;
-                    boolean foundPath = false;
+                        boolean foundPath = false;
 
-                    while (fidx < fileList.length && foundPath == false) {
+                        while (lastDirIter.hasNext() && foundPath == false) {
+                            // Check if the current file name matches the required directory name
+                            String candidateFile = lastDirIter.next().getFileName().toString();
+                            if (candidateFile.equalsIgnoreCase(dirs[idx])) {
 
-                        //  Check if the current file name matches the required directory name
-                        if (fileList[fidx].equalsIgnoreCase(dirs[idx])) {
+                                // Use the current directory name
+                                pathStr.setLength(lastPos);
+                                pathStr.append(candidateFile);
+                                pathStr.append(java.io.File.separator);
 
-                            //  Use the current directory name
-                            pathStr.setLength(lastPos);
-                            pathStr.append(fileList[fidx]);
-                            pathStr.append(java.io.File.separator);
-
-                            //  Check if the path is valid
-                            curDir = new File(pathStr.toString());
-                            if (curDir.exists()) {
-                                foundPath = true;
-                                break;
+                                // Check if the path is valid
+                                curDir = Path.of(pathStr.toString());
+                                if (Files.exists(curDir)) {
+                                    foundPath = true;
+                                    break;
+                                }
                             }
                         }
 
-                        //  Update the file name index
-                        fidx++;
+                        // Check if we found the required directory
+                        if (foundPath == false)
+                            throw new PathNotFoundException();
                     }
-
-                    //  Check if we found the required directory
-                    if (foundPath == false)
+                    catch (IOException ex) {
                         throw new PathNotFoundException();
+                    }
                 }
 
                 //  Set the last valid directory file
@@ -626,37 +631,34 @@ public class JavaNIODiskDriver implements DiskInterface {
             if (path.endsWith( FileName.DOS_SEPERATOR_STR) == false) {
 
                 //  Map the file name
-                String[] fileList = lastDir.list();
                 String fileName = dirs[dirs.length - 1];
 
-                //	Check if the file list is valid, if not then the path is not valid
-                if (fileList == null)
-                    throw new FileNotFoundException(path);
+                // If it's in fact a wildcard search, we can skip attempting to map a real file
+                if (!WildCard.containsWildcards(fileName)) {
+                    Path targetFile = Path.of(pathStr.toString(), fileName);
 
-                //	Search for the required file
-                idx = 0;
-                boolean foundFile = false;
+                    // Search for the required file
+                    boolean foundFile = Files.exists(targetFile);
 
-                while (idx < fileList.length && foundFile == false) {
-                    if (fileList[idx].compareTo(fileName) == 0)
-                        foundFile = true;
-                    else
-                        idx++;
-                }
+                    // Check if we found the file name, if not then do a case insensitive search
+                    // (Unless the disk is already assumed to be case-insensitive, in which case
+                    // skip this step)
+                    if (foundFile == false && !caseInsensitive) {
+                        try (DirectoryStream<Path> lastDirStream = Files.newDirectoryStream(lastDir)) {
+                            Iterator<Path> lastDirIter = lastDirStream.iterator();
 
-                //  Check if we found the file name, if not then do a case insensitive search
-                if (foundFile == false) {
+                            // Search again using a case insensitive search
+                            while (lastDirIter.hasNext() && foundFile == false) {
 
-                    //  Search again using a case insensitive search
-                    idx = 0;
-
-                    while (idx < fileList.length && foundFile == false) {
-                        if (fileList[idx].equalsIgnoreCase(fileName)) {
-                            foundFile = true;
-                            fileName = fileList[idx];
+                                String candidateFile = lastDirIter.next().getFileName().toString();
+                                if (candidateFile.equalsIgnoreCase(fileName)) {
+                                    foundFile = true;
+                                    fileName = candidateFile;
+                                }
+                            }
+                        } catch (IOException ex) {
+                            throw new PathNotFoundException();
                         }
-                        else
-                            idx++;
                     }
                 }
 
@@ -689,13 +691,13 @@ public class JavaNIODiskDriver implements DiskInterface {
             throws java.io.IOException {
 
         //  Create a Java network file
-        DeviceContext ctx = tree.getContext();
-        Path filePath = Paths.get( FileName.buildPath(ctx.getDeviceName(), params.getPath(), null, java.io.File.separatorChar));
+        JavaNIODeviceContext ctx = (JavaNIODeviceContext) tree.getContext();
+        Path filePath = Paths.get(buildPath(ctx, params.getPath(), null));
 
         if ( Files.exists( filePath) == false) {
 
             //  Try and map the file name string to a local path
-            String mappedPath = mapPath(ctx.getDeviceName(), params.getPath());
+            String mappedPath = mapPath(ctx.getDeviceName(), params.getPath(), ctx.getDiskIsCaseInsensitive());
             if (mappedPath == null)
                 throw new java.io.FileNotFoundException(filePath.toString());
 
@@ -795,8 +797,8 @@ public class JavaNIODiskDriver implements DiskInterface {
         //  Get the full path for the existing file and the new file name
         DeviceContext ctx = tree.getContext();
 
-        Path oldPath = Paths.get( FileName.buildPath(ctx.getDeviceName(), oldName, null, java.io.File.separatorChar));
-        Path newPath = Paths.get( FileName.buildPath(ctx.getDeviceName(), newName, null, java.io.File.separatorChar));
+        Path oldPath = Paths.get(buildPath(ctx, oldName, null));
+        Path newPath = Paths.get(buildPath(ctx, newName, null));
 
         //	Check if the current file/directory exists
         if ( Files.exists( oldPath) == false)
@@ -850,8 +852,8 @@ public class JavaNIODiskDriver implements DiskInterface {
         if (info.hasSetFlag(FileInfo.SetModifyDate)) {
 
             //	Build the path to the file
-            DeviceContext ctx = tree.getContext();
-            Path filePath = Paths.get( mapPath( ctx.getDeviceName(), name));
+            JavaNIODeviceContext ctx = (JavaNIODeviceContext) tree.getContext();
+            Path filePath = Paths.get(mapPath(ctx.getDeviceName(), name, ctx.getDiskIsCaseInsensitive()));
 
             //	Update the file/folder modify date/time
             Files.setLastModifiedTime( filePath, FileTime.fromMillis( info.getModifyDateTime()));
@@ -873,13 +875,14 @@ public class JavaNIODiskDriver implements DiskInterface {
             throws java.io.FileNotFoundException {
 
         //  Create the full search path string
-        String path = FileName.buildPath(tree.getContext().getDeviceName(), null, searchPath, File.separatorChar);
+        JavaNIODeviceContext diskCtx = (JavaNIODeviceContext) tree.getContext();
+        String path = buildPath(diskCtx, null, searchPath);
         JavaNIOSearchContext ctx = null;
 
         try {
 
             //	Map the path, this may require changing the case on some or all path components
-            path = mapPath(path);
+            path = mapPath(path, diskCtx.getDiskIsCaseInsensitive());
 
             // Split the search path to get the share relative path
             String[] paths = FileName.splitPath(path, File.separatorChar);
@@ -1088,5 +1091,17 @@ public class JavaNIODiskDriver implements DiskInterface {
      */
     public final static long getGlobalCreateDateTime() {
         return _globalCreateDate;
+    }
+
+    /**
+     * Thin wrapper around <code>FileName.buildPath()</code>.
+     *
+     * @param ctx
+     * @param path
+     * @param filename
+     * @return String
+     */
+    protected final static String buildPath(DeviceContext ctx, String path, String filename) {
+        return FileName.buildPath(ctx.getDeviceName(), path, filename, java.io.File.separatorChar);
     }
 }
