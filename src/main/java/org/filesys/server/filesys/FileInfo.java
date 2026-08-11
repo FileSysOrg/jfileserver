@@ -639,6 +639,7 @@ public class FileInfo {
 	 */
 	public final void resetInfo() {
 		m_name = "";
+		m_shortName = null;
 		m_path = null;
 
 		m_size = 0L;
@@ -666,6 +667,7 @@ public class FileInfo {
 	 */
 	public final void copyFrom(FileInfo finfo) {
 		m_name = finfo.getFileName();
+		m_shortName = finfo.getShortName();
 		m_path = finfo.getPath();
 
 		m_size = finfo.getSize();
