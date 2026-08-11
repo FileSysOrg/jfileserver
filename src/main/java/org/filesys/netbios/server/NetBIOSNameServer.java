@@ -339,7 +339,7 @@ public class NetBIOSNameServer extends NetworkServer implements Runnable, Config
                         addPkt.setFlags(0);
 
                     //  Allocate the datagram packet, using the add name buffer
-                    DatagramPacket pkt = new DatagramPacket(buf, len, dest, getPort());
+                    DatagramPacket pkt = new DatagramPacket(buf, len, dest, RFCNetBIOSProtocol.NAMING);
 
                     //	Send the add name request
                     if (m_socket != null)
@@ -385,7 +385,7 @@ public class NetBIOSNameServer extends NetworkServer implements Runnable, Config
                         refreshPkt.setFlags(0);
 
                     //  Allocate the datagram packet, using the refresh name buffer
-                    DatagramPacket pkt = new DatagramPacket(buf, len, dest, getPort());
+                    DatagramPacket pkt = new DatagramPacket(buf, len, dest, RFCNetBIOSProtocol.NAMING);
 
                     //	Send the refresh name request
                     if (m_socket != null)
@@ -430,7 +430,7 @@ public class NetBIOSNameServer extends NetworkServer implements Runnable, Config
                         delPkt.setFlags(0);
 
                     //  Allocate the datagram packet, using the add name buffer
-                    DatagramPacket pkt = new DatagramPacket(buf, len, dest, getPort());
+                    DatagramPacket pkt = new DatagramPacket(buf, len, dest, RFCNetBIOSProtocol.NAMING);
 
                     //	Send the add name request
                     if (m_socket != null)
@@ -1502,7 +1502,7 @@ public class NetBIOSNameServer extends NetworkServer implements Runnable, Config
             throws java.io.IOException {
 
         //  Allocate the datagram packet, using the add name buffer
-        DatagramPacket pkt = new DatagramPacket(nbpkt.getBuffer(), len, NetworkSettings.getBroadcastAddress(), getPort());
+        DatagramPacket pkt = new DatagramPacket(nbpkt.getBuffer(), len, NetworkSettings.getBroadcastAddress(), RFCNetBIOSProtocol.NAMING);
 
         //  Send the datagram packet
         m_socket.send(pkt);
