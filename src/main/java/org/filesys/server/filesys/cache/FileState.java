@@ -906,7 +906,7 @@ public abstract class FileState implements Serializable {
     public abstract boolean isCopyState();
 
     /**
-     * Check if the allocation size has been set
+     * Check if the file size has been set
      *
      * @return boolean
      */

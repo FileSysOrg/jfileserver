@@ -21,6 +21,7 @@ package org.filesys.server.filesys;
 
 import java.util.Date;
 
+import org.filesys.debug.Debug;
 import org.filesys.smb.SMBDate;
 
 /**
