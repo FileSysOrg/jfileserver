@@ -123,8 +123,9 @@ public abstract class ChannelPacketHandler extends PacketHandler {
         // Wrap the buffer and output to the socket channel
         ByteBuffer buf = ByteBuffer.wrap(pkt, off, len);
 
-        while (buf.hasRemaining())
+        while (buf.hasRemaining()) {
             m_sockChannel.write(buf);
+        }
     }
 
     /**

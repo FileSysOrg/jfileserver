@@ -93,6 +93,9 @@ public abstract class JdbcDBInterface implements DBInterface, DBConnectionPoolLi
     // Time to wait for a valid database connection during startup
     protected int m_dbWaitSecs = 0;
 
+    // Prefix for tables, indexes and sequences
+    protected String m_dbPrefix = "";
+
     //	Database table that contains the file system structure records, streams information
     //	records, data retention information records, file loader queue and file loader transaction
     //	queue and file data tables.
@@ -177,6 +180,13 @@ public abstract class JdbcDBInterface implements DBInterface, DBConnectionPoolLi
      * @return EnumSet&lt;Feature&gt;
      */
     protected abstract EnumSet<Feature> getSupportedFeatures();
+
+    /**
+     * Return the database prefix
+     *
+     * @return String
+     */
+    public final String getPrefix() { return m_dbPrefix; }
 
     /**
      * Check if the crash recovery folder is enabled
@@ -309,59 +319,82 @@ public abstract class JdbcDBInterface implements DBInterface, DBConnectionPoolLi
         if (nameVal != null)
             m_password = nameVal.getValue();
 
-        nameVal = params.getChild("FileSystemTable");
-        if (nameVal != null)
-            m_structTable = nameVal.getValue();
-        else
-            m_structTable = FileSysTable;
+        // Check if a database table prefix name has been specified
+        nameVal = params.getChild("TablePrefix");
+        if (nameVal != null) {
 
-        nameVal = params.getChild("StreamsTable");
-        if (nameVal != null)
-            m_streamTable = nameVal.getValue();
-        else
-            m_streamTable = StreamsTable;
+            // Prefix all table names
+            m_dbPrefix = nameVal.getValue();
+            if ( !m_dbPrefix.endsWith("_"))
+                m_dbPrefix = m_dbPrefix + "_";
 
-        nameVal = params.getChild("RetentionTable");
-        if (nameVal != null)
-            m_retentionTable = nameVal.getValue();
-        else
-            m_retentionTable = RetentionTable;
+            m_structTable   = m_dbPrefix + FileSysTable;
+            m_streamTable   = m_dbPrefix + StreamsTable;
+            m_retentionTable = m_dbPrefix + RetentionTable;
+            m_queueTable    = m_dbPrefix + QueueTable;
+            m_transactTable = m_dbPrefix + TransactQueueTable;
+            m_dataTable     = m_dbPrefix + DataTable;
+            m_jarDataTable  = m_dbPrefix + JarDataTable;
+            m_objectIdTable = m_dbPrefix + ObjectIdTable;
+            m_symLinkTable  = m_dbPrefix + SymLinkTable;
+        }
+        else {
 
-        nameVal = params.getChild("QueueTable");
-        if (nameVal != null)
-            m_queueTable = nameVal.getValue();
-        else
-            m_queueTable = QueueTable;
+            // Check for individual table name overrides
+            nameVal = params.getChild("FileSystemTable");
+            if (nameVal != null)
+                m_structTable = nameVal.getValue();
+            else
+                m_structTable = FileSysTable;
 
-        nameVal = params.getChild("TransactQueueTable");
-        if (nameVal != null)
-            m_transactTable = nameVal.getValue();
-        else
-            m_transactTable = TransactQueueTable;
+            nameVal = params.getChild("StreamsTable");
+            if (nameVal != null)
+                m_streamTable = nameVal.getValue();
+            else
+                m_streamTable = StreamsTable;
 
-        nameVal = params.getChild("DataTable");
-        if (nameVal != null)
-            m_dataTable = nameVal.getValue();
-        else
-            m_dataTable = DataTable;
+            nameVal = params.getChild("RetentionTable");
+            if (nameVal != null)
+                m_retentionTable = nameVal.getValue();
+            else
+                m_retentionTable = RetentionTable;
 
-        nameVal = params.getChild("JarDataTable");
-        if (nameVal != null)
-            m_jarDataTable = nameVal.getValue();
-        else
-            m_jarDataTable = JarDataTable;
+            nameVal = params.getChild("QueueTable");
+            if (nameVal != null)
+                m_queueTable = nameVal.getValue();
+            else
+                m_queueTable = QueueTable;
 
-        nameVal = params.getChild("ObjectIdTable");
-        if (nameVal != null)
-            m_objectIdTable = nameVal.getValue();
-        else
-            m_objectIdTable = ObjectIdTable;
+            nameVal = params.getChild("TransactQueueTable");
+            if (nameVal != null)
+                m_transactTable = nameVal.getValue();
+            else
+                m_transactTable = TransactQueueTable;
 
-        nameVal = params.getChild("SymLinksTable");
-        if (nameVal != null)
-            m_symLinkTable = nameVal.getValue();
-        else
-            m_symLinkTable = SymLinkTable;
+            nameVal = params.getChild("DataTable");
+            if (nameVal != null)
+                m_dataTable = nameVal.getValue();
+            else
+                m_dataTable = DataTable;
+
+            nameVal = params.getChild("JarDataTable");
+            if (nameVal != null)
+                m_jarDataTable = nameVal.getValue();
+            else
+                m_jarDataTable = JarDataTable;
+
+            nameVal = params.getChild("ObjectIdTable");
+            if (nameVal != null)
+                m_objectIdTable = nameVal.getValue();
+            else
+                m_objectIdTable = ObjectIdTable;
+
+            nameVal = params.getChild("SymLinksTable");
+            if (nameVal != null)
+                m_symLinkTable = nameVal.getValue();
+            else
+                m_symLinkTable = SymLinkTable;
+        }
 
         //  Check if the database connection pool initial and maximum size has been specified
         nameVal = params.getChild("ConnectionPool");

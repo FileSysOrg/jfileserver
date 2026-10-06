@@ -470,11 +470,14 @@ public class NIOSMBConnectionsHandler implements SMBConnectionsHandler, RequestH
                             sockChannel.setOption( StandardSocketOptions.SO_KEEPALIVE, true);
 
                         // DEBUG
-                        if (Debug.EnableInfo && hasDebug())
+                        if (Debug.EnableInfo && hasDebug()) {
                             Debug.println("[SMB] Created session " + sess.getUniqueId() + ", keepAlive=" + m_socketKeepAlive);
-
-                        if (Debug.EnableInfo && hasDebug())
                             Debug.println("[SMB] Connection from " + sockChannel.socket().getRemoteSocketAddress() + ", handler=" + channelHandler + ", sess=" + sess.getUniqueId());
+
+                            // TEST
+                            Debug.println("[SMB] Socket rcvbuf=" + sockChannel.getOption(StandardSocketOptions.SO_RCVBUF) +
+                                    ", sndbuf=" + sockChannel.getOption(StandardSocketOptions.SO_SNDBUF));
+                        }
 
                         // Add the new session to a request handler thread
                         queueSessionToHandler(sess);

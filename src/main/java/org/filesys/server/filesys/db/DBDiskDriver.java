@@ -165,7 +165,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
                 if (Debug.EnableInfo && hasDebug())
                     Debug.println("** Last file close, no file state for " + file.getFullName());
             }
-            else if ( !jdbcFile.isDirectory()) {
+            else if ( jdbcFile.hasAccessToken()) {
 
                 // If the file open count is now zero then reset the stored sharing mode
                 if (dbCtx.getStateCache().releaseFileAccess(fstate, file.getAccessToken()) == 0) {
@@ -312,17 +312,17 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
         DBDeviceContext dbCtx = (DBDeviceContext) tree.getContext();
 
         // Check if the database is online
-        if (dbCtx.getDBInterface().isOnline() == false)
+        if ( !dbCtx.getDBInterface().isOnline())
             throw new DiskOfflineException("Database is offline");
 
         // Check if the file loader is online
-        if (dbCtx.getFileLoader().isOnline() == false)
+        if ( !dbCtx.getFileLoader().isOnline())
             throw new DiskOfflineException("File loader is offline");
 
         //  Get, or create, a file state for the new path. Initially this will indicate that the directory
         //  does not exist.
         FileState fstate = getFileState(params.getPath(), dbCtx, false);
-        if (fstate != null && fstate.fileExists() == true)
+        if (fstate != null && fstate.fileExists())
             throw new FileExistsException("Path " + params.getPath() + " exists");
 
         //  If there is no file state check if the directory exists
@@ -370,13 +370,14 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
 //                params.setMode(DefaultNFSDirMode);
 
             //  Make sure the create directory option is enabled
-            if (params.hasCreateOption(WinNT.CreateDirectory) == false)
+            if ( !params.hasCreateOption(WinNT.CreateDirectory))
                 throw new IOException("Create directory called for non-directory");
 
             // Check if the file can be opened in the requested mode
             //
             // Note: The file status is set to NotExist at this point, the file record creation may fail
-            accessToken = dbCtx.getStateCache().grantFileAccess(params, fstate, FileStatus.NotExist);
+            if ( params.getOpenAction() != CreateDisposition.CREATE)
+                accessToken = dbCtx.getStateCache().grantFileAccess(params, fstate, FileStatus.NotExist);
 
             // Synchronize on the file state to avoid concurrent database create of the same file record
             synchronized ( fstate) {
@@ -392,7 +393,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
             }
 
             //  If retention is enabled get the expiry date/time
-            if (dbCtx.hasRetentionPeriod() && retain == true) {
+            if (dbCtx.hasRetentionPeriod() && retain) {
                 RetentionDetails retDetails = dbCtx.getDBInterface().getFileRetentionDetails(dirId, fid);
                 if (retDetails != null)
                     fstate.setRetentionExpiryDateTime(retDetails.getEndTime());
@@ -666,11 +667,11 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
         DBDeviceContext dbCtx = (DBDeviceContext) tree.getContext();
 
         // Check if the database is online
-        if (dbCtx.getDBInterface().isOnline() == false)
+        if ( !dbCtx.getDBInterface().isOnline())
             throw new DiskOfflineException("Database is offline");
 
         // Check if the file loader is online
-        if (dbCtx.getFileLoader().isOnline() == false)
+        if ( !dbCtx.getFileLoader().isOnline())
             throw new DiskOfflineException("File loader is offline");
 
         //  Check if the file name is a stream
@@ -683,7 +684,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
 
         //  Get the file state for the path
         FileState fstate = getFileState(name, dbCtx, false);
-        if (fstate != null && fstate.fileExists() == false)
+        if (fstate != null && !fstate.fileExists())
             throw new FileNotFoundException("File does not exist, " + name);
 
         //  Create a file state for the file, if not already valid
@@ -697,7 +698,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
             //  Check if the file is within an active retention period
             getRetentionDetailsForState(dbCtx, fstate);
 
-            if (fstate.hasActiveRetentionPeriod())
+            if ( fstate != null && fstate.hasActiveRetentionPeriod())
                 throw new AccessDeniedException("File retention active");
 
             //  Get the file details
@@ -712,7 +713,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
 
             //  Delete the file in the filesystem/repository, the loader may prevent the file delete by throwing
             //  an exception
-            if (dbCtx.isTrashCanEnabled() == false)
+            if ( !dbCtx.isTrashCanEnabled())
                 dbCtx.getFileLoader().deleteFile(name, fstate.getFileId(), 0);
 
             //  If the file is a symbolic link delete the symbolic link record
@@ -736,7 +737,7 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
 
                     // Get the current stream details
                     StreamInfo sInfo = sList.getStreamAt(idx);
-                    if (sInfo.getName().equals(FileName.MainDataStreamName) == false) {
+                    if ( sInfo != null && !sInfo.getName().equals(FileName.MainDataStreamName)) {
 
                         // Build the full path to the stream
                         sPath.setLength(name.length());
@@ -1033,11 +1034,11 @@ public class DBDiskDriver implements DiskInterface, DiskSizeInterface, DiskVolum
         DBDeviceContext dbCtx = (DBDeviceContext) tree.getContext();
 
         // Check if the database is online
-        if (dbCtx.getDBInterface().isOnline() == false)
+        if ( !dbCtx.getDBInterface().isOnline())
             throw new DiskOfflineException("Database is offline");
 
         // Check if the file loader is online
-        if (dbCtx.getFileLoader().isOnline() == false)
+        if ( !dbCtx.getFileLoader().isOnline())
             throw new DiskOfflineException("File loader is offline");
 
         //  Get, or create, the file state

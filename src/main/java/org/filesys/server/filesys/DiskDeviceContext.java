@@ -52,7 +52,7 @@ public class DiskDeviceContext extends DeviceContext {
     //	Filesystem attributes, required to enable features such as compression and encryption
     private int m_filesysAttribs;
 
-    //	Disk device attributes, can be used to make the device appear as a removeable, read-only,
+    //	Disk device attributes, can be used to make the device appear as a removable, read-only,
     //	or write-once device for example.
     private int m_deviceAttribs;
 
