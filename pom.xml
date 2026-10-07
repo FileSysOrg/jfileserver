@@ -19,7 +19,7 @@
     </licenses>
 
     <properties>
-        <!-- Compile with Java 8, default is 5 -->
+        <!-- Compile with Java 11 -->
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
     </properties>
@@ -49,7 +49,7 @@
         <dependency>
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcprov-jdk18on</artifactId>
-            <version>1.84</version>
+            <version>1.86</version>
         </dependency>
 
         <!-- Google JSON -->
